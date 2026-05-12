@@ -118,11 +118,8 @@ def toc_detector_single_page(content, model=None):
 
     response = llm_completion(model=model, prompt=prompt)
     # print('response', response)
-    json_content = extract_json(response)
-    toc_detected = json_content.get("toc_detected")
-    if isinstance(toc_detected, str) and toc_detected.strip().lower() == "yes":
-        return "yes"
-    return "no"
+    json_content = extract_json(response)    
+    return json_content['toc_detected']
 
 
 def check_if_toc_extraction_is_complete(content, toc, model=None):
@@ -597,16 +594,6 @@ def process_no_toc(page_list, start_index=1, model=None, logger=None):
 
     return toc_with_page_number
 
-
-def fallback_page_toc(page_list, start_index=1):
-    return [
-        {
-            "title": f"Page {page_index}",
-            "physical_index": page_index,
-        }
-        for page_index in range(start_index, start_index + len(page_list))
-    ]
-
 def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_index=1, model=None, logger=None):
     page_contents=[]
     token_lengths=[]
@@ -1007,7 +994,7 @@ async def meta_processor(page_list, mode=None, toc_content=None, toc_page_list=N
         elif mode == 'process_toc_no_page_numbers':
             return await meta_processor(page_list, mode='process_no_toc', start_index=start_index, opt=opt, logger=logger)
         else:
-            return fallback_page_toc(page_list, start_index=start_index)
+            raise Exception('Processing failed')
         
  
 async def process_large_node_recursively(node, page_list, opt=None, logger=None):

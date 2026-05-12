@@ -9,6 +9,10 @@ from time import perf_counter
 
 from PyPDF2 import PdfReader
 
+from services.common.pageindex_runtime import configure_pageindex_runtime
+
+configure_pageindex_runtime()
+
 from pageindex.page_index import page_index
 from pageindex.page_index_md import md_to_tree
 from services.common.index_metrics import current_index_metrics, index_run_metrics

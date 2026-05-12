@@ -145,7 +145,7 @@ export default async function ChatPage({
       <section className="flex min-h-[calc(100vh-4.25rem)] flex-col overflow-hidden rounded-[2.25rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.58)] shadow-[0_28px_80px_rgba(65,88,130,0.14)] ring-1 ring-white/70 backdrop-blur-xl">
         <header className="border-b border-[var(--pi-border)] bg-[rgba(255,255,255,0.78)] px-6 py-5 backdrop-blur-xl md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--pi-brand)]">
-            PageIndex Chat
+            ReasonKB Chat
           </p>
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h1 className="text-3xl font-semibold text-[var(--pi-ink)] md:text-4xl">

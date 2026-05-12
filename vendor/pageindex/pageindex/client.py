@@ -11,7 +11,6 @@ from .page_index import page_index
 from .page_index_md import md_to_tree
 from .retrieve import get_document, get_document_structure, get_page_content
 from .utils import ConfigLoader, remove_fields
-from .env import configure_litellm_environment
 
 META_INDEX = "_meta.json"
 
@@ -35,8 +34,9 @@ class PageIndexClient:
     """
     def __init__(self, api_key: str = None, model: str = None, retrieve_model: str = None, workspace: str = None):
         if api_key:
-            os.environ["PAGEINDEX_LLM_API_KEY"] = api_key
-        configure_litellm_environment()
+            os.environ["OPENAI_API_KEY"] = api_key
+        elif not os.getenv("OPENAI_API_KEY") and os.getenv("CHATGPT_API_KEY"):
+            os.environ["OPENAI_API_KEY"] = os.getenv("CHATGPT_API_KEY")
         self.workspace = Path(workspace).expanduser() if workspace else None
         overrides = {}
         if model:

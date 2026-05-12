@@ -5,9 +5,12 @@ import logging
 import re
 from typing import Any
 
+from services.common.pageindex_runtime import configure_pageindex_runtime
 from pageindex.utils import ConfigLoader
 from services.common.sqlite_store import open_db
 from services.retrieval_api.select_documents import select_candidate_documents
+
+configure_pageindex_runtime()
 
 MAX_PAGE_RANGE_SIZE = 1000
 MAX_PAGE_SELECTION_SIZE = 1000

@@ -50,7 +50,7 @@ def _output_pdf_path(source_path: Path, document: dict) -> Path:
 
 
 def _request_gotenberg_conversion(source_path: Path) -> bytes:
-    boundary = "----PageIndexDemoOfficeBoundary"
+    boundary = "----ReasonKBOfficeBoundary"
     mime_type = mimetypes.guess_type(source_path.name)[0] or "application/octet-stream"
     body = b"".join(
         [

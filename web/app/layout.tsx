@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PageIndex",
+  title: "ReasonKB",
   description: "Project-centric knowledge chat workspace",
 };
 

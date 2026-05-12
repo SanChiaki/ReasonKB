@@ -31,12 +31,12 @@ export function SidebarNav({
       <div className="flex h-full flex-col">
         <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[var(--pi-border)] bg-white/76 px-3 py-3 shadow-[0_10px_30px_rgba(65,88,130,0.08)]">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--pi-border-strong)] bg-[var(--pi-brand)] text-sm font-semibold text-white shadow-[0_12px_28px_rgba(37,99,235,0.24)]">
-            PI
+            RK
           </div>
           {!collapsed ? (
             <div>
               <p className="text-sm font-semibold tracking-[0.02em] text-[var(--pi-ink)]">
-                PageIndex
+                ReasonKB
               </p>
               <p className="text-xs text-[var(--pi-muted)]">Knowledge Workspace</p>
             </div>
