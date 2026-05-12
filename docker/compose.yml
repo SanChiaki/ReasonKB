@@ -1,6 +1,8 @@
 services:
   web:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/web.sh"]
     ports:
       - "${WEB_PORT:-43170}:3000"
@@ -12,14 +14,16 @@ services:
       RETRIEVAL_API_BASE_URL: http://retrieval-api:8001
       PROJECTS_ROOT: /data/projects
     volumes:
-      - ./var:/app/var
-      - ${PROJECTS_ROOT:-./fixtures/projects}:/data/projects:ro
+      - ../.reasonkb/var:/app/var
+      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
 
   retrieval-api:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/retrieval-api.sh"]
     ports:
       - "${RETRIEVAL_API_PORT:-43171}:8001"
@@ -34,8 +38,8 @@ services:
       VISION_MODEL: ${VISION_MODEL:-}
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
     volumes:
-      - ./var:/app/var
-      - ${PROJECTS_ROOT:-./fixtures/projects}:/data/projects:ro
+      - ../.reasonkb/var:/app/var
+      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     healthcheck:
       test:
         [
@@ -48,7 +52,9 @@ services:
       start_period: 10s
 
   index-worker:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/index-worker.sh"]
     environment:
       APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
@@ -64,8 +70,8 @@ services:
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
     volumes:
-      - ./var:/app/var
-      - ${PROJECTS_ROOT:-./fixtures/projects}:/data/projects:ro
+      - ../.reasonkb/var:/app/var
+      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -73,7 +79,9 @@ services:
         condition: service_started
 
   directory-watcher:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/directory-watcher.sh"]
     environment:
       APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
@@ -83,8 +91,8 @@ services:
       PROJECTS_ROOT: /data/projects
       DIRECTORY_SCAN_INTERVAL_SECONDS: ${DIRECTORY_SCAN_INTERVAL_SECONDS:-5}
     volumes:
-      - ./var:/app/var
-      - ${PROJECTS_ROOT:-./fixtures/projects}:/data/projects:ro
+      - ../.reasonkb/var:/app/var
+      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy

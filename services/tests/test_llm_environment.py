@@ -1,6 +1,6 @@
 import os
 
-from pageindex.env import configure_litellm_environment
+from services.common.llm_environment import configure_litellm_environment
 
 
 def test_configure_litellm_environment_maps_pageindex_names(monkeypatch):

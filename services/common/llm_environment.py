@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 
@@ -10,3 +12,4 @@ def configure_litellm_environment() -> None:
     if base_url:
         os.environ["OPENAI_BASE_URL"] = base_url
         os.environ["OPENAI_API_BASE"] = base_url
+

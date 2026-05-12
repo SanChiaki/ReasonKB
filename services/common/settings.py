@@ -3,11 +3,11 @@ import os
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-VAR_ROOT = Path(os.getenv("APP_VAR_ROOT", REPO_ROOT / "var"))
+VAR_ROOT = Path(os.getenv("APP_VAR_ROOT", REPO_ROOT / ".reasonkb" / "var"))
 DB_PATH = Path(os.getenv("APP_DB_PATH", VAR_ROOT / "app.db"))
 UPLOAD_ROOT = Path(os.getenv("APP_UPLOAD_ROOT", VAR_ROOT / "uploads"))
 CONVERTED_ROOT = Path(os.getenv("APP_CONVERTED_ROOT", VAR_ROOT / "converted"))
-PROJECTS_ROOT = Path(os.getenv("PROJECTS_ROOT", REPO_ROOT / "fixtures" / "projects"))
+PROJECTS_ROOT = Path(os.getenv("PROJECTS_ROOT", REPO_ROOT / ".reasonkb" / "projects"))
 GOTENBERG_URL = os.getenv("GOTENBERG_URL", "http://gotenberg:3000")
 OFFICE_CONVERSION_TIMEOUT_SECONDS = float(os.getenv("OFFICE_CONVERSION_TIMEOUT_SECONDS", "120"))
 VISION_MODEL = os.getenv("VISION_MODEL")

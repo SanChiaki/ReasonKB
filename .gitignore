@@ -7,6 +7,4 @@ logs/
 node_modules/
 web/node_modules/
 web/.next/
-var/*
-!var/.gitkeep
-docs/diagrams/.qlpreview/
+.reasonkb/

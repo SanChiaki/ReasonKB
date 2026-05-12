@@ -1,7 +1,7 @@
 import path from "node:path";
 
 const repoRoot = path.resolve(process.cwd(), "..");
-const varRoot = process.env.APP_VAR_ROOT ?? path.join(repoRoot, "var");
+const varRoot = process.env.APP_VAR_ROOT ?? path.join(repoRoot, ".reasonkb", "var");
 
 export const appConfig = {
   repoRoot,

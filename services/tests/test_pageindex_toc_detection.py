@@ -1,5 +1,9 @@
 import importlib
 
+from services.common.pageindex_runtime import configure_pageindex_runtime
+
+configure_pageindex_runtime()
+
 page_index = importlib.import_module("pageindex.page_index")
 
 

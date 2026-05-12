@@ -8,8 +8,9 @@ import time
 from time import perf_counter
 from typing import Any, Callable
 
-from pageindex.env import configure_litellm_environment
 from services.common.index_metrics import current_index_metrics
+from services.common.llm_environment import configure_litellm_environment
+from services.common.pageindex_vendor import ensure_pageindex_vendor_path
 
 
 _CONFIGURED = False
@@ -17,6 +18,7 @@ _CONFIGURED = False
 
 def configure_pageindex_runtime() -> None:
     global _CONFIGURED
+    ensure_pageindex_vendor_path()
     configure_litellm_environment()
     if _CONFIGURED:
         return

@@ -2,21 +2,19 @@
 
 ReasonKB is a local project-centric knowledge chat service built around the latest upstream PageIndex core.
 
-The upstream PageIndex source is vendored under `vendor/pageindex` so it can be updated as a separate boundary. The application layer lives in `web/`, `services/`, `docker/`, and the thin root `pageindex/` compatibility package.
+The upstream PageIndex source is vendored under `vendor/pageindex` so it can be updated as a separate boundary. ReasonKB behavior lives outside the vendored tree.
 
 ## Repository Layout
 
 ```text
 vendor/pageindex/       Latest VectifyAI/PageIndex source snapshot
-pageindex/              Thin compatibility package and ReasonKB env bridge
 services/               FastAPI retrieval API, index worker, directory watcher
 web/                    Next.js project/document/chat UI
 docker/                 Container entrypoints
-fixtures/               Local project fixture mount point
-var/                    Runtime SQLite, uploads, converted evidence PDFs
+patches/pageindex/      Audit notes for required upstream patches
 ```
 
-Do not edit `vendor/pageindex/pageindex` for ReasonKB behavior. Put runtime integration in `services/common/pageindex_runtime.py`, env mapping in `pageindex/env.py`, and ReasonKB defaults in `services/common/pageindex_config.yaml`.
+Do not edit `vendor/pageindex/pageindex` for ReasonKB behavior. Put runtime integration in `services/common/pageindex_runtime.py`, env mapping in `services/common/llm_environment.py`, import-path setup in `services/common/pageindex_vendor.py`, and ReasonKB defaults in `services/common/pageindex_config.yaml`.
 
 ## Local Development
 
@@ -25,7 +23,7 @@ Install Python dependencies:
 ```bash
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install -r requirements.txt
+./.venv/bin/pip install -r services/requirements.txt
 ```
 
 Install web dependencies and migrate the SQLite schema:
@@ -50,7 +48,7 @@ Open `http://localhost:3000/projects`, create a project, upload PDF/Markdown/tex
 Run the full stack with a mounted project corpus:
 
 ```bash
-PROJECTS_ROOT=/absolute/path/to/projects docker compose up --build
+PROJECTS_ROOT=/absolute/path/to/projects docker compose -f docker/compose.yml up --build
 ```
 
 Default host ports:
@@ -86,7 +84,7 @@ VISION_EXTRACTION_ENABLED=true
 VISION_MODEL=gpt-4.1
 ```
 
-Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in `./var` unless overridden with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
+Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless overridden with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
 
 ## Tests
 
@@ -107,4 +105,4 @@ mkdir -p vendor/pageindex
 git archive upstream/main | tar -x -C vendor/pageindex
 ```
 
-Then run the Python and web tests before committing.
+Then check `patches/pageindex/`, run the Python and web tests, and commit only the vendor refresh plus any required ReasonKB integration changes.

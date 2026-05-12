@@ -9,7 +9,7 @@ web/.next
 web/coverage
 web/test-results
 web/playwright-report
-var
 var-e2e
+.reasonkb
 logs
 *.log

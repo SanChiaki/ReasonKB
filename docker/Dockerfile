@@ -11,10 +11,10 @@ RUN apt-get update \
 
 RUN corepack enable
 
-COPY requirements.txt ./
+COPY services/requirements.txt ./services/requirements.txt
 RUN python3 -m venv /opt/venv \
   && /opt/venv/bin/pip install --upgrade pip \
-  && /opt/venv/bin/pip install -r requirements.txt
+  && /opt/venv/bin/pip install -r services/requirements.txt
 
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
 RUN pnpm -C web install --frozen-lockfile

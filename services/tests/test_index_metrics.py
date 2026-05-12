@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 
 from services.common.index_metrics import index_run_metrics
+from services.common.pageindex_runtime import configure_pageindex_runtime
+
+configure_pageindex_runtime()
+
 from pageindex import utils
 
 
