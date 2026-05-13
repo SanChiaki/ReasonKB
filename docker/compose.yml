@@ -70,6 +70,7 @@ services:
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
       INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
+      INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-1}
     volumes:
       - ../.reasonkb/var:/app/var
       - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro

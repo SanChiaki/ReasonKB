@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import json
 import sqlite3
 from pathlib import Path
@@ -8,9 +9,14 @@ from services.common.sqlite_store import open_db
 from services.index_worker.index_document import process_document_job
 from services.index_worker.worker import (
     INDEX_JOB_TIMEOUT_SECONDS,
+    INDEX_WORKER_CONCURRENCY,
+    ActiveDocumentJob,
+    collect_finished_jobs,
     claim_next_job,
+    fail_orphaned_running_jobs,
     fail_document_job,
     run_document_job_with_timeout,
+    start_queued_jobs,
     sweep_stale_running_runs,
 )
 
@@ -61,6 +67,54 @@ def _seed_single_document_job_db(tmp_path: Path) -> Path:
             "2026-04-19T00:00:00Z",
         ),
     )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+def _seed_queued_document_jobs_db(tmp_path: Path, count: int) -> Path:
+    db_path = tmp_path / "app.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(_schema_sql())
+    conn.execute(
+        "INSERT INTO projects (id, owner_user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        ("proj_1", "user_demo", "Alpha", "2026-04-19T00:00:00Z", "2026-04-19T00:00:00Z"),
+    )
+    for index in range(count):
+        suffix = index + 1
+        created_at = f"2026-04-19T00:00:{suffix:02d}Z"
+        document_id = f"doc_{suffix}"
+        conn.execute(
+            """INSERT INTO documents
+               (id, project_id, owner_user_id, file_name, storage_path, mime_type, file_size, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                document_id,
+                "proj_1",
+                "user_demo",
+                f"doc-{suffix}.pdf",
+                str(tmp_path / f"doc-{suffix}.pdf"),
+                "application/pdf",
+                100 + suffix,
+                "uploaded",
+                created_at,
+                created_at,
+            ),
+        )
+        conn.execute(
+            """INSERT INTO jobs
+               (id, type, document_id, payload_json, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                f"job_{suffix}",
+                "document_index",
+                document_id,
+                json.dumps({"documentId": document_id}),
+                "queued",
+                created_at,
+                created_at,
+            ),
+        )
     conn.commit()
     conn.close()
     return db_path
@@ -483,77 +537,21 @@ def test_process_document_job_requires_running_document_index_job(tmp_path):
 
 
 def test_claim_next_job_claims_queued_jobs_in_order(tmp_path):
-    db_path = tmp_path / "app.db"
+    db_path = _seed_queued_document_jobs_db(tmp_path, 2)
     conn = sqlite3.connect(db_path)
-    conn.executescript(_schema_sql())
     conn.execute(
-        "INSERT INTO projects (id, owner_user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-        ("proj_1", "user_demo", "Alpha", "2026-04-19T00:00:00Z", "2026-04-19T00:00:00Z"),
-    )
-    conn.executemany(
-        """INSERT INTO documents
-           (id, project_id, owner_user_id, file_name, storage_path, mime_type, file_size, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        [
-            (
-                "doc_1",
-                "proj_1",
-                "user_demo",
-                "alpha.pdf",
-                str(tmp_path / "alpha.pdf"),
-                "application/pdf",
-                100,
-                "uploaded",
-                "2026-04-19T00:00:00Z",
-                "2026-04-19T00:00:00Z",
-            ),
-            (
-                "doc_2",
-                "proj_1",
-                "user_demo",
-                "beta.pdf",
-                str(tmp_path / "beta.pdf"),
-                "application/pdf",
-                120,
-                "uploaded",
-                "2026-04-19T00:00:01Z",
-                "2026-04-19T00:00:01Z",
-            ),
-        ],
-    )
-    conn.executemany(
         """INSERT INTO jobs
            (id, type, document_id, payload_json, status, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        [
-            (
-                "job_1",
-                "document_index",
-                "doc_1",
-                json.dumps({"documentId": "doc_1"}),
-                "queued",
-                "2026-04-19T00:00:00Z",
-                "2026-04-19T00:00:00Z",
-            ),
-            (
-                "job_2",
-                "document_index",
-                "doc_2",
-                json.dumps({"documentId": "doc_2"}),
-                "queued",
-                "2026-04-19T00:00:01Z",
-                "2026-04-19T00:00:01Z",
-            ),
-            (
-                "job_3",
-                "other_job",
-                "doc_2",
-                json.dumps({"documentId": "doc_2"}),
-                "queued",
-                "2026-04-19T00:00:02Z",
-                "2026-04-19T00:00:02Z",
-            ),
-        ],
+        (
+            "job_3",
+            "other_job",
+            "doc_2",
+            json.dumps({"documentId": "doc_2"}),
+            "queued",
+            "2026-04-19T00:00:03Z",
+            "2026-04-19T00:00:03Z",
+        ),
     )
     conn.commit()
     conn.close()
@@ -578,6 +576,151 @@ def test_claim_next_job_claims_queued_jobs_in_order(tmp_path):
     assert doc_rows == [("doc_1", "indexing"), ("doc_2", "indexing")]
 
 
+def test_claim_next_job_does_not_duplicate_concurrent_claims(tmp_path):
+    db_path = _seed_queued_document_jobs_db(tmp_path, 8)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        claimed = list(executor.map(lambda _: claim_next_job(str(db_path)), range(8)))
+
+    conn = sqlite3.connect(db_path)
+    running_jobs = conn.execute(
+        "SELECT id FROM jobs WHERE status = 'running' ORDER BY id"
+    ).fetchall()
+    conn.close()
+
+    assert sorted(claimed) == [f"job_{index}" for index in range(1, 9)]
+    assert [row[0] for row in running_jobs] == [f"job_{index}" for index in range(1, 9)]
+
+
+def test_start_queued_jobs_respects_available_slots(monkeypatch):
+    claimed_jobs = iter(["job_1", "job_2", "job_3"])
+    started = []
+
+    monkeypatch.setattr(
+        "services.index_worker.worker.claim_next_job",
+        lambda db_path: next(claimed_jobs, None),
+    )
+
+    class FakeProcess:
+        def __init__(self, job_id):
+            self.job_id = job_id
+
+    def fake_start(db_path, job_id):
+        started.append(job_id)
+        return FakeProcess(job_id)
+
+    monkeypatch.setattr("services.index_worker.worker.start_document_job", fake_start)
+
+    active_jobs = {"job_existing": FakeProcess("job_existing")}
+
+    assert start_queued_jobs("app.db", active_jobs, concurrency=3) == 2
+    assert list(active_jobs.keys()) == ["job_existing", "job_1", "job_2"]
+    assert started == ["job_1", "job_2"]
+
+
+def test_collect_finished_jobs_records_child_exception_message(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+
+    class FakeQueue:
+        def get(self, timeout=None):
+            return ("ValueError", "bad document")
+
+    class FakeProcess:
+        exitcode = 1
+
+        def join(self, timeout=None):
+            return None
+
+        def is_alive(self):
+            return False
+
+    active_jobs = {
+        "job_1": ActiveDocumentJob(
+            process=FakeProcess(),
+            error_queue=FakeQueue(),
+            started_at=0,
+        )
+    }
+
+    assert collect_finished_jobs(str(db_path), active_jobs) == 1
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute("SELECT status, error_message FROM jobs WHERE id = 'job_1'").fetchone()
+    document = conn.execute("SELECT status, error_message FROM documents WHERE id = 'doc_1'").fetchone()
+    conn.close()
+
+    assert active_jobs == {}
+    assert job == ("failed", "ValueError: bad document")
+    assert document == ("failed", "ValueError: bad document")
+
+
+def test_stop_active_jobs_terminates_running_children():
+    events = []
+
+    class FakeProcess:
+        def __init__(self):
+            self.alive = True
+
+        def is_alive(self):
+            return self.alive
+
+        def terminate(self):
+            events.append("terminate")
+
+        def join(self, timeout=None):
+            events.append(("join", timeout))
+            if timeout == 5:
+                self.alive = False
+
+        def kill(self):
+            events.append("kill")
+            self.alive = False
+
+    from services.index_worker.worker import stop_active_jobs
+
+    active_jobs = {
+        "job_1": ActiveDocumentJob(
+            process=FakeProcess(),
+            error_queue=None,
+            started_at=0,
+        )
+    }
+
+    stop_active_jobs(active_jobs)
+
+    assert active_jobs == {}
+    assert events == ["terminate", ("join", 5)]
+
+
+def test_fail_orphaned_running_jobs_records_restart_reason(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO document_index_runs (
+          id, document_id, job_id, status, started_at
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        ("run_1", "doc_1", "job_1", "running", "2026-04-19T00:00:00Z"),
+    )
+    conn.commit()
+    conn.close()
+
+    assert fail_orphaned_running_jobs(str(db_path)) == 1
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute("SELECT status, error_message FROM jobs WHERE id = 'job_1'").fetchone()
+    document = conn.execute("SELECT status, error_message FROM documents WHERE id = 'doc_1'").fetchone()
+    run = conn.execute("SELECT status, error_message FROM document_index_runs WHERE id = 'run_1'").fetchone()
+    conn.close()
+
+    assert job[0] == "failed"
+    assert "left running by a previous worker process" in job[1]
+    assert document[0] == "failed"
+    assert document[1] == job[1]
+    assert run == ("failed", job[1])
+
+
 def test_run_document_job_with_timeout_raises_timeout(monkeypatch):
     def never_finishes(db_path: str, job_id: str):
         import time
@@ -592,6 +735,10 @@ def test_run_document_job_with_timeout_raises_timeout(monkeypatch):
 
 def test_index_job_timeout_default_is_long_enough_for_large_documents():
     assert INDEX_JOB_TIMEOUT_SECONDS == 1800
+
+
+def test_index_worker_concurrency_defaults_to_serial_processing():
+    assert INDEX_WORKER_CONCURRENCY == 1
 
 
 def test_fail_document_job_records_failed_run_reason(tmp_path):

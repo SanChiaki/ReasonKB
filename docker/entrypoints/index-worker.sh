@@ -1,3 +1,3 @@
 set -eu
 
-python -m services.index_worker.worker
+exec python -m services.index_worker.worker
