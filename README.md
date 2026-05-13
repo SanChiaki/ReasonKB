@@ -86,6 +86,8 @@ VISION_MODEL=gpt-4.1
 
 Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless overridden with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
 
+System settings can be changed at `http://localhost:43170/settings`. Runtime settings are stored in SQLite and take precedence over `.env` defaults. `INDEX_WORKER_CONCURRENCY` remains the startup default for document indexing concurrency when no runtime value has been saved yet.
+
 ## Tests
 
 ```bash

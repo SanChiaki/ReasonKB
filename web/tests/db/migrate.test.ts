@@ -38,6 +38,7 @@ describe("migrateDatabase", () => {
         "conversation_projects",
         "conversation_messages",
         "jobs",
+        "system_settings",
       ]),
     );
 

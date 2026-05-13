@@ -8,6 +8,7 @@ from typing import Any
 
 from services.common.settings import DB_PATH, INDEX_JOB_TIMEOUT_SECONDS, INDEX_WORKER_CONCURRENCY
 from services.common.sqlite_store import open_db
+from services.common.system_settings import get_index_worker_concurrency
 from services.index_worker.index_document import process_document_job
 
 
@@ -318,7 +319,15 @@ def run_forever(
     try:
         while True:
             collect_finished_jobs(str(DB_PATH), active_jobs)
-            started_count = start_queued_jobs(str(DB_PATH), active_jobs, concurrency=max(1, concurrency))
+            runtime_concurrency = get_index_worker_concurrency(
+                str(DB_PATH),
+                default=concurrency,
+            )
+            started_count = start_queued_jobs(
+                str(DB_PATH),
+                active_jobs,
+                concurrency=runtime_concurrency,
+            )
             if started_count == 0:
                 time.sleep(poll_seconds)
     finally:

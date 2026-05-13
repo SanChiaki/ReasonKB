@@ -21,7 +21,7 @@ describe("SidebarNav", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders settings and theme controls in a footer region", () => {
+  it("renders settings navigation and theme control", () => {
     render(
       <SidebarNav
         collapsed={false}
@@ -30,15 +30,17 @@ describe("SidebarNav", () => {
       />,
     );
 
+    expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+
     const controls = screen.getByRole("contentinfo", {
       name: /sidebar controls/i,
     });
 
     expect(
       within(controls).getByRole("button", { name: /theme/i }),
-    ).toBeInTheDocument();
-    expect(
-      within(controls).getByRole("button", { name: /settings/i }),
     ).toBeInTheDocument();
   });
 });

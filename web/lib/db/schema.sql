@@ -120,6 +120,12 @@ CREATE TABLE IF NOT EXISTS jobs (
   FOREIGN KEY(document_id) REFERENCES documents(id)
 );
 
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_projects_owner_updated
   ON projects(owner_user_id, updated_at DESC);
 

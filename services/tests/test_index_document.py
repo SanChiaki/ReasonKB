@@ -741,6 +741,50 @@ def test_index_worker_concurrency_defaults_to_serial_processing():
     assert INDEX_WORKER_CONCURRENCY == 1
 
 
+def test_run_forever_reloads_runtime_concurrency(monkeypatch):
+    concurrency_values = iter([1, 3])
+    observed_concurrency = []
+    sleep_count = 0
+
+    monkeypatch.setattr(
+        "services.index_worker.worker.fail_orphaned_running_jobs",
+        lambda db_path: 0,
+    )
+    monkeypatch.setattr(
+        "services.index_worker.worker.sweep_stale_running_runs",
+        lambda db_path: 0,
+    )
+    monkeypatch.setattr(
+        "services.index_worker.worker.collect_finished_jobs",
+        lambda db_path, active_jobs: 0,
+    )
+    monkeypatch.setattr(
+        "services.index_worker.worker.get_index_worker_concurrency",
+        lambda db_path, default: next(concurrency_values),
+    )
+
+    def fake_start_queued_jobs(db_path, active_jobs, concurrency):
+        observed_concurrency.append(concurrency)
+        return 0
+
+    def fake_sleep(seconds):
+        nonlocal sleep_count
+        sleep_count += 1
+        if sleep_count == 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr("services.index_worker.worker.start_queued_jobs", fake_start_queued_jobs)
+    monkeypatch.setattr("services.index_worker.worker.time.sleep", fake_sleep)
+    monkeypatch.setattr("services.index_worker.worker.stop_active_jobs", lambda active_jobs, db_path=None: None)
+
+    with pytest.raises(KeyboardInterrupt):
+        from services.index_worker.worker import run_forever
+
+        run_forever(poll_seconds=0, concurrency=1)
+
+    assert observed_concurrency == [1, 3]
+
+
 def test_fail_document_job_records_failed_run_reason(tmp_path):
     db_path = _seed_single_document_job_db(tmp_path)
     conn = sqlite3.connect(db_path)

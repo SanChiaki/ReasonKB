@@ -73,6 +73,14 @@ export function SidebarNav({
           >
             {collapsed ? "P" : "Projects"}
           </Link>
+          <Link
+            href="/settings"
+            className={`block rounded-2xl border border-[var(--pi-border)] bg-white/64 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white ${
+              collapsed ? "px-0 py-3 text-center" : "px-4 py-3"
+            }`}
+          >
+            {collapsed ? "S" : "Settings"}
+          </Link>
         </nav>
 
         <section className="mt-6 flex min-h-0 flex-1 flex-col">
@@ -92,14 +100,7 @@ export function SidebarNav({
           aria-label="Sidebar controls"
           className="mt-auto border-t border-[var(--pi-border)] pt-4"
         >
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              aria-label="Open settings"
-              className="rounded-xl border border-[var(--pi-border)] bg-white/64 px-3 py-2 text-xs font-medium text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white"
-            >
-              {collapsed ? "S" : "Settings"}
-            </button>
+          <div className="grid grid-cols-1 gap-2">
             <button
               type="button"
               aria-label="Switch theme"
