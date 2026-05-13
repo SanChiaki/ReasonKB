@@ -3,6 +3,8 @@ export type DocumentTableRow = {
   fileName: string;
   pageCount: number;
   status: string;
+  errorMessage?: string | null;
+  importError?: string | null;
   createdAt: string;
   sourceRelativePath?: string | null;
   projectRelativePath?: string | null;
@@ -88,7 +90,14 @@ export function DocumentTable({
               documents.map((document) => (
                 <tr key={document.id} className="border-b border-[var(--pi-border)]/70 last:border-0">
                   <td className="px-5 py-4 font-medium text-[var(--pi-ink)]">
-                    {document.fileName}
+                    <div className="flex max-w-[24rem] flex-col gap-1">
+                      <span>{document.fileName}</span>
+                      {document.errorMessage || document.importError ? (
+                        <span className="line-clamp-2 text-xs font-normal text-[var(--pi-danger,#b91c1c)]">
+                          {document.errorMessage ?? document.importError}
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="max-w-[22rem] px-5 py-4 text-xs text-[var(--pi-muted)]">
                     <span className="block truncate" title={document.sourceRelativePath ?? document.projectRelativePath ?? ""}>

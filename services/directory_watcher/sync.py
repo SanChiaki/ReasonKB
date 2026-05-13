@@ -21,6 +21,7 @@ SUPPORTED_MEDIA_BY_EXTENSION = {
     ".docx": "office",
     ".xls": "office",
     ".xlsx": "office",
+    ".xlsm": "office",
     ".ppt": "office",
     ".pptx": "office",
     ".md": "markdown",

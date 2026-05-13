@@ -69,6 +69,7 @@ services:
       VISION_MODEL: ${VISION_MODEL:-}
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
+      INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
     volumes:
       - ../.reasonkb/var:/app/var
       - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro

@@ -99,6 +99,7 @@ function isOfficeDocument(mimeType: string, lowerName: string) {
     lowerName.endsWith(".docx") ||
     lowerName.endsWith(".xls") ||
     lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xlsm") ||
     lowerName.endsWith(".ppt") ||
     lowerName.endsWith(".pptx")
   ) {
@@ -109,6 +110,7 @@ function isOfficeDocument(mimeType: string, lowerName: string) {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.ms-excel",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel.sheet.macroEnabled.12",
     "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   ].includes(mimeType);
@@ -165,6 +167,7 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
   const rows = db
     .prepare(
       `SELECT id, file_name, page_count, status, created_at, updated_at,
+              error_message,
               source_kind, source_relative_path, project_relative_path,
               media_type, import_status, import_error,
               last_index_duration_ms, last_index_total_tokens,
@@ -179,6 +182,7 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
     file_name: string;
     page_count: number | null;
     status: string;
+    error_message: string | null;
     created_at: string;
     updated_at: string;
     source_kind: string;
@@ -199,6 +203,7 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
     fileName: row.file_name,
     pageCount: row.page_count ?? 0,
     status: row.status,
+    errorMessage: row.error_message,
     sourceKind: row.source_kind,
     sourceRelativePath: row.source_relative_path,
     projectRelativePath: row.project_relative_path,

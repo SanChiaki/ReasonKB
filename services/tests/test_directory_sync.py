@@ -89,6 +89,7 @@ def test_sync_once_imports_office_files_and_queues_jobs(tmp_path):
     (root / "ProjectA" / "office").mkdir(parents=True)
     (root / "ProjectA" / "office" / "scope.docx").write_bytes(b"docx")
     (root / "ProjectA" / "office" / "budget.xls").write_bytes(b"xls")
+    (root / "ProjectA" / "office" / "macro.xlsm").write_bytes(b"xlsm")
     (root / "ProjectA" / "office" / "deck.ppt").write_bytes(b"ppt")
 
     summary = sync_once(str(db_path), root)
@@ -104,13 +105,14 @@ def test_sync_once_imports_office_files_and_queues_jobs(tmp_path):
     job_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
     conn.close()
 
-    assert summary == {"created": 3, "updated": 0, "unchanged": 0, "deleted": 0, "skipped": 0}
+    assert summary == {"created": 4, "updated": 0, "unchanged": 0, "deleted": 0, "skipped": 0}
     assert documents == [
         ("budget.xls", "office", "imported", "uploaded"),
         ("deck.ppt", "office", "imported", "uploaded"),
+        ("macro.xlsm", "office", "imported", "uploaded"),
         ("scope.docx", "office", "imported", "uploaded"),
     ]
-    assert job_count == 3
+    assert job_count == 4
 
 
 def test_sync_once_requeues_changed_files_and_marks_missing_files_deleted(tmp_path):

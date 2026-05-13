@@ -34,6 +34,7 @@ function inferUploadKind(file: File) {
     lowerName.endsWith(".docx") ||
     lowerName.endsWith(".xls") ||
     lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xlsm") ||
     lowerName.endsWith(".ppt") ||
     lowerName.endsWith(".pptx") ||
     [
@@ -41,6 +42,7 @@ function inferUploadKind(file: File) {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel.sheet.macroEnabled.12",
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ].includes(file.type)

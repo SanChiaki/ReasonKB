@@ -295,6 +295,12 @@ describe("task2 route hardening", () => {
         type: "application/vnd.ms-excel",
       }),
     );
+    form.append(
+      "files",
+      new File([Buffer.from("macro spreadsheet")], "macro.xlsm", {
+        type: "application/vnd.ms-excel.sheet.macroEnabled.12",
+      }),
+    );
 
     const response = await POST(
       {
@@ -321,12 +327,18 @@ describe("task2 route hardening", () => {
     expect(json.uploaded.map((item: { fileName: string }) => item.fileName)).toEqual([
       "scope.docx",
       "budget.xls",
+      "macro.xlsm",
     ]);
     expect(documents).toEqual([
       {
         file_name: "budget.xls",
         media_type: "office",
         mime_type: "application/vnd.ms-excel",
+      },
+      {
+        file_name: "macro.xlsm",
+        media_type: "office",
+        mime_type: "application/vnd.ms-excel.sheet.macroenabled.12",
       },
       {
         file_name: "scope.docx",

@@ -6,7 +6,13 @@ import pytest
 
 from services.common.sqlite_store import open_db
 from services.index_worker.index_document import process_document_job
-from services.index_worker.worker import claim_next_job
+from services.index_worker.worker import (
+    INDEX_JOB_TIMEOUT_SECONDS,
+    claim_next_job,
+    fail_document_job,
+    run_document_job_with_timeout,
+    sweep_stale_running_runs,
+)
 
 
 def _schema_sql() -> str:
@@ -570,6 +576,99 @@ def test_claim_next_job_claims_queued_jobs_in_order(tmp_path):
         ("job_3", "queued", 0),
     ]
     assert doc_rows == [("doc_1", "indexing"), ("doc_2", "indexing")]
+
+
+def test_run_document_job_with_timeout_raises_timeout(monkeypatch):
+    def never_finishes(db_path: str, job_id: str):
+        import time
+
+        time.sleep(1)
+
+    monkeypatch.setattr("services.index_worker.worker.process_document_job", never_finishes)
+
+    with pytest.raises(TimeoutError, match="timed out"):
+        run_document_job_with_timeout("app.db", "job_1", timeout_seconds=0.05)
+
+
+def test_index_job_timeout_default_is_long_enough_for_large_documents():
+    assert INDEX_JOB_TIMEOUT_SECONDS == 1800
+
+
+def test_fail_document_job_records_failed_run_reason(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO document_index_runs (
+          id, document_id, job_id, status, started_at
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        ("run_1", "doc_1", "job_1", "running", "2026-04-19T00:00:00Z"),
+    )
+    conn.commit()
+    conn.close()
+
+    fail_document_job(str(db_path), "job_1", "Document index job job_1 timed out after 1800 seconds")
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute(
+        "SELECT status, error_message, finished_at FROM jobs WHERE id = 'job_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, error_message FROM documents WHERE id = 'doc_1'"
+    ).fetchone()
+    run = conn.execute(
+        """
+        SELECT status, finished_at, duration_ms, error_message
+          FROM document_index_runs
+         WHERE id = 'run_1'
+        """
+    ).fetchone()
+    conn.close()
+
+    expected_error = "Document index job job_1 timed out after 1800 seconds"
+    assert job[0] == "failed"
+    assert job[1] == expected_error
+    assert job[2] is not None
+    assert document == ("failed", expected_error)
+    assert run[0] == "failed"
+    assert run[1] is not None
+    assert run[2] >= 0
+    assert run[3] == expected_error
+
+
+def test_sweep_stale_running_runs_records_failed_job_reason(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        UPDATE jobs
+           SET status = 'failed',
+               error_message = 'previous timeout',
+               finished_at = '2026-04-19T00:05:00Z'
+         WHERE id = 'job_1'
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO document_index_runs (
+          id, document_id, job_id, status, started_at
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        ("run_1", "doc_1", "job_1", "running", "2026-04-19T00:00:00Z"),
+    )
+    conn.commit()
+    conn.close()
+
+    assert sweep_stale_running_runs(str(db_path)) == 1
+
+    conn = sqlite3.connect(db_path)
+    run = conn.execute(
+        "SELECT status, finished_at, duration_ms, error_message FROM document_index_runs WHERE id = 'run_1'"
+    ).fetchone()
+    conn.close()
+
+    assert run == ("failed", "2026-04-19T00:05:00Z", 300000, "previous timeout")
 
 
 def test_open_db_enables_foreign_keys_and_busy_timeout(tmp_path):

@@ -8,6 +8,9 @@ def test_root_layout_keeps_product_boundary_small():
     allowed_entries = {
         ".dockerignore",
         ".gitignore",
+        ".reasonkb",
+        ".venv",
+        "AGENTS.md",
         "README.md",
         "docker",
         "LICENSE",
