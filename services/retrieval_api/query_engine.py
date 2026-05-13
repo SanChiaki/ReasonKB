@@ -7,6 +7,7 @@ from typing import Any
 
 from services.common.pageindex_runtime import configure_pageindex_runtime
 from services.common.sqlite_store import open_db
+from services.common.system_settings import get_retrieval_document_limit
 from services.retrieval_api.select_documents import select_candidate_documents
 
 configure_pageindex_runtime()
@@ -16,6 +17,7 @@ from pageindex.utils import ConfigLoader
 MAX_PAGE_RANGE_SIZE = 1000
 MAX_PAGE_SELECTION_SIZE = 1000
 MAX_PARALLEL_DOCUMENT_RETRIEVALS = 5
+DEFAULT_RETRIEVAL_DOCUMENT_LIMIT = 5
 logger = logging.getLogger(__name__)
 
 
@@ -478,7 +480,10 @@ def answer_question(
     selected = select_candidate_documents(
         query,
         docs,
-        limit=5,
+        limit=get_retrieval_document_limit(
+            db_path,
+            default=DEFAULT_RETRIEVAL_DOCUMENT_LIMIT,
+        ),
         model=_get_retrieval_model(),
     )
     if not selected:

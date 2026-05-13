@@ -20,14 +20,31 @@ afterEach(() => {
 });
 
 describe("SystemSettingsForm", () => {
-  it("saves index worker concurrency", async () => {
+  it("saves runtime settings", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ settings: { indexWorkerConcurrency: 4 } })));
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            settings: {
+              indexWorkerConcurrency: 4,
+              retrievalDocumentLimit: 12,
+            },
+          }),
+        ),
+      );
 
-    render(<SystemSettingsForm initialIndexWorkerConcurrency={2} />);
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+      />,
+    );
     fireEvent.change(screen.getByLabelText(/concurrent jobs/i), {
       target: { value: "4" },
+    });
+    fireEvent.change(screen.getByLabelText(/retrieval documents/i), {
+      target: { value: "12" },
     });
     fireEvent.click(screen.getByRole("button", { name: /save settings/i }));
 
@@ -36,7 +53,10 @@ describe("SystemSettingsForm", () => {
       "/api/admin/settings",
       expect.objectContaining({
         method: "PATCH",
-        body: JSON.stringify({ indexWorkerConcurrency: 4 }),
+        body: JSON.stringify({
+          indexWorkerConcurrency: 4,
+          retrievalDocumentLimit: 12,
+        }),
       }),
     );
     expect(routerMocks.refresh).toHaveBeenCalledTimes(1);

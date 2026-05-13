@@ -8,6 +8,7 @@ import {
 
 const schema = z.object({
   indexWorkerConcurrency: z.number().int().min(1).max(16).optional(),
+  retrievalDocumentLimit: z.number().int().min(1).max(50).optional(),
 });
 
 const defaults = {
@@ -15,6 +16,7 @@ const defaults = {
     process.env.INDEX_WORKER_CONCURRENCY ?? "1",
     10,
   ),
+  retrievalDocumentLimit: 5,
 };
 
 export async function GET() {

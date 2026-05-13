@@ -13,6 +13,7 @@ const defaults = {
     process.env.INDEX_WORKER_CONCURRENCY ?? "1",
     10,
   ),
+  retrievalDocumentLimit: 5,
 };
 
 export default async function SettingsPage() {
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
 
         <SystemSettingsForm
           initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
+          initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}
         />
       </section>
     </AppShell>

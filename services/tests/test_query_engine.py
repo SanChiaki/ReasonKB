@@ -183,6 +183,54 @@ def test_answer_question_searches_all_projects_when_project_ids_are_empty(
     ]
 
 
+def test_answer_question_uses_configured_retrieval_document_limit(tmp_path, monkeypatch):
+    db_path = _seed_retrieval_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO system_settings (key, value_json, updated_at)
+        VALUES (?, ?, ?)
+        """,
+        ("retrievalDocumentLimit", "3", "2026-05-13T00:00:00Z"),
+    )
+    conn.commit()
+    conn.close()
+    for index in range(4):
+        _insert_ready_document(
+            db_path,
+            document_id=f"doc_{index}",
+            file_name=f"doc-{index}.pdf",
+            doc_description="handover evidence",
+            structure_json=json.dumps([{"title": f"Doc {index}"}]),
+            pages_json=json.dumps([{"page": 1, "content": f"evidence {index}"}]),
+        )
+
+    captured_limits: list[int] = []
+
+    def fake_select_candidate_documents(query, docs, limit=5, model=None):
+        captured_limits.append(limit)
+        return docs[:1]
+
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.select_candidate_documents",
+        fake_select_candidate_documents,
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.choose_page_window",
+        lambda _query, _doc: "1",
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine._load_page_excerpt",
+        lambda document, _pages: [
+            {"page": 1, "content": f"evidence for {document['id']}"}
+        ],
+    )
+
+    answer_question(str(db_path), "handover evidence", ["proj_1"], mode="evidence")
+
+    assert captured_limits == [3]
+
+
 def test_answer_question_falls_back_when_llm_pages_are_invalid(tmp_path, monkeypatch):
     db_path = _seed_retrieval_db(tmp_path)
     _insert_ready_document(

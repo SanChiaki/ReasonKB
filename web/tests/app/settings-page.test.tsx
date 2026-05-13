@@ -31,7 +31,10 @@ describe("SettingsPage", () => {
       listConversations: () => [],
     }));
     vi.doMock("@/lib/repos/system-settings-store", () => ({
-      getSystemSettings: () => ({ indexWorkerConcurrency: 3 }),
+      getSystemSettings: () => ({
+        indexWorkerConcurrency: 3,
+        retrievalDocumentLimit: 12,
+      }),
     }));
     vi.doMock("@/components/app-shell", () => ({
       AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -42,5 +45,6 @@ describe("SettingsPage", () => {
 
     expect(screen.getByRole("heading", { name: /system settings/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/concurrent jobs/i)).toHaveValue(3);
+    expect(screen.getByLabelText(/retrieval documents/i)).toHaveValue(12);
   });
 });

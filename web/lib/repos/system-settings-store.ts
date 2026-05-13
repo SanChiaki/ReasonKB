@@ -2,11 +2,17 @@ import Database from "better-sqlite3";
 
 export type SystemSettings = {
   indexWorkerConcurrency: number;
+  retrievalDocumentLimit: number;
 };
 
-type SystemSettingsDefaults = Pick<SystemSettings, "indexWorkerConcurrency">;
+type SystemSettingsDefaults = SystemSettings;
 
 const INDEX_WORKER_CONCURRENCY_KEY = "indexWorkerConcurrency";
+const RETRIEVAL_DOCUMENT_LIMIT_KEY = "retrievalDocumentLimit";
+const FALLBACK_DEFAULTS: SystemSettingsDefaults = {
+  indexWorkerConcurrency: 1,
+  retrievalDocumentLimit: 5,
+};
 const CREATE_SYSTEM_SETTINGS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS system_settings (
     key TEXT PRIMARY KEY,
@@ -27,6 +33,16 @@ function normalizeIndexWorkerConcurrency(value: unknown) {
   }
   if (value < 1 || value > 16) {
     throw new Error("Index worker concurrency must be between 1 and 16.");
+  }
+  return value;
+}
+
+function normalizeRetrievalDocumentLimit(value: unknown) {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new Error("Retrieval document limit must be an integer.");
+  }
+  if (value < 1 || value > 50) {
+    throw new Error("Retrieval document limit must be between 1 and 50.");
   }
   return value;
 }
@@ -58,16 +74,22 @@ function readSetting(db: InstanceType<typeof Database>, key: string) {
 
 export function getSystemSettings(
   dbPath: string,
-  defaults: SystemSettingsDefaults,
+  defaults: Partial<SystemSettingsDefaults> = {},
 ): SystemSettings {
+  const normalizedDefaults = { ...FALLBACK_DEFAULTS, ...defaults };
   const db = open(dbPath);
   try {
     const savedConcurrency = readSetting(db, INDEX_WORKER_CONCURRENCY_KEY);
+    const savedRetrievalDocumentLimit = readSetting(db, RETRIEVAL_DOCUMENT_LIMIT_KEY);
     return {
       indexWorkerConcurrency:
         savedConcurrency === undefined
-          ? defaults.indexWorkerConcurrency
+          ? normalizedDefaults.indexWorkerConcurrency
           : normalizeIndexWorkerConcurrency(savedConcurrency),
+      retrievalDocumentLimit:
+        savedRetrievalDocumentLimit === undefined
+          ? normalizedDefaults.retrievalDocumentLimit
+          : normalizeRetrievalDocumentLimit(savedRetrievalDocumentLimit),
     };
   } finally {
     db.close();
@@ -77,7 +99,7 @@ export function getSystemSettings(
 export function updateSystemSettings(
   dbPath: string,
   updates: Partial<SystemSettings>,
-  defaults: SystemSettingsDefaults = { indexWorkerConcurrency: 1 },
+  defaults: Partial<SystemSettingsDefaults> = FALLBACK_DEFAULTS,
 ): SystemSettings {
   const db = open(dbPath);
   const now = new Date().toISOString();
@@ -93,6 +115,16 @@ export function updateSystemSettings(
              value_json = excluded.value_json,
              updated_at = excluded.updated_at`,
         ).run(INDEX_WORKER_CONCURRENCY_KEY, JSON.stringify(value), now);
+      }
+      if (updates.retrievalDocumentLimit !== undefined) {
+        const value = normalizeRetrievalDocumentLimit(updates.retrievalDocumentLimit);
+        db.prepare(
+          `INSERT INTO system_settings (key, value_json, updated_at)
+           VALUES (?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET
+             value_json = excluded.value_json,
+             updated_at = excluded.updated_at`,
+        ).run(RETRIEVAL_DOCUMENT_LIMIT_KEY, JSON.stringify(value), now);
       }
     });
     transaction();

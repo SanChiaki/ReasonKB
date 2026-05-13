@@ -30,6 +30,7 @@ describe("system settings store", () => {
 
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 3 })).toEqual({
       indexWorkerConcurrency: 3,
+      retrievalDocumentLimit: 5,
     });
   });
 
@@ -38,11 +39,14 @@ describe("system settings store", () => {
 
     const saved = updateSystemSettings(dbPath, {
       indexWorkerConcurrency: 4,
+      retrievalDocumentLimit: 12,
     });
 
     expect(saved.indexWorkerConcurrency).toBe(4);
+    expect(saved.retrievalDocumentLimit).toBe(12);
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
       indexWorkerConcurrency: 4,
+      retrievalDocumentLimit: 12,
     });
   });
 
@@ -54,6 +58,7 @@ describe("system settings store", () => {
 
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 2 })).toEqual({
       indexWorkerConcurrency: 2,
+      retrievalDocumentLimit: 5,
     });
   });
 
@@ -68,6 +73,7 @@ describe("system settings store", () => {
     ).toBe(6);
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
       indexWorkerConcurrency: 6,
+      retrievalDocumentLimit: 5,
     });
   });
 });
