@@ -48,7 +48,18 @@ Open `http://localhost:3000/projects`, create a project, upload PDF/Markdown/tex
 Run the full stack with a mounted project corpus:
 
 ```bash
-PROJECTS_ROOT=/absolute/path/to/projects docker compose -f docker/compose.yml up --build
+REASONKB_PROJECTS_ROOT=/absolute/path/to/projects docker compose -f docker/compose.yml up --build
+```
+
+The retrieval API and index worker load deployment defaults from the repository
+root `.env` file. Keep `PAGEINDEX_LLM_API_KEY` and `PAGEINDEX_LLM_BASE_URL`
+there, or point `REASONKB_ENV_FILE` at another service env file.
+
+For worktree-based development, keep runtime data outside individual worktrees:
+
+```bash
+REASONKB_VAR_ROOT=/absolute/path/to/reasonkb/var
+REASONKB_PROJECTS_ROOT=/absolute/path/to/reasonkb/projects
 ```
 
 Default host ports:
@@ -84,7 +95,7 @@ VISION_EXTRACTION_ENABLED=true
 VISION_MODEL=gpt-4.1
 ```
 
-Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless overridden with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
+Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless the host mount is overridden with `REASONKB_VAR_ROOT`. Container-internal paths can still be changed with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
 
 System settings can be changed at `http://localhost:43170/settings`. Runtime settings are stored in SQLite and take precedence over `.env` defaults. `INDEX_WORKER_CONCURRENCY` remains the startup default for document indexing concurrency when no runtime value has been saved yet. Retrieval document limit is also managed there and is read by the retrieval API on each query.
 

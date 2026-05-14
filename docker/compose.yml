@@ -1,3 +1,5 @@
+name: reasondb
+
 services:
   web:
     build:
@@ -14,8 +16,8 @@ services:
       RETRIEVAL_API_BASE_URL: http://retrieval-api:8001
       PROJECTS_ROOT: /data/projects
     volumes:
-      - ../.reasonkb/var:/app/var
-      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -25,6 +27,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/retrieval-api.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-../.env}
+        required: false
     ports:
       - "${RETRIEVAL_API_PORT:-43171}:8001"
     environment:
@@ -33,13 +38,11 @@ services:
       APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
       APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
       PROJECTS_ROOT: /data/projects
-      PAGEINDEX_LLM_API_KEY: ${PAGEINDEX_LLM_API_KEY:-}
-      PAGEINDEX_LLM_BASE_URL: ${PAGEINDEX_LLM_BASE_URL:-}
       VISION_MODEL: ${VISION_MODEL:-}
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
     volumes:
-      - ../.reasonkb/var:/app/var
-      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     healthcheck:
       test:
         [
@@ -56,6 +59,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/index-worker.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-../.env}
+        required: false
     environment:
       APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
       APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
@@ -64,16 +70,14 @@ services:
       PROJECTS_ROOT: /data/projects
       GOTENBERG_URL: ${GOTENBERG_URL:-http://gotenberg:3000}
       OFFICE_CONVERSION_TIMEOUT_SECONDS: ${OFFICE_CONVERSION_TIMEOUT_SECONDS:-120}
-      PAGEINDEX_LLM_API_KEY: ${PAGEINDEX_LLM_API_KEY:-}
-      PAGEINDEX_LLM_BASE_URL: ${PAGEINDEX_LLM_BASE_URL:-}
       VISION_MODEL: ${VISION_MODEL:-}
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
       INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
       INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-1}
     volumes:
-      - ../.reasonkb/var:/app/var
-      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -93,8 +97,8 @@ services:
       PROJECTS_ROOT: /data/projects
       DIRECTORY_SCAN_INTERVAL_SECONDS: ${DIRECTORY_SCAN_INTERVAL_SECONDS:-5}
     volumes:
-      - ../.reasonkb/var:/app/var
-      - ${PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
