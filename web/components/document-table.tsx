@@ -61,11 +61,11 @@ export function DocumentTable({
   const trimmedSearchQuery = searchQuery?.trim() ?? "";
 
   return (
-    <div className="overflow-hidden rounded-[1.8rem] border border-[var(--pi-border)] bg-[var(--pi-panel-strong)] shadow-[0_20px_54px_rgba(65,88,130,0.1)] backdrop-blur-xl">
+    <div className="overflow-hidden rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel-strong)]">
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-[var(--pi-border)] bg-[var(--pi-bg-soft)] text-[var(--pi-muted)]">
+            <tr className="border-b border-[var(--pi-border)] bg-[var(--pi-bg)] text-[var(--pi-muted)]">
               <th className="px-5 py-4 font-medium">File Name</th>
               <th className="px-5 py-4 font-medium">Source Path</th>
               <th className="px-5 py-4 font-medium">Page Count</th>
@@ -106,7 +106,7 @@ export function DocumentTable({
                   </td>
                   <td className="px-5 py-4 text-[var(--pi-ink)]/90">{document.pageCount}</td>
                   <td className="px-5 py-4">
-                    <span className="inline-flex items-center rounded-full border border-[var(--pi-border)] bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-[var(--pi-ink)]/90">
+                    <span className="inline-flex items-center rounded-md border border-[var(--pi-border)] bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[var(--pi-ink)]">
                       {formatStatus(document.status)}
                     </span>
                   </td>

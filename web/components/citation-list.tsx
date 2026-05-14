@@ -20,7 +20,7 @@ export function CitationList({ citations }: { citations: CitationItem[] }) {
       {citations.map((citation, index) => (
         <li
           key={`${citation.projectName}-${citation.documentName}-${citation.pages}-${index}`}
-          className="rounded-xl border border-[var(--pi-border)] bg-white/70 px-3 py-2"
+          className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-2"
         >
           <p className="text-xs text-[var(--pi-muted)]">
             [{citation.projectName}] {citation.documentName} - pages {citation.pages}

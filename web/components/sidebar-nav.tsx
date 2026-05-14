@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { Folder, MessageSquare, PanelLeftClose, Settings, Sun, Plus } from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
 
 export type SidebarConversation = {
@@ -12,107 +13,103 @@ export type SidebarConversation = {
 };
 
 export function SidebarNav({
-  collapsed,
+  mobileOpen,
   conversations,
-  onToggleCollapse,
+  onCloseMobile,
 }: {
-  collapsed: boolean;
+  mobileOpen: boolean;
   conversations: SidebarConversation[];
-  onToggleCollapse: () => void;
+  onCloseMobile: () => void;
 }) {
   const [themeMode, setThemeMode] = useState<"light" | "focus">("light");
 
   return (
     <aside
-      className={`w-full rounded-b-[2rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.78)] px-4 py-4 shadow-[0_24px_70px_rgba(65,88,130,0.14)] ring-1 ring-white/70 backdrop-blur-xl transition-[width] md:fixed md:inset-y-4 md:left-4 md:rounded-[2rem] md:px-3 md:py-4 ${
-        collapsed ? "md:w-[5.75rem]" : "md:w-[17.5rem]"
+      className={`fixed inset-y-0 left-0 z-40 flex w-[var(--pi-sidebar-width)] shrink-0 flex-col border-r border-[var(--pi-border)] bg-[var(--pi-panel)] transition-transform duration-200 md:static md:translate-x-0 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      <div className="flex h-full flex-col">
-        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[var(--pi-border)] bg-white/76 px-3 py-3 shadow-[0_10px_30px_rgba(65,88,130,0.08)]">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--pi-border-strong)] bg-[var(--pi-brand)] text-sm font-semibold text-white shadow-[0_12px_28px_rgba(37,99,235,0.24)]">
-            RK
-          </div>
-          {!collapsed ? (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="border-b border-[var(--pi-border)] p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--pi-brand)] text-base font-semibold tracking-[-0.02em] text-white">
+              RK
+            </div>
             <div>
-              <p className="text-sm font-semibold tracking-[0.02em] text-[var(--pi-ink)]">
-                ReasonKB
-              </p>
+              <p className="text-base font-semibold text-[var(--pi-ink)]">ReasonKB</p>
               <p className="text-xs text-[var(--pi-muted)]">Knowledge Workspace</p>
             </div>
-          ) : null}
-          <button
-            type="button"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={onToggleCollapse}
-            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--pi-border)] bg-[var(--pi-bg-soft)] text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white"
-          >
-            <span aria-hidden="true" className="text-base leading-none">
-              {collapsed ? "⟩" : "⟨"}
-            </span>
-          </button>
-        </div>
-
-        <nav className="space-y-2">
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={onCloseMobile}
+              className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--pi-border)] text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)] md:hidden"
+            >
+              <PanelLeftClose aria-hidden="true" size={16} />
+            </button>
+          </div>
           <Link
             href="/chat"
-            className={`flex rounded-2xl border border-[var(--pi-border-strong)] bg-[var(--pi-brand)] text-sm font-semibold text-white shadow-[0_14px_34px_rgba(37,99,235,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 ${
-              collapsed
-                ? "items-center justify-center px-0 py-3"
-                : "items-center justify-between px-4 py-3"
-            }`}
+            onClick={onCloseMobile}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
           >
-            {!collapsed ? <span>New Chat</span> : <span className="sr-only">New Chat</span>}
-            <span className="text-base leading-none">+</span>
+            <Plus aria-hidden="true" size={16} />
+            New Chat
+          </Link>
+        </div>
+
+        <nav className="space-y-1 border-b border-[var(--pi-border)] p-3">
+          <Link
+            href="/chat"
+            onClick={onCloseMobile}
+            className="flex items-center gap-2 rounded-md bg-[var(--pi-brand-soft)] px-3 py-2 text-sm font-medium text-[var(--pi-brand)] transition hover:bg-[var(--pi-bg)]"
+          >
+            <MessageSquare aria-hidden="true" size={18} strokeWidth={2} />
+            Chat
           </Link>
           <Link
             href="/projects"
-            className={`block rounded-2xl border border-[var(--pi-border)] bg-white/64 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white ${
-              collapsed ? "px-0 py-3 text-center" : "px-4 py-3"
-            }`}
+            onClick={onCloseMobile}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
           >
-            {collapsed ? "P" : "Projects"}
+            <Folder aria-hidden="true" size={18} strokeWidth={2} />
+            Projects
           </Link>
           <Link
             href="/settings"
-            className={`block rounded-2xl border border-[var(--pi-border)] bg-white/64 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white ${
-              collapsed ? "px-0 py-3 text-center" : "px-4 py-3"
-            }`}
+            onClick={onCloseMobile}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
           >
-            {collapsed ? "S" : "Settings"}
+            <Settings aria-hidden="true" size={18} strokeWidth={2} />
+            Settings
           </Link>
         </nav>
 
-        <section className="mt-6 flex min-h-0 flex-1 flex-col">
-          <h2
-            className={`px-2 text-[11px] uppercase tracking-[0.16em] text-[var(--pi-muted)] ${
-              collapsed ? "sr-only" : ""
-            }`}
-          >
-            Chats
+        <section className="flex min-h-0 flex-1 flex-col p-3">
+          <h2 className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
+            Recent Chats
           </h2>
-          <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
-            <ChatHistoryList conversations={conversations} collapsed={collapsed} />
+          <div className="rk-scrollbar flex-1 space-y-0.5 overflow-y-auto">
+            <ChatHistoryList conversations={conversations} />
           </div>
         </section>
 
         <footer
           aria-label="Sidebar controls"
-          className="mt-auto border-t border-[var(--pi-border)] pt-4"
+          className="mt-auto border-t border-[var(--pi-border)] p-3"
         >
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              type="button"
-              aria-label="Switch theme"
-              aria-pressed={themeMode === "focus"}
-              onClick={() =>
-                setThemeMode((value) => (value === "light" ? "focus" : "light"))
-              }
-              className="rounded-xl border border-[var(--pi-border)] bg-white/64 px-3 py-2 text-xs font-medium text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)] hover:bg-white"
-            >
-              {collapsed ? "T" : `Tone · ${themeMode === "light" ? "Light" : "Focus"}`}
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label="Switch theme"
+            aria-pressed={themeMode === "focus"}
+            onClick={() =>
+              setThemeMode((value) => (value === "light" ? "focus" : "light"))
+            }
+            className="flex w-full items-center gap-2 rounded-md border border-[var(--pi-border)] bg-transparent px-3 py-2 text-xs font-medium text-[var(--pi-muted)] transition hover:border-[var(--pi-muted)] hover:bg-[var(--pi-bg)]"
+          >
+            <Sun aria-hidden="true" size={16} />
+            {themeMode === "light" ? "Light Mode" : "Focus Mode"}
+          </button>
         </footer>
       </div>
     </aside>

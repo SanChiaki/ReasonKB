@@ -21,7 +21,7 @@ export function ProjectScopePicker({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="rounded-full border border-[var(--pi-border)] bg-white/72 px-3 py-1.5 text-xs font-medium text-[var(--pi-muted)]">
+      <span className="rounded-md border border-[var(--pi-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--pi-muted)]">
         {selectedProjectIds.length === 0 ? "All projects" : "Filtered"}
       </span>
       {projects.map((project) => {
@@ -32,10 +32,10 @@ export function ProjectScopePicker({
             type="button"
             aria-pressed={selected}
             onClick={() => onToggle(project.id)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
               selected
-                ? "border-[var(--pi-border-strong)] bg-[var(--pi-brand-soft)] text-[var(--pi-ink)]"
-                : "border-[var(--pi-border)] bg-white/72 text-[var(--pi-muted)] hover:border-[var(--pi-border-strong)] hover:bg-white hover:text-[var(--pi-ink)]"
+                ? "border-[var(--pi-brand)] bg-[var(--pi-brand-soft)] text-[var(--pi-brand)]"
+                : "border-[var(--pi-border)] bg-white text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
             }`}
           >
             {project.name}

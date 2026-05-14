@@ -102,7 +102,7 @@ export function ChatComposer({
 
   return (
     <form
-      className="rounded-[2rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.9)] p-3 shadow-[0_24px_70px_rgba(50,70,105,0.16)] ring-1 ring-white/70 backdrop-blur-xl"
+      className="bg-[var(--pi-panel)]"
       onSubmit={(event) => {
         event.preventDefault();
         void handleSend();
@@ -111,60 +111,64 @@ export function ChatComposer({
       <label htmlFor="chat-message" className="sr-only">
         Message
       </label>
-      <textarea
-        id="chat-message"
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        placeholder={placeholder}
-        className="min-h-[112px] w-full resize-none rounded-[1.5rem] border border-transparent bg-[rgba(247,250,255,0.82)] px-5 py-4 text-sm leading-6 text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-border-strong)] focus:bg-white focus:ring-4 focus:ring-[var(--pi-brand-soft)]"
-      />
+      <div className="mb-2 text-xs font-semibold text-[var(--pi-muted)]">Message</div>
 
-      <div className="mt-4 flex flex-col gap-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <ProjectScopePicker
-            projects={availableProjects}
-            selectedProjectIds={activeProjectIds}
-            onToggle={toggleProject}
-          />
-          <div
-            className="inline-flex w-fit rounded-full border border-[var(--pi-border)] bg-[var(--pi-bg-soft)] p-1 text-xs font-semibold text-[var(--pi-muted)]"
-            aria-label="Retrieval mode"
-          >
-            {(["answer", "evidence"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-label={`${mode === "answer" ? "Answer" : "Evidence"} mode`}
-                aria-pressed={retrievalMode === mode}
-                onClick={() => setRetrievalMode(mode)}
-                className={`rounded-full px-3 py-1.5 transition ${
-                  retrievalMode === mode
-                    ? "bg-white text-[var(--pi-ink)] shadow-[0_8px_22px_rgba(65,88,130,0.14)]"
-                    : "hover:text-[var(--pi-ink)]"
-                }`}
-              >
-                {mode === "answer" ? "Answer" : "Evidence"}
-              </button>
-            ))}
-          </div>
+      <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <ProjectScopePicker
+          projects={availableProjects}
+          selectedProjectIds={activeProjectIds}
+          onToggle={toggleProject}
+        />
+        <div
+          className="inline-flex w-fit rounded-lg bg-[var(--pi-bg)] p-1 text-xs font-medium text-[var(--pi-muted)]"
+          aria-label="Retrieval mode"
+        >
+          {(["answer", "evidence"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-label={`${mode === "answer" ? "Answer" : "Evidence"} mode`}
+              aria-pressed={retrievalMode === mode}
+              onClick={() => setRetrievalMode(mode)}
+              className={`rounded-md px-4 py-2 transition ${
+                retrievalMode === mode
+                  ? "bg-white text-[var(--pi-brand)] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "hover:text-[var(--pi-ink)]"
+              }`}
+            >
+              {mode === "answer" ? "Answer" : "Evidence"}
+            </button>
+          ))}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-[var(--pi-muted)]">
-            {retrievalMode === "evidence"
-              ? "Evidence mode returns source snippets and paths for downstream processing."
-              : activeProjectIds.length === 0
-                ? "Answer mode searches every ready document unless project chips are selected."
-                : "Answer mode synthesizes a response from retrieved evidence."}
-          </p>
-          <button
-            type="submit"
-            aria-label="Send"
-            disabled={!canSend}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-6 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(37,99,235,0.26)] transition enabled:hover:-translate-y-0.5 enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {sending ? "Sending..." : "Send"}
-          </button>
-        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <textarea
+          id="chat-message"
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder={placeholder}
+          rows={1}
+          className="min-h-12 flex-1 resize-none rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-[15px] leading-6 text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
+        />
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!canSend}
+          className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-6 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:self-end"
+        >
+          {sending ? "Sending..." : "Send"}
+        </button>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-xs text-[var(--pi-muted)]">
+          {retrievalMode === "evidence"
+            ? "Evidence mode returns source snippets and paths for downstream processing."
+            : activeProjectIds.length === 0
+              ? "Answer mode searches every ready document unless project chips are selected."
+              : "Answer mode synthesizes a response from retrieved evidence."}
+        </p>
       </div>
       {errorMessage ? (
         <p className="mt-3 text-sm text-[var(--pi-danger,#fca5a5)]">{errorMessage}</p>

@@ -76,14 +76,14 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
 
   const modalContent = isOpen ? (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(23,32,51,0.28)] p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(23,32,51,0.28)] p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="document-upload-title"
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-[1.8rem] border border-[var(--pi-border)] bg-[var(--pi-panel-strong)] p-6 shadow-[0_30px_70px_rgba(65,88,130,0.2)]"
+        className="w-full max-w-md rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel-strong)] p-6 shadow-[0_30px_70px_rgba(65,88,130,0.2)]"
       >
         <h2 id="document-upload-title" className="text-xl font-semibold text-[var(--pi-ink)]">
           Upload documents
@@ -92,7 +92,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
           Select PDF, Word, Excel, or PowerPoint files to start indexing.
         </p>
 
-        <div className="mt-5 rounded-2xl border border-dashed border-[var(--pi-border)] bg-[var(--pi-bg-soft)] p-4">
+        <div className="mt-5 rounded-lg border border-dashed border-[var(--pi-border)] bg-[var(--pi-bg)] p-4">
           <input
             ref={fileInputRef}
             type="file"
@@ -108,7 +108,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-xl border border-[var(--pi-border)] bg-white px-3 py-2 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)]"
+            className="rounded-md border border-[var(--pi-border)] bg-white px-3 py-2 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)]"
           >
             Choose files
           </button>
@@ -127,12 +127,12 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
         </div>
 
         {errorMessage ? (
-          <p className="mt-4 rounded-xl border border-[rgba(180,35,24,0.24)] bg-[rgba(254,242,242,0.88)] px-3 py-2 text-sm text-[var(--pi-danger)]">
+          <p className="mt-4 rounded-md border border-[rgba(180,35,24,0.24)] bg-[rgba(254,242,242,0.88)] px-3 py-2 text-sm text-[var(--pi-danger)]">
             {errorMessage}
           </p>
         ) : null}
         {resultSummary ? (
-          <div className="mt-4 rounded-xl border border-[var(--pi-border)] bg-[var(--pi-bg-soft)] px-3 py-3 text-sm text-[var(--pi-ink)]">
+          <div className="mt-4 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-3 text-sm text-[var(--pi-ink)]">
             <p>{`${resultSummary.uploaded.length} uploaded, ${resultSummary.failed.length} failed`}</p>
             {resultSummary.failed.length > 0 ? (
               <ul className="mt-2 space-y-1 text-xs text-[var(--pi-danger)]">
@@ -156,14 +156,14 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
               setResultSummary(null);
               resetSelection();
             }}
-            className="rounded-xl border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
+            className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={selectedFiles.length === 0 || isSubmitting}
-            className="rounded-xl border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? "Uploading..." : "Upload files"}
           </button>
@@ -177,7 +177,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="rounded-2xl border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(37,99,235,0.2)] transition hover:brightness-105"
+        className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
       >
         Upload
       </button>

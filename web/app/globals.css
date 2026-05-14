@@ -4,19 +4,22 @@
 
 :root {
   color-scheme: light;
-  --font-body: "Aptos", "Avenir Next", "SF Pro Text", sans-serif;
-  --font-display: "Fraunces", "Aptos Display", "Avenir Next", serif;
-  --pi-bg: #f4f7fc;
-  --pi-bg-soft: #eef4fb;
-  --pi-panel: rgba(255, 255, 255, 0.76);
-  --pi-panel-strong: rgba(255, 255, 255, 0.94);
-  --pi-border: rgba(79, 104, 140, 0.18);
-  --pi-border-strong: rgba(37, 99, 235, 0.34);
-  --pi-ink: #172033;
-  --pi-muted: #6a7589;
-  --pi-brand: #2563eb;
-  --pi-brand-soft: rgba(37, 99, 235, 0.1);
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --pi-bg: oklch(99% 0.002 240);
+  --pi-bg-soft: oklch(97.5% 0.006 250);
+  --pi-panel: oklch(100% 0 0);
+  --pi-panel-strong: oklch(100% 0 0);
+  --pi-border: oklch(92% 0.005 250);
+  --pi-border-strong: oklch(58% 0.18 255 / 0.42);
+  --pi-ink: oklch(18% 0.012 250);
+  --pi-muted: oklch(54% 0.012 250);
+  --pi-brand: oklch(58% 0.18 255);
+  --pi-brand-soft: oklch(58% 0.18 255 / 0.1);
+  --pi-success: oklch(56% 0.16 145);
   --pi-danger: #b42318;
+  --pi-sidebar-width: 280px;
 }
 
 * {
@@ -26,25 +29,17 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(1100px 620px at 100% -8%, rgba(146, 188, 255, 0.42), transparent 58%),
-    radial-gradient(860px 520px at -10% 20%, rgba(255, 255, 255, 0.96), transparent 58%),
-    linear-gradient(135deg, #f8fbff 0%, #edf3fb 54%, #e5eef9 100%);
+  background: var(--pi-bg);
   color: var(--pi-ink);
   font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(37, 99, 235, 0.045) 1px, transparent 1px),
-    radial-gradient(circle at 70% 12%, rgba(255, 255, 255, 0.62), transparent 24%);
-  background-size: 32px 32px, 32px 32px, auto;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 82%);
+  content: none;
 }
 
 h1,
@@ -52,4 +47,21 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display), var(--font-body), sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--pi-brand-soft);
+}
+
+.rk-scrollbar {
+  scrollbar-color: var(--pi-border) transparent;
+  scrollbar-width: thin;
 }

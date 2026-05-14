@@ -37,18 +37,18 @@ export default async function ProjectDetailPage({
 
   return (
     <AppShell conversations={conversations}>
-      <section className="space-y-8">
-        <header className="rounded-[2rem] border border-[var(--pi-border)] bg-[var(--pi-panel)] px-6 py-7 shadow-[0_24px_70px_rgba(65,88,130,0.12)] ring-1 ring-white/70 backdrop-blur-xl md:px-8">
+      <section className="rk-scrollbar h-full overflow-y-auto px-5 py-6 md:px-8">
+        <header className="border-b border-[var(--pi-border)] bg-transparent pb-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--pi-muted)]">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
                 <Link href="/projects" className="transition hover:text-[var(--pi-ink)]">
                   Projects
                 </Link>
                 <span>/</span>
                 <span className="text-[var(--pi-ink)]">{project.name}</span>
               </div>
-              <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)] md:text-4xl">
+              <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)]">
                 {project.name}
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--pi-muted)] md:text-base">
@@ -70,12 +70,14 @@ export default async function ProjectDetailPage({
               type="search"
               defaultValue={search.q ?? ""}
               placeholder="Search documents"
-              className="w-full rounded-2xl border border-[var(--pi-border)] bg-white/82 px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-border-strong)] focus:ring-4 focus:ring-[var(--pi-brand-soft)]"
+              className="w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
             />
           </form>
         </header>
 
-        <DocumentTable documents={visibleDocuments} searchQuery={rawQuery} />
+        <div className="pt-6">
+          <DocumentTable documents={visibleDocuments} searchQuery={rawQuery} />
+        </div>
       </section>
     </AppShell>
   );

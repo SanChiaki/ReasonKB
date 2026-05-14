@@ -15,7 +15,7 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
         return (
           <section
             key={`${item.documentName}-${item.pages}-${index}`}
-            className="rounded-[1.25rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.74)] p-4 shadow-[0_10px_28px_rgba(65,88,130,0.08)]"
+            className="rounded-lg border border-[var(--pi-border)] bg-white p-4"
           >
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
@@ -28,13 +28,13 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
                 </p>
               </div>
               {item.sourceRelativePath ? (
-                <span className="rounded-full bg-[var(--pi-bg-soft)] px-3 py-1 text-[11px] font-medium text-[var(--pi-muted)]">
+                <span className="rounded-md bg-[var(--pi-bg)] px-3 py-1 text-[11px] font-medium text-[var(--pi-muted)]">
                   {item.sourceRelativePath}
                 </span>
               ) : null}
             </div>
             {item.excerpt ? (
-              <p className="mt-3 rounded-2xl bg-[var(--pi-brand-soft)] px-3 py-2 text-sm leading-6 text-[var(--pi-ink)]">
+              <p className="mt-3 rounded-md bg-[var(--pi-brand-soft)] px-3 py-2 text-sm leading-6 text-[var(--pi-ink)]">
                 {item.excerpt}
               </p>
             ) : null}
@@ -60,25 +60,36 @@ export function ChatMessageList({
   }>;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-2 pb-6 md:px-4">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-1 pb-6 md:px-4">
       {messages.map((message) => (
         <article
           key={message.id}
           className={
             message.role === "user"
-              ? "ml-auto w-full max-w-3xl rounded-[1.75rem] border border-[rgba(37,99,235,0.24)] bg-[linear-gradient(140deg,rgba(219,234,254,0.95),rgba(239,246,255,0.92))] px-5 py-4 text-[var(--pi-ink)] shadow-[0_16px_36px_rgba(37,99,235,0.12)]"
-              : "w-full max-w-3xl rounded-[1.75rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.82)] px-5 py-4 text-[var(--pi-ink)] shadow-[0_18px_44px_rgba(65,88,130,0.1)]"
+              ? "ml-auto w-full max-w-3xl text-[var(--pi-ink)]"
+              : "w-full max-w-3xl text-[var(--pi-ink)]"
           }
         >
-          <p className="whitespace-pre-wrap text-sm leading-7 md:text-[15px]">
-            {message.content}
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--pi-muted)]">
+            {message.role === "user" ? "You" : "Assistant"}
           </p>
-          {message.role === "assistant" ? (
-            <>
-              <CitationList citations={message.citations} />
-              <EvidenceList evidence={message.evidence ?? []} />
-            </>
-          ) : null}
+          <div
+            className={
+              message.role === "assistant"
+                ? "rounded-lg border border-[var(--pi-border)] bg-white px-5 py-4"
+                : ""
+            }
+          >
+            <p className="whitespace-pre-wrap text-sm leading-7 md:text-[15px]">
+            {message.content}
+            </p>
+            {message.role === "assistant" ? (
+              <>
+                <CitationList citations={message.citations} />
+                <EvidenceList evidence={message.evidence ?? []} />
+              </>
+            ) : null}
+          </div>
         </article>
       ))}
     </div>

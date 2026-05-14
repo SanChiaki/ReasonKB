@@ -7,26 +7,26 @@ import { describe, expect, it } from "vitest";
 import { SidebarNav } from "@/components/sidebar-nav";
 
 describe("SidebarNav", () => {
-  it("renders a visible collapse toggle", () => {
+  it("renders brand and primary navigation", () => {
     render(
       <SidebarNav
-        collapsed={false}
+        mobileOpen={false}
         conversations={[]}
-        onToggleCollapse={() => undefined}
+        onCloseMobile={() => undefined}
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /collapse sidebar/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("ReasonKB")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /new chat/i })).toHaveAttribute("href", "/chat");
+    expect(screen.getByRole("link", { name: /projects/i })).toHaveAttribute("href", "/projects");
   });
 
   it("renders settings navigation and theme control", () => {
     render(
       <SidebarNav
-        collapsed={false}
+        mobileOpen={false}
         conversations={[]}
-        onToggleCollapse={() => undefined}
+        onCloseMobile={() => undefined}
       />,
     );
 

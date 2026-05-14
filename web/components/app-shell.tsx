@@ -10,21 +10,41 @@ export function AppShell({
   conversations: SidebarConversation[];
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-hidden bg-[var(--pi-bg)] md:flex">
       <SidebarNav
-        collapsed={collapsed}
+        mobileOpen={mobileOpen}
         conversations={conversations}
-        onToggleCollapse={() => setCollapsed((value) => !value)}
+        onCloseMobile={() => setMobileOpen(false)}
       />
-      <main
-        className={`relative min-h-screen px-4 pb-8 pt-4 transition-[margin] md:px-8 md:pb-10 md:pt-4 ${
-          collapsed ? "md:ml-[6.75rem]" : "md:ml-[18.5rem]"
-        }`}
-      >
-        <div className="mx-auto w-full max-w-[1280px]">{children}</div>
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="fixed inset-0 z-30 bg-[rgba(24,31,44,0.26)] md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+      <main className="flex min-h-screen flex-1 flex-col overflow-hidden">
+        <div className="flex h-14 shrink-0 items-center border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-4 md:hidden">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)]"
+          >
+            <span aria-hidden="true" className="text-lg leading-none">
+              ☰
+            </span>
+          </button>
+          <div className="ml-3">
+            <p className="text-sm font-semibold text-[var(--pi-ink)]">ReasonKB</p>
+            <p className="text-[11px] text-[var(--pi-muted)]">Knowledge Workspace</p>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </main>
     </div>
   );

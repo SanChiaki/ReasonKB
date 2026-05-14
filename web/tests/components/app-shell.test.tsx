@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { AppShell } from "@/components/app-shell";
 
 describe("AppShell", () => {
-  it("reclaims desktop gutter space when the sidebar is collapsed", () => {
+  it("renders content with a mobile navigation trigger", () => {
     render(
       <AppShell conversations={[]}>
         <div>Projects content</div>
@@ -15,11 +15,12 @@ describe("AppShell", () => {
     );
 
     const main = screen.getByRole("main");
-    expect(main.className).toContain("md:ml-[18.5rem]");
+    expect(main).toHaveTextContent("Projects content");
 
-    fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /open navigation/i }));
 
-    expect(screen.getByRole("button", { name: /expand sidebar/i })).toBeInTheDocument();
-    expect(main.className).toContain("md:ml-[6.75rem]");
+    expect(screen.getAllByRole("button", { name: /close navigation/i }).length).toBeGreaterThan(
+      0,
+    );
   });
 });

@@ -63,7 +63,7 @@ export function ProjectRenameControl({
           setErrorMessage("");
           setEditing(true);
         }}
-        className="rounded-xl border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
+        className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
       >
         Rename
       </button>
@@ -82,13 +82,13 @@ export function ProjectRenameControl({
             }
           }}
           maxLength={120}
-          className="w-full min-w-[15rem] rounded-2xl border border-[var(--pi-border)] bg-white/82 px-4 py-2.5 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-border-strong)] focus:ring-4 focus:ring-[var(--pi-brand-soft)]"
+          className="w-full min-w-[15rem] rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
         />
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={!trimmedName || submitting}
-            className="rounded-xl border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-semibold text-white transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {submitting ? "Saving..." : "Save"}
           </button>
@@ -99,7 +99,7 @@ export function ProjectRenameControl({
               setName(initialName);
               setErrorMessage("");
             }}
-            className="rounded-xl border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
+            className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
           >
             Cancel
           </button>

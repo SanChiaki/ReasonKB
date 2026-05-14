@@ -70,10 +70,10 @@ export function SystemSettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <section className="rounded-[1.5rem] border border-[var(--pi-border)] bg-white/80 p-5 shadow-[0_18px_50px_rgba(65,88,130,0.1)]">
+      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--pi-brand)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
               Indexing
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
@@ -102,17 +102,17 @@ export function SystemSettingsForm({
                 setStatusMessage("");
                 setErrorMessage("");
               }}
-              className="mt-2 w-full rounded-2xl border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-border-strong)] focus:ring-4 focus:ring-[var(--pi-brand-soft)]"
+              className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
             />
             <p className="mt-2 text-xs text-[var(--pi-muted)]">Allowed range: 1-16</p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-[var(--pi-border)] bg-white/80 p-5 shadow-[0_18px_50px_rgba(65,88,130,0.1)]">
+      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--pi-brand)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
               Retrieval
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
@@ -141,7 +141,7 @@ export function SystemSettingsForm({
                 setStatusMessage("");
                 setErrorMessage("");
               }}
-              className="mt-2 w-full rounded-2xl border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-border-strong)] focus:ring-4 focus:ring-[var(--pi-brand-soft)]"
+              className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
             />
             <p className="mt-2 text-xs text-[var(--pi-muted)]">Allowed range: 1-50</p>
           </div>
@@ -152,7 +152,7 @@ export function SystemSettingsForm({
         <button
           type="submit"
           disabled={!isValidConcurrency || !isValidRetrievalDocumentLimit || submitting}
-          className="rounded-2xl border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(37,99,235,0.22)] transition enabled:hover:-translate-y-0.5 enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {submitting ? "Saving..." : "Save settings"}
         </button>

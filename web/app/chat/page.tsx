@@ -142,37 +142,37 @@ export default async function ChatPage({
 
   return (
     <AppShell conversations={conversations}>
-      <section className="flex min-h-[calc(100vh-4.25rem)] flex-col overflow-hidden rounded-[2.25rem] border border-[var(--pi-border)] bg-[rgba(255,255,255,0.58)] shadow-[0_28px_80px_rgba(65,88,130,0.14)] ring-1 ring-white/70 backdrop-blur-xl">
-        <header className="border-b border-[var(--pi-border)] bg-[rgba(255,255,255,0.78)] px-6 py-5 backdrop-blur-xl md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--pi-brand)]">
+      <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--pi-bg)]">
+        <header className="shrink-0 border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-4 md:px-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
             ReasonKB Chat
           </p>
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-3xl font-semibold text-[var(--pi-ink)] md:text-4xl">
+            <h1 className="text-2xl font-semibold text-[var(--pi-ink)]">
               {conversation?.title ?? "New Chat"}
             </h1>
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-[var(--pi-border)] bg-white/80 px-3 py-1.5 text-xs text-[var(--pi-muted)] shadow-[0_8px_24px_rgba(65,88,130,0.08)]">
-              <span className="uppercase tracking-[0.14em]">Scope</span>
+            <div className="inline-flex items-center gap-2 self-start rounded-md border border-[var(--pi-border)] bg-white px-3 py-1.5 text-xs text-[var(--pi-muted)]">
+              <span className="font-semibold uppercase tracking-[0.06em]">Scope</span>
               <span className="text-[var(--pi-ink)]">{scopeSummary}</span>
             </div>
           </div>
         </header>
 
-        <div className="relative mt-6 flex-1">
+        <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8">
           {messages.length > 0 ? (
-            <div className="pb-52 pt-2">
+            <div className="pb-4">
               <ChatMessageList messages={messages} />
             </div>
           ) : (
-            <div className="flex h-full min-h-[44vh] items-center justify-center px-4 pb-52">
+            <div className="flex h-full min-h-[240px] items-center justify-center px-4 md:min-h-[420px]">
               <div className="w-full max-w-2xl text-center">
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-[var(--pi-border)] bg-white text-2xl shadow-[0_16px_38px_rgba(37,99,235,0.14)]">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--pi-border)] bg-white text-xl text-[var(--pi-muted)] md:h-14 md:w-14 md:text-2xl">
                   ◌
                 </div>
-                <h2 className="text-3xl font-semibold text-[var(--pi-ink)] md:text-5xl">
+                <h2 className="text-2xl font-semibold text-[var(--pi-ink)] md:text-3xl">
                   Ask across projects
                 </h2>
-                <p className="mt-4 text-sm text-[var(--pi-muted)] md:text-base">
+                <p className="mx-auto mt-3 max-w-xl text-[15px] leading-6 text-[var(--pi-muted)]">
                   Ask across every indexed project, optionally select project scopes, or switch to Evidence mode to inspect retrieved source blocks.
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default async function ChatPage({
           )}
         </div>
 
-        <div className="sticky bottom-0 z-20 mt-auto bg-[linear-gradient(180deg,rgba(244,248,255,0),rgba(244,248,255,0.86)_24%,rgba(244,248,255,0.98)_100%)] px-4 pb-4 pt-8 backdrop-blur-md">
+        <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-5 md:px-8">
           <div className="mx-auto w-full max-w-4xl">
             <ChatComposer
               availableProjects={availableProjects}

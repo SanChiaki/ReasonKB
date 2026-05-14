@@ -22,12 +22,12 @@ export default async function SettingsPage() {
 
   return (
     <AppShell conversations={conversations}>
-      <section className="space-y-8">
-        <header className="rounded-[2rem] border border-[var(--pi-border)] bg-[var(--pi-panel)] px-6 py-7 shadow-[0_24px_70px_rgba(65,88,130,0.12)] ring-1 ring-white/70 backdrop-blur-xl md:px-8">
-          <p className="text-xs uppercase tracking-[0.16em] text-[var(--pi-muted)]">
+      <section className="rk-scrollbar h-full overflow-y-auto px-5 py-6 md:px-8">
+        <header className="border-b border-[var(--pi-border)] bg-transparent pb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
             Operations
           </p>
-          <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)] md:text-4xl">
+          <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)]">
             System settings
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-[var(--pi-muted)] md:text-base">
@@ -35,10 +35,12 @@ export default async function SettingsPage() {
           </p>
         </header>
 
-        <SystemSettingsForm
-          initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
-          initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}
-        />
+        <div className="pt-6">
+          <SystemSettingsForm
+            initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
+            initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}
+          />
+        </div>
       </section>
     </AppShell>
   );
