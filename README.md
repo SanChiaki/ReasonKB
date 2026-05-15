@@ -79,6 +79,32 @@ The mounted corpus should use first-level directories as projects:
     handover/report.pdf
 ```
 
+### One-command ACR deployment
+
+ReasonKB publishes China-mainland-friendly release images to Alibaba Cloud ACR:
+
+```text
+crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest
+crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8
+```
+
+Users can start the release stack with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
+```
+
+The installer stores `compose.yml`, `.env`, runtime data, and the mounted
+project corpus under `~/.reasonkb`. Put project folders under
+`~/.reasonkb/projects`, then open `http://localhost:43170`.
+
+Publish the application image and the Gotenberg mirror to ACR with:
+
+```bash
+docker login crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com
+./docker/publish-acr.sh
+```
+
 ## Configuration
 
 ReasonKB exposes deployment-facing LLM variables without requiring external `OPENAI_*` names:

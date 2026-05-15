@@ -11,6 +11,7 @@ def test_root_layout_keeps_product_boundary_small():
         ".reasonkb",
         ".venv",
         "AGENTS.md",
+        "Dockerfile",
         "README.md",
         "docker",
         "LICENSE",

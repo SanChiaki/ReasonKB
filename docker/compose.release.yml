@@ -1,0 +1,101 @@
+name: reasonkb
+
+services:
+  web:
+    image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    command: ["sh", "./docker/entrypoints/web.sh"]
+    ports:
+      - "${WEB_PORT:-43170}:3000"
+    environment:
+      APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
+      APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
+      APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
+      APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
+      RETRIEVAL_API_BASE_URL: http://retrieval-api:8001
+      PROJECTS_ROOT: /data/projects
+    volumes:
+      - ${REASONKB_VAR_ROOT:-./var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
+    depends_on:
+      retrieval-api:
+        condition: service_healthy
+
+  retrieval-api:
+    image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    command: ["sh", "./docker/entrypoints/retrieval-api.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-./.env}
+        required: false
+    ports:
+      - "${RETRIEVAL_API_PORT:-43171}:8001"
+    environment:
+      APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
+      APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
+      APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
+      APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
+      PROJECTS_ROOT: /data/projects
+      VISION_MODEL: ${VISION_MODEL:-}
+      VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
+    volumes:
+      - ${REASONKB_VAR_ROOT:-./var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=2).read()\"",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  index-worker:
+    image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    command: ["sh", "./docker/entrypoints/index-worker.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-./.env}
+        required: false
+    environment:
+      APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
+      APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
+      APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
+      APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
+      PROJECTS_ROOT: /data/projects
+      GOTENBERG_URL: ${GOTENBERG_URL:-http://gotenberg:3000}
+      OFFICE_CONVERSION_TIMEOUT_SECONDS: ${OFFICE_CONVERSION_TIMEOUT_SECONDS:-120}
+      VISION_MODEL: ${VISION_MODEL:-}
+      VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
+      INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
+      INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
+      INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-1}
+    volumes:
+      - ${REASONKB_VAR_ROOT:-./var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
+    depends_on:
+      retrieval-api:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+
+  directory-watcher:
+    image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    command: ["sh", "./docker/entrypoints/directory-watcher.sh"]
+    environment:
+      APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
+      APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
+      APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
+      APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
+      PROJECTS_ROOT: /data/projects
+      DIRECTORY_SCAN_INTERVAL_SECONDS: ${DIRECTORY_SCAN_INTERVAL_SECONDS:-5}
+    volumes:
+      - ${REASONKB_VAR_ROOT:-./var}:/app/var
+      - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
+    depends_on:
+      retrieval-api:
+        condition: service_healthy
+
+  gotenberg:
+    image: ${GOTENBERG_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8}
+    ports:
+      - "${GOTENBERG_PORT:-43172}:3000"
