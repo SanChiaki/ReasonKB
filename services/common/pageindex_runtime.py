@@ -68,6 +68,37 @@ def _patch_config_loader(utils_module) -> None:
 
 
 def _patch_toc_fallback(page_index_module) -> None:
+    original_detect_page_index = page_index_module.detect_page_index
+    if not getattr(original_detect_page_index, "_reasonkb_patched", False):
+
+        @wraps(original_detect_page_index)
+        def patched_detect_page_index(toc_content, model=None):
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    result = original_detect_page_index(toc_content, model=model)
+                except Exception as exc:
+                    logging.warning(
+                        "PageIndex TOC page-number detection failed on attempt %s/%s: %s",
+                        attempt,
+                        max_attempts,
+                        exc,
+                    )
+                    continue
+                normalized = str(result).strip().lower()
+                if normalized in {"yes", "no"}:
+                    return normalized
+                logging.warning(
+                    "PageIndex TOC page-number detection returned invalid value on attempt %s/%s: %r",
+                    attempt,
+                    max_attempts,
+                    result,
+                )
+            return "no"
+
+        patched_detect_page_index._reasonkb_patched = True
+        page_index_module.detect_page_index = patched_detect_page_index
+
     original_detector = page_index_module.toc_detector_single_page
     if not getattr(original_detector, "_reasonkb_patched", False):
 

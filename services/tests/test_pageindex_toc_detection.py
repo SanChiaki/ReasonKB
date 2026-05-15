@@ -13,6 +13,38 @@ def test_toc_detector_treats_unparseable_llm_response_as_no_toc(monkeypatch):
     assert page_index.toc_detector_single_page("plain page text", model="test-model") == "no"
 
 
+def test_detect_page_index_retries_until_model_returns_required_key(monkeypatch):
+    responses = iter(
+        [
+            '{"thinking": "missing required key"}',
+            '{"thinking": "has page numbers", "page_index_given_in_toc": "yes"}',
+        ]
+    )
+    calls = []
+
+    def fake_llm_completion(**kwargs):
+        calls.append(kwargs)
+        return next(responses)
+
+    monkeypatch.setattr(page_index, "llm_completion", fake_llm_completion)
+
+    assert page_index.detect_page_index("1. Overview ........ 3", model="test-model") == "yes"
+    assert len(calls) == 2
+
+
+def test_detect_page_index_falls_back_to_no_after_retry_exhaustion(monkeypatch):
+    calls = []
+
+    def fake_llm_completion(**kwargs):
+        calls.append(kwargs)
+        return '{"thinking": "still missing required key"}'
+
+    monkeypatch.setattr(page_index, "llm_completion", fake_llm_completion)
+
+    assert page_index.detect_page_index("目录 without reliable page numbers", model="test-model") == "no"
+    assert len(calls) == 3
+
+
 def test_meta_processor_falls_back_to_page_nodes_when_no_toc_verification_fails(monkeypatch):
     page_list = [("alpha", 1), ("beta", 1)]
     opt = page_index.config(model="test-model")

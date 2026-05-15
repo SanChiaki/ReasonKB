@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { appConfig } from "@/lib/config";
-import { getDocumentDetail } from "@/lib/repos/document-store";
+import { getDocumentDetail, resetDocumentForReindex } from "@/lib/repos/document-store";
 import { createIndexJob } from "@/lib/repos/job-store";
 
 export async function POST(
@@ -13,6 +13,7 @@ export async function POST(
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
+  resetDocumentForReindex(appConfig.dbPath, documentId);
   const job = createIndexJob(appConfig.dbPath, documentId);
   return NextResponse.json(job, { status: 202 });
 }

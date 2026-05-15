@@ -526,6 +526,89 @@ describe("task2 route hardening", () => {
     expect(response.status).toBe(404);
   });
 
+  it("reindexing a failed document clears stale errors and queues a new job", async () => {
+    const { dir, dbPath } = makeTempDb();
+    mockConfig(dbPath, path.join(dir, "uploads"));
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const document = createDocumentRecord(dbPath, {
+      ownerUserId: "user_demo",
+      projectId: project.id,
+      fileName: "broken.docx",
+      storagePath: "/tmp/broken.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      fileSize: 1024,
+    });
+    const db = new Database(dbPath);
+    db.prepare(
+      `UPDATE documents
+          SET status = 'failed',
+              error_message = 'KeyError: page_index_given_in_toc',
+              page_count = 12,
+              last_index_duration_ms = 9876,
+              last_index_total_tokens = 1234,
+              last_index_llm_call_count = 5,
+              last_indexed_at = '2026-05-15T06:43:18.358211+00:00'
+        WHERE id = ?`,
+    ).run(document.id);
+    db.close();
+
+    const { POST } = await import("@/app/api/documents/[documentId]/reindex/route");
+    const response = await POST(new Request("http://localhost/reindex", { method: "POST" }), {
+      params: Promise.resolve({ documentId: document.id }),
+    });
+    const json = await response.json();
+
+    const verifyDb = new Database(dbPath, { readonly: true });
+    const documentRow = verifyDb
+      .prepare(
+        `SELECT status, error_message, page_count, last_index_duration_ms,
+                last_index_total_tokens, last_index_llm_call_count, last_indexed_at
+           FROM documents
+          WHERE id = ?`,
+      )
+      .get(document.id) as {
+      status: string;
+      error_message: string | null;
+      page_count: number | null;
+      last_index_duration_ms: number | null;
+      last_index_total_tokens: number | null;
+      last_index_llm_call_count: number | null;
+      last_indexed_at: string | null;
+    };
+    const jobs = verifyDb
+      .prepare(`SELECT id, status, progress, error_message FROM jobs WHERE document_id = ?`)
+      .all(document.id) as Array<{
+      id: string;
+      status: string;
+      progress: number;
+      error_message: string | null;
+    }>;
+    verifyDb.close();
+
+    expect(response.status).toBe(202);
+    expect(json.status).toBe("queued");
+    expect(documentRow).toEqual({
+      status: "uploaded",
+      error_message: null,
+      page_count: null,
+      last_index_duration_ms: null,
+      last_index_total_tokens: null,
+      last_index_llm_call_count: null,
+      last_indexed_at: null,
+    });
+    expect(jobs).toEqual([
+      {
+        id: json.id,
+        status: "queued",
+        progress: 0,
+        error_message: null,
+      },
+    ]);
+  });
+
   it("does not expose storagePath in document detail response", async () => {
     const { dir, dbPath } = makeTempDb();
     mockConfig(dbPath, path.join(dir, "uploads"));

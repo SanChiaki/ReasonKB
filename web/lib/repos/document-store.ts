@@ -271,6 +271,28 @@ export function listDocumentIndexRuns(dbPath: string, documentId: string) {
   }));
 }
 
+export function resetDocumentForReindex(dbPath: string, documentId: string) {
+  const db = open(dbPath);
+  const now = new Date().toISOString();
+  const result = db
+    .prepare(
+      `UPDATE documents
+          SET status = 'uploaded',
+              page_count = NULL,
+              error_message = NULL,
+              last_index_duration_ms = NULL,
+              last_index_total_tokens = NULL,
+              last_index_llm_call_count = NULL,
+              last_indexed_at = NULL,
+              updated_at = ?
+        WHERE id = ?
+          AND deleted_at IS NULL`,
+    )
+    .run(now, documentId);
+  db.close();
+  return result.changes > 0;
+}
+
 function parseModelsJson(value: string) {
   try {
     const parsed = JSON.parse(value) as unknown;

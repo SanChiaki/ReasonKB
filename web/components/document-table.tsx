@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 export type DocumentTableRow = {
   id: string;
   fileName: string;
@@ -54,14 +59,43 @@ function formatCalls(value?: number | null) {
 export function DocumentTable({
   documents,
   searchQuery,
+  onReindexQueued,
 }: {
   documents: DocumentTableRow[];
   searchQuery?: string;
+  onReindexQueued?: () => void;
 }) {
+  const router = useRouter();
   const trimmedSearchQuery = searchQuery?.trim() ?? "";
+  const [pendingReindexId, setPendingReindexId] = useState<string | null>(null);
+  const [reindexError, setReindexError] = useState<string | null>(null);
+
+  async function handleReindex(document: DocumentTableRow) {
+    setPendingReindexId(document.id);
+    setReindexError(null);
+    try {
+      const response = await fetch(`/api/documents/${document.id}/reindex`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to queue document reindex.");
+      }
+      onReindexQueued?.();
+      router.refresh();
+    } catch (error) {
+      setReindexError(error instanceof Error ? error.message : "Failed to queue document reindex.");
+    } finally {
+      setPendingReindexId(null);
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel-strong)]">
+      {reindexError ? (
+        <div className="border-b border-[var(--pi-border)] bg-red-50 px-5 py-3 text-sm text-[var(--pi-danger)]">
+          {reindexError}
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
@@ -72,13 +106,14 @@ export function DocumentTable({
               <th className="px-5 py-4 font-medium">Indexing Status</th>
               <th className="px-5 py-4 font-medium">Parse Metrics</th>
               <th className="px-5 py-4 font-medium">Upload Time</th>
+              <th className="px-5 py-4 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {documents.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-10 text-center text-sm text-[var(--pi-muted)]"
                 >
                   {trimmedSearchQuery
@@ -125,6 +160,17 @@ export function DocumentTable({
                   </td>
                   <td className="px-5 py-4 text-[var(--pi-muted)]">
                     {formatUploadedAt(document.createdAt)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <button
+                      type="button"
+                      onClick={() => void handleReindex(document)}
+                      disabled={pendingReindexId === document.id}
+                      aria-label={`Reindex ${document.fileName}`}
+                      className="inline-flex min-w-24 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white px-3 py-2 text-xs font-medium text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {pendingReindexId === document.id ? "Queueing" : "Reindex"}
+                    </button>
                   </td>
                 </tr>
               ))
