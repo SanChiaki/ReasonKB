@@ -23,4 +23,17 @@ describe("AppShell", () => {
       0,
     );
   });
+
+  it("locks scrolling to the interior panes", () => {
+    render(
+      <AppShell conversations={[]}>
+        <div data-testid="content-pane">Projects content</div>
+      </AppShell>,
+    );
+
+    const main = screen.getByRole("main");
+    expect(main).toHaveClass("overflow-hidden");
+    expect(main.parentElement).toHaveClass("h-dvh", "overflow-hidden");
+    expect(screen.getByTestId("content-pane").parentElement).toHaveClass("overflow-hidden");
+  });
 });

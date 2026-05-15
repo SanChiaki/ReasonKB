@@ -13,7 +13,7 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[var(--pi-bg)] md:flex">
+    <div className="h-dvh overflow-hidden bg-[var(--pi-bg)] md:flex">
       <SidebarNav
         mobileOpen={mobileOpen}
         conversations={conversations}
@@ -27,7 +27,7 @@ export function AppShell({
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
-      <main className="flex min-h-screen flex-1 flex-col overflow-hidden">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex h-14 shrink-0 items-center border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-4 md:hidden">
           <button
             type="button"

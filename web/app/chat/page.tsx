@@ -158,35 +158,37 @@ export default async function ChatPage({
           </div>
         </header>
 
-        <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8">
-          {messages.length > 0 ? (
-            <div className="pb-4">
-              <ChatMessageList messages={messages} />
-            </div>
-          ) : (
-            <div className="flex h-full min-h-[240px] items-center justify-center px-4 md:min-h-[420px]">
-              <div className="w-full max-w-2xl text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--pi-border)] bg-white text-xl text-[var(--pi-muted)] md:h-14 md:w-14 md:text-2xl">
-                  ◌
-                </div>
-                <h2 className="text-2xl font-semibold text-[var(--pi-ink)] md:text-3xl">
-                  Ask across projects
-                </h2>
-                <p className="mx-auto mt-3 max-w-xl text-[15px] leading-6 text-[var(--pi-muted)]">
-                  Ask across every indexed project, optionally select project scopes, or switch to Evidence mode to inspect retrieved source blocks.
-                </p>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8">
+            {messages.length > 0 ? (
+              <div className="pb-4">
+                <ChatMessageList messages={messages} />
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="flex h-full min-h-[240px] items-center justify-center px-4 md:min-h-[420px]">
+                <div className="w-full max-w-2xl text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--pi-border)] bg-white text-xl text-[var(--pi-muted)] md:h-14 md:w-14 md:text-2xl">
+                    ◌
+                  </div>
+                  <h2 className="text-2xl font-semibold text-[var(--pi-ink)] md:text-3xl">
+                    Ask across projects
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-xl text-[15px] leading-6 text-[var(--pi-muted)]">
+                    Ask across every indexed project, optionally select project scopes, or switch to Evidence mode to inspect retrieved source blocks.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
-        <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-5 md:px-8">
-          <div className="mx-auto w-full max-w-4xl">
-            <ChatComposer
-              availableProjects={availableProjects}
-              selectedProjectIds={selectedProjectIds}
-              conversationId={conversation?.id}
-            />
+          <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-5 md:px-8">
+            <div className="mx-auto w-full max-w-4xl">
+              <ChatComposer
+                availableProjects={availableProjects}
+                selectedProjectIds={selectedProjectIds}
+                conversationId={conversation?.id}
+              />
+            </div>
           </div>
         </div>
       </section>

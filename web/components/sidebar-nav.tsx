@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Folder, MessageSquare, PanelLeftClose, Settings, Sun, Plus } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
 
 export type SidebarConversation = {
@@ -21,7 +22,11 @@ export function SidebarNav({
   conversations: SidebarConversation[];
   onCloseMobile: () => void;
 }) {
-  const [themeMode, setThemeMode] = useState<"light" | "focus">("light");
+  const pathname = usePathname();
+
+  function isActivePath(href: string) {
+    return pathname === href || Boolean(pathname?.startsWith(`${href}/`));
+  }
 
   return (
     <aside
@@ -62,7 +67,12 @@ export function SidebarNav({
           <Link
             href="/chat"
             onClick={onCloseMobile}
-            className="flex items-center gap-2 rounded-md bg-[var(--pi-brand-soft)] px-3 py-2 text-sm font-medium text-[var(--pi-brand)] transition hover:bg-[var(--pi-bg)]"
+            aria-current={isActivePath("/chat") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
+              isActivePath("/chat")
+                ? "bg-[var(--pi-brand-soft)] text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
           >
             <MessageSquare aria-hidden="true" size={18} strokeWidth={2} />
             Chat
@@ -70,7 +80,12 @@ export function SidebarNav({
           <Link
             href="/projects"
             onClick={onCloseMobile}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            aria-current={isActivePath("/projects") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+              isActivePath("/projects")
+                ? "bg-[var(--pi-brand-soft)] font-medium text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
           >
             <Folder aria-hidden="true" size={18} strokeWidth={2} />
             Projects
@@ -78,7 +93,12 @@ export function SidebarNav({
           <Link
             href="/settings"
             onClick={onCloseMobile}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            aria-current={isActivePath("/settings") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+              isActivePath("/settings")
+                ? "bg-[var(--pi-brand-soft)] font-medium text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
           >
             <Settings aria-hidden="true" size={18} strokeWidth={2} />
             Settings
@@ -93,24 +113,6 @@ export function SidebarNav({
             <ChatHistoryList conversations={conversations} />
           </div>
         </section>
-
-        <footer
-          aria-label="Sidebar controls"
-          className="mt-auto border-t border-[var(--pi-border)] p-3"
-        >
-          <button
-            type="button"
-            aria-label="Switch theme"
-            aria-pressed={themeMode === "focus"}
-            onClick={() =>
-              setThemeMode((value) => (value === "light" ? "focus" : "light"))
-            }
-            className="flex w-full items-center gap-2 rounded-md border border-[var(--pi-border)] bg-transparent px-3 py-2 text-xs font-medium text-[var(--pi-muted)] transition hover:border-[var(--pi-muted)] hover:bg-[var(--pi-bg)]"
-          >
-            <Sun aria-hidden="true" size={16} />
-            {themeMode === "light" ? "Light Mode" : "Focus Mode"}
-          </button>
-        </footer>
       </div>
     </aside>
   );
