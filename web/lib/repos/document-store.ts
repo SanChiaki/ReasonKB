@@ -118,6 +118,26 @@ function isOfficeDocument(mimeType: string, lowerName: string) {
 
 export class InvalidPagesFilterError extends Error {}
 
+export type DocumentIndexTreeNode = {
+  id: string;
+  title: string;
+  summary: string | null;
+  pageRange: string | null;
+  depth: number;
+  children: DocumentIndexTreeNode[];
+};
+
+export type DocumentIndexTree = {
+  documentId: string;
+  indexedAt: string;
+  stats: {
+    nodeCount: number;
+    leafCount: number;
+    maxDepth: number;
+  };
+  roots: DocumentIndexTreeNode[];
+};
+
 function parsePagesFilter(pages: string | null) {
   if (!pages) return null;
 
@@ -166,16 +186,18 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
   const db = open(dbPath);
   const rows = db
     .prepare(
-      `SELECT id, file_name, page_count, status, created_at, updated_at,
-              error_message,
+      `SELECT d.id, d.file_name, d.page_count, d.status, d.created_at, d.updated_at,
+              d.error_message,
               source_kind, source_relative_path, project_relative_path,
               media_type, import_status, import_error,
               last_index_duration_ms, last_index_total_tokens,
-              last_index_llm_call_count, last_indexed_at
-         FROM documents
-        WHERE project_id = ?
-          AND deleted_at IS NULL
-        ORDER BY created_at DESC`,
+              last_index_llm_call_count, last_indexed_at,
+              di.document_id AS index_document_id
+         FROM documents d
+         LEFT JOIN document_indexes di ON di.document_id = d.id
+        WHERE d.project_id = ?
+          AND d.deleted_at IS NULL
+        ORDER BY d.created_at DESC`,
     )
     .all(projectId) as Array<{
     id: string;
@@ -195,6 +217,7 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
     last_index_total_tokens: number | null;
     last_index_llm_call_count: number | null;
     last_indexed_at: string | null;
+    index_document_id: string | null;
   }>;
 
   db.close();
@@ -214,6 +237,7 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
     lastIndexTotalTokens: row.last_index_total_tokens,
     lastIndexLlmCallCount: row.last_index_llm_call_count,
     lastIndexedAt: row.last_indexed_at,
+    hasIndexTree: row.index_document_id !== null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -363,6 +387,36 @@ export function getDocumentStructure(dbPath: string, documentId: string) {
   return row ? JSON.parse(row.structure_json) : [];
 }
 
+export function getDocumentIndexTree(
+  dbPath: string,
+  documentId: string,
+): DocumentIndexTree | null {
+  const db = open(dbPath);
+  const row = db
+    .prepare(
+      `SELECT structure_json, indexed_at
+         FROM document_indexes
+        WHERE document_id = ?`,
+    )
+    .get(documentId) as
+    | {
+        structure_json: string;
+        indexed_at: string;
+      }
+    | undefined;
+
+  db.close();
+  if (!row) return null;
+
+  const roots = normalizeStructure(parseStructureJson(row.structure_json));
+  return {
+    documentId,
+    indexedAt: row.indexed_at,
+    stats: summarizeTree(roots),
+    roots,
+  };
+}
+
 export function getDocumentPages(
   dbPath: string,
   documentId: string,
@@ -382,4 +436,99 @@ export function getDocumentPages(
   }>;
   const allowed = parsePagesFilter(pages);
   return allowed ? parsed.filter((entry) => allowed.has(entry.page)) : parsed;
+}
+
+function parseStructureJson(value: string | null) {
+  if (!value) return [];
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return [];
+  }
+}
+
+function normalizeStructure(structure: unknown) {
+  const entries = Array.isArray(structure) ? structure : [structure];
+  return entries.flatMap((entry, index) =>
+    normalizeNode(entry, 0, [index], `node-${index}`),
+  );
+}
+
+function normalizeNode(
+  value: unknown,
+  depth: number,
+  path: number[],
+  fallbackId: string,
+): DocumentIndexTreeNode[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+
+  const raw = value as Record<string, unknown>;
+  const children = readChildren(raw).flatMap((child, index) =>
+    normalizeNode(child, depth + 1, [...path, index], `node-${path.join("-")}-${index}`),
+  );
+  const title = readString(raw.title) ?? readString(raw.name) ?? "Untitled section";
+  return [
+    {
+      id: readString(raw.node_id) ?? readString(raw.id) ?? fallbackId,
+      title,
+      summary: readString(raw.summary) ?? readString(raw.prefix_summary),
+      pageRange: formatPageRange(raw),
+      depth,
+      children,
+    },
+  ];
+}
+
+function readChildren(raw: Record<string, unknown>) {
+  const children = raw.nodes ?? raw.children;
+  return Array.isArray(children) ? children : [];
+}
+
+function readString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formatPageRange(raw: Record<string, unknown>) {
+  const start =
+    readNumber(raw.start_index) ??
+    readNumber(raw.start_page) ??
+    readNumber(raw.page_start) ??
+    readNumber(raw.physical_index);
+  const end =
+    readNumber(raw.end_index) ??
+    readNumber(raw.end_page) ??
+    readNumber(raw.page_end) ??
+    start;
+
+  if (start === null) return null;
+  if (end === null || end === start) return `${start}`;
+  return `${start}-${end}`;
+}
+
+function summarizeTree(roots: DocumentIndexTreeNode[]) {
+  const stats = {
+    nodeCount: 0,
+    leafCount: 0,
+    maxDepth: 0,
+  };
+  const stack = [...roots];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    stats.nodeCount += 1;
+    stats.maxDepth = Math.max(stats.maxDepth, node.depth);
+    if (node.children.length === 0) {
+      stats.leafCount += 1;
+    } else {
+      stack.push(...node.children);
+    }
+  }
+  return stats;
 }

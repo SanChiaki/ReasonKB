@@ -110,4 +110,85 @@ describe("DocumentTable", () => {
     expect(onReindexQueued).toHaveBeenCalledTimes(1);
     expect(routerMocks.refresh).toHaveBeenCalledTimes(1);
   });
+
+  it("opens a stored PageIndex tree for a single document", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        documentId: "doc_ready",
+        indexedAt: "2026-05-18T10:00:00.000Z",
+        stats: {
+          nodeCount: 2,
+          leafCount: 1,
+          maxDepth: 1,
+        },
+        roots: [
+          {
+            id: "0000",
+            title: "总体设计",
+            summary: "总体设计摘要",
+            pageRange: "1-3",
+            depth: 0,
+            children: [
+              {
+                id: "0001",
+                title: "网络规划",
+                summary: "网络规划摘要",
+                pageRange: "2-3",
+                depth: 1,
+                children: [],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DocumentTable
+        documents={[
+          {
+            id: "doc_ready",
+            fileName: "alpha.pdf",
+            pageCount: 3,
+            status: "ready",
+            createdAt: "2026-04-25T10:00:00.000Z",
+            hasIndexTree: true,
+            indexNodeCount: 2,
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /view index tree for alpha\.pdf/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/documents/doc_ready/structure");
+    });
+    expect(screen.getByRole("dialog", { name: /pageindex tree for alpha\.pdf/i })).toBeInTheDocument();
+    expect(screen.getByText("2 nodes")).toBeInTheDocument();
+    expect(screen.getByText("总体设计")).toBeInTheDocument();
+    expect(screen.getByText("网络规划")).toBeInTheDocument();
+  });
+
+  it("disables the PageIndex tree action until an index exists", () => {
+    render(
+      <DocumentTable
+        documents={[
+          {
+            id: "doc_queued",
+            fileName: "queued.pdf",
+            pageCount: 0,
+            status: "uploaded",
+            createdAt: "2026-04-25T10:00:00.000Z",
+            hasIndexTree: false,
+            indexNodeCount: 0,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /index tree unavailable for queued\.pdf/i })).toBeDisabled();
+  });
 });
