@@ -3,15 +3,46 @@ import Database from "better-sqlite3";
 export type SystemSettings = {
   indexWorkerConcurrency: number;
   retrievalDocumentLimit: number;
+  llmApiKeyConfigured: boolean;
+  llmBaseUrl: string;
+  llmModel: string;
+  llmRetrievalModel: string;
+  llmConfigured: boolean;
+  llmMissingFields: string[];
 };
 
-type SystemSettingsDefaults = SystemSettings;
+export type SystemSettingsUpdate = Partial<
+  Pick<
+    SystemSettings,
+    "indexWorkerConcurrency" | "retrievalDocumentLimit" | "llmBaseUrl" | "llmModel" | "llmRetrievalModel"
+  >
+> & {
+  llmApiKey?: string | null;
+};
+
+type SystemSettingsDefaults = {
+  indexWorkerConcurrency: number;
+  retrievalDocumentLimit: number;
+  llmApiKey?: string;
+  llmBaseUrl: string;
+  llmModel: string;
+  llmRetrievalModel: string;
+};
 
 const INDEX_WORKER_CONCURRENCY_KEY = "indexWorkerConcurrency";
 const RETRIEVAL_DOCUMENT_LIMIT_KEY = "retrievalDocumentLimit";
+const LLM_API_KEY_KEY = "llmApiKey";
+const LLM_BASE_URL_KEY = "llmBaseUrl";
+const LLM_MODEL_KEY = "llmModel";
+const LLM_RETRIEVAL_MODEL_KEY = "llmRetrievalModel";
+const DEFAULT_LLM_MODEL = "openai/deepseek-v4-flash";
 const FALLBACK_DEFAULTS: SystemSettingsDefaults = {
   indexWorkerConcurrency: 1,
   retrievalDocumentLimit: 5,
+  llmApiKey: "",
+  llmBaseUrl: "",
+  llmModel: DEFAULT_LLM_MODEL,
+  llmRetrievalModel: DEFAULT_LLM_MODEL,
 };
 const CREATE_SYSTEM_SETTINGS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS system_settings (
@@ -47,6 +78,37 @@ function normalizeRetrievalDocumentLimit(value: unknown) {
   return value;
 }
 
+function normalizeOptionalString(value: unknown, label: string) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${label} must be a string.`);
+  }
+  return value.trim();
+}
+
+function normalizeBaseUrl(value: unknown) {
+  const normalized = normalizeOptionalString(value, "Base URL");
+  if (!normalized) {
+    return "";
+  }
+  try {
+    const url = new URL(normalized);
+    if (!["http:", "https:"].includes(url.protocol)) {
+      throw new Error("Unsupported protocol.");
+    }
+  } catch {
+    throw new Error("Base URL must be a valid HTTP or HTTPS URL.");
+  }
+  return normalized;
+}
+
+function normalizeModel(value: unknown, label: string, fallback: string) {
+  const normalized = normalizeOptionalString(value, label);
+  return normalized || fallback;
+}
+
 function ensureSystemSettingsTable(db: InstanceType<typeof Database>) {
   db.exec(CREATE_SYSTEM_SETTINGS_TABLE_SQL);
 }
@@ -72,6 +134,52 @@ function readSetting(db: InstanceType<typeof Database>, key: string) {
   return JSON.parse(row.value_json) as unknown;
 }
 
+function writeSetting(
+  db: InstanceType<typeof Database>,
+  key: string,
+  value: unknown,
+  updatedAt: string,
+) {
+  db.prepare(
+    `INSERT INTO system_settings (key, value_json, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET
+       value_json = excluded.value_json,
+       updated_at = excluded.updated_at`,
+  ).run(key, JSON.stringify(value), updatedAt);
+}
+
+function toSystemSettings(values: {
+  indexWorkerConcurrency: number;
+  retrievalDocumentLimit: number;
+  llmApiKey: string;
+  llmBaseUrl: string;
+  llmModel: string;
+  llmRetrievalModel: string;
+}): SystemSettings {
+  const missingFields: string[] = [];
+  if (!values.llmApiKey) {
+    missingFields.push("API key");
+  }
+  if (!values.llmBaseUrl) {
+    missingFields.push("Base URL");
+  }
+  if (!values.llmModel) {
+    missingFields.push("Model");
+  }
+
+  return {
+    indexWorkerConcurrency: values.indexWorkerConcurrency,
+    retrievalDocumentLimit: values.retrievalDocumentLimit,
+    llmApiKeyConfigured: Boolean(values.llmApiKey),
+    llmBaseUrl: values.llmBaseUrl,
+    llmModel: values.llmModel,
+    llmRetrievalModel: values.llmRetrievalModel || values.llmModel,
+    llmConfigured: missingFields.length === 0,
+    llmMissingFields: missingFields,
+  };
+}
+
 export function getSystemSettings(
   dbPath: string,
   defaults: Partial<SystemSettingsDefaults> = {},
@@ -81,7 +189,11 @@ export function getSystemSettings(
   try {
     const savedConcurrency = readSetting(db, INDEX_WORKER_CONCURRENCY_KEY);
     const savedRetrievalDocumentLimit = readSetting(db, RETRIEVAL_DOCUMENT_LIMIT_KEY);
-    return {
+    const savedApiKey = readSetting(db, LLM_API_KEY_KEY);
+    const savedBaseUrl = readSetting(db, LLM_BASE_URL_KEY);
+    const savedModel = readSetting(db, LLM_MODEL_KEY);
+    const savedRetrievalModel = readSetting(db, LLM_RETRIEVAL_MODEL_KEY);
+    return toSystemSettings({
       indexWorkerConcurrency:
         savedConcurrency === undefined
           ? normalizedDefaults.indexWorkerConcurrency
@@ -90,7 +202,27 @@ export function getSystemSettings(
         savedRetrievalDocumentLimit === undefined
           ? normalizedDefaults.retrievalDocumentLimit
           : normalizeRetrievalDocumentLimit(savedRetrievalDocumentLimit),
-    };
+      llmApiKey:
+        savedApiKey === undefined
+          ? normalizeOptionalString(normalizedDefaults.llmApiKey, "API key")
+          : normalizeOptionalString(savedApiKey, "API key"),
+      llmBaseUrl:
+        savedBaseUrl === undefined
+          ? normalizeBaseUrl(normalizedDefaults.llmBaseUrl)
+          : normalizeBaseUrl(savedBaseUrl),
+      llmModel:
+        savedModel === undefined
+          ? normalizeModel(normalizedDefaults.llmModel, "Model", FALLBACK_DEFAULTS.llmModel)
+          : normalizeModel(savedModel, "Model", FALLBACK_DEFAULTS.llmModel),
+      llmRetrievalModel:
+        savedRetrievalModel === undefined
+          ? normalizeModel(
+              normalizedDefaults.llmRetrievalModel,
+              "Retrieval model",
+              normalizedDefaults.llmModel,
+            )
+          : normalizeModel(savedRetrievalModel, "Retrieval model", normalizedDefaults.llmModel),
+    });
   } finally {
     db.close();
   }
@@ -98,33 +230,42 @@ export function getSystemSettings(
 
 export function updateSystemSettings(
   dbPath: string,
-  updates: Partial<SystemSettings>,
+  updates: SystemSettingsUpdate,
   defaults: Partial<SystemSettingsDefaults> = FALLBACK_DEFAULTS,
 ): SystemSettings {
   const db = open(dbPath);
   const now = new Date().toISOString();
+  const normalizedDefaults = { ...FALLBACK_DEFAULTS, ...defaults };
   try {
     ensureSystemSettingsTable(db);
     const transaction = db.transaction(() => {
       if (updates.indexWorkerConcurrency !== undefined) {
         const value = normalizeIndexWorkerConcurrency(updates.indexWorkerConcurrency);
-        db.prepare(
-          `INSERT INTO system_settings (key, value_json, updated_at)
-           VALUES (?, ?, ?)
-           ON CONFLICT(key) DO UPDATE SET
-             value_json = excluded.value_json,
-             updated_at = excluded.updated_at`,
-        ).run(INDEX_WORKER_CONCURRENCY_KEY, JSON.stringify(value), now);
+        writeSetting(db, INDEX_WORKER_CONCURRENCY_KEY, value, now);
       }
       if (updates.retrievalDocumentLimit !== undefined) {
         const value = normalizeRetrievalDocumentLimit(updates.retrievalDocumentLimit);
-        db.prepare(
-          `INSERT INTO system_settings (key, value_json, updated_at)
-           VALUES (?, ?, ?)
-           ON CONFLICT(key) DO UPDATE SET
-             value_json = excluded.value_json,
-             updated_at = excluded.updated_at`,
-        ).run(RETRIEVAL_DOCUMENT_LIMIT_KEY, JSON.stringify(value), now);
+        writeSetting(db, RETRIEVAL_DOCUMENT_LIMIT_KEY, value, now);
+      }
+      if (Object.hasOwn(updates, "llmApiKey")) {
+        const value = normalizeOptionalString(updates.llmApiKey, "API key");
+        writeSetting(db, LLM_API_KEY_KEY, value, now);
+      }
+      if (updates.llmBaseUrl !== undefined) {
+        const value = normalizeBaseUrl(updates.llmBaseUrl);
+        writeSetting(db, LLM_BASE_URL_KEY, value, now);
+      }
+      if (updates.llmModel !== undefined) {
+        const value = normalizeModel(updates.llmModel, "Model", normalizedDefaults.llmModel);
+        writeSetting(db, LLM_MODEL_KEY, value, now);
+      }
+      if (updates.llmRetrievalModel !== undefined) {
+        const value = normalizeModel(
+          updates.llmRetrievalModel,
+          "Retrieval model",
+          updates.llmModel ?? normalizedDefaults.llmModel,
+        );
+        writeSetting(db, LLM_RETRIEVAL_MODEL_KEY, value, now);
       }
     });
     transaction();

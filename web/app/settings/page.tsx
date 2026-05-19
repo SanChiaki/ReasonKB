@@ -14,6 +14,13 @@ const defaults = {
     10,
   ),
   retrievalDocumentLimit: 5,
+  llmApiKey: process.env.PAGEINDEX_LLM_API_KEY ?? "",
+  llmBaseUrl: process.env.PAGEINDEX_LLM_BASE_URL ?? "",
+  llmModel: process.env.PAGEINDEX_LLM_MODEL ?? "openai/deepseek-v4-flash",
+  llmRetrievalModel:
+    process.env.PAGEINDEX_LLM_RETRIEVAL_MODEL ??
+    process.env.PAGEINDEX_LLM_MODEL ??
+    "openai/deepseek-v4-flash",
 };
 
 export default async function SettingsPage() {
@@ -39,6 +46,12 @@ export default async function SettingsPage() {
           <SystemSettingsForm
             initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
             initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}
+            initialLlmApiKeyConfigured={settings.llmApiKeyConfigured}
+            initialLlmBaseUrl={settings.llmBaseUrl}
+            initialLlmModel={settings.llmModel}
+            initialLlmRetrievalModel={settings.llmRetrievalModel}
+            initialLlmConfigured={settings.llmConfigured}
+            initialLlmMissingFields={settings.llmMissingFields}
           />
         </div>
       </section>

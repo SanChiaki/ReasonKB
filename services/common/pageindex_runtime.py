@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import wraps
 import importlib
 import logging
+import os
 from pathlib import Path
 import time
 from time import perf_counter
@@ -11,6 +12,8 @@ from typing import Any, Callable
 from services.common.index_metrics import current_index_metrics
 from services.common.llm_environment import configure_litellm_environment
 from services.common.pageindex_vendor import ensure_pageindex_vendor_path
+from services.common.settings import DB_PATH
+from services.common.system_settings import get_llm_runtime_settings
 
 
 _CONFIGURED = False
@@ -56,15 +59,48 @@ def _patch_pageindex_client(client_module) -> None:
 def _patch_config_loader(utils_module) -> None:
     config_path = Path(__file__).with_name("pageindex_config.yaml")
     original_init = utils_module.ConfigLoader.__init__
-    if getattr(original_init, "_reasonkb_patched", False):
+    if not getattr(original_init, "_reasonkb_patched", False):
+
+        @wraps(original_init)
+        def patched_init(self, default_path=None):
+            return original_init(self, default_path or config_path)
+
+        patched_init._reasonkb_patched = True
+        utils_module.ConfigLoader.__init__ = patched_init
+
+    original_load = utils_module.ConfigLoader.load
+    if getattr(original_load, "_reasonkb_patched", False):
         return
 
-    @wraps(original_init)
-    def patched_init(self, default_path=None):
-        return original_init(self, default_path or config_path)
+    @wraps(original_load)
+    def patched_load(self, user_opt=None):
+        db_path = os.getenv("APP_DB_PATH", str(DB_PATH))
+        runtime_settings = get_llm_runtime_settings(db_path)
+        merged_user_opt = _merge_runtime_llm_options(
+            user_opt,
+            model=runtime_settings.model,
+            retrieve_model=runtime_settings.retrieve_model,
+        )
+        return original_load(self, merged_user_opt)
 
-    patched_init._reasonkb_patched = True
-    utils_module.ConfigLoader.__init__ = patched_init
+    patched_load._reasonkb_patched = True
+    utils_module.ConfigLoader.load = patched_load
+
+
+def _merge_runtime_llm_options(user_opt, *, model: str, retrieve_model: str):
+    overrides = {}
+    if user_opt is None:
+        user_dict = {}
+    elif isinstance(user_opt, dict):
+        user_dict = dict(user_opt)
+    else:
+        user_dict = dict(vars(user_opt))
+
+    if model and "model" not in user_dict:
+        overrides["model"] = model
+    if retrieve_model and "retrieve_model" not in user_dict:
+        overrides["retrieve_model"] = retrieve_model
+    return {**overrides, **user_dict}
 
 
 def _patch_toc_fallback(page_index_module) -> None:

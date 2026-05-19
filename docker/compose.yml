@@ -6,6 +6,9 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     command: ["sh", "./docker/entrypoints/web.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-../.env}
+        required: false
     ports:
       - "${WEB_PORT:-43170}:3000"
     environment:

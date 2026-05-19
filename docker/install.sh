@@ -30,6 +30,8 @@ if [ ! -f "$REASONKB_HOME/.env" ]; then
 # Optional LLM defaults. Runtime settings saved in ReasonKB take precedence.
 # PAGEINDEX_LLM_API_KEY=
 # PAGEINDEX_LLM_BASE_URL=
+# PAGEINDEX_LLM_MODEL=openai/deepseek-v4-flash
+# PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/deepseek-v4-flash
 # VISION_EXTRACTION_ENABLED=false
 # VISION_MODEL=
 EOF

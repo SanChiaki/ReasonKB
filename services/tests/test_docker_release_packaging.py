@@ -47,6 +47,22 @@ def test_release_compose_requests_published_image_platform():
         assert service["platform"] == "${REASONKB_PLATFORM:-linux/amd64}"
 
 
+def test_release_web_reads_runtime_env_file_for_llm_defaults():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    web = compose["services"]["web"]
+    assert web["env_file"] == [
+        {"path": "${REASONKB_ENV_FILE:-./.env}", "required": False},
+    ]
+    for name in (
+        "PAGEINDEX_LLM_API_KEY",
+        "PAGEINDEX_LLM_BASE_URL",
+        "PAGEINDEX_LLM_MODEL",
+        "PAGEINDEX_LLM_RETRIEVAL_MODEL",
+    ):
+        assert name not in web["environment"]
+
+
 def test_gotenberg_mirror_dockerfile_tracks_official_image():
     dockerfile = (ROOT / "docker" / "Dockerfile.gotenberg").read_text(encoding="utf-8")
 

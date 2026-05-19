@@ -36,6 +36,8 @@ describe("system settings route", () => {
     expect(response.status).toBe(200);
     expect(json.settings.indexWorkerConcurrency).toBe(1);
     expect(json.settings.retrievalDocumentLimit).toBe(5);
+    expect(json.settings.llmApiKeyConfigured).toBe(false);
+    expect(json.settings.llmConfigured).toBe(false);
   });
 
   it("updates runtime settings", async () => {
@@ -46,7 +48,14 @@ describe("system settings route", () => {
       new Request("http://localhost/api/admin/settings", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ indexWorkerConcurrency: 3, retrievalDocumentLimit: 12 }),
+        body: JSON.stringify({
+          indexWorkerConcurrency: 3,
+          retrievalDocumentLimit: 12,
+          llmApiKey: "sk-test",
+          llmBaseUrl: "https://llm.example.test/v1",
+          llmModel: "openai/deepseek-v4-flash",
+          llmRetrievalModel: "openai/deepseek-v4-flash",
+        }),
       }),
     );
     const json = await response.json();
@@ -54,6 +63,9 @@ describe("system settings route", () => {
     expect(response.status).toBe(200);
     expect(json.settings.indexWorkerConcurrency).toBe(3);
     expect(json.settings.retrievalDocumentLimit).toBe(12);
+    expect(json.settings.llmApiKeyConfigured).toBe(true);
+    expect(json.settings.llmBaseUrl).toBe("https://llm.example.test/v1");
+    expect(json.settings.llmConfigured).toBe(true);
   });
 
   it("rejects invalid concurrency values", async () => {
@@ -80,6 +92,21 @@ describe("system settings route", () => {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ retrievalDocumentLimit: 0 }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects invalid LLM base URLs", async () => {
+    makeTempDb();
+
+    const { PATCH } = await import("@/app/api/admin/settings/route");
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ llmBaseUrl: "not-a-url" }),
       }),
     );
 

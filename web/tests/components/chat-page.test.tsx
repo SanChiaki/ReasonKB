@@ -350,6 +350,18 @@ describe("Chat page components", () => {
     vi.doMock("@/lib/repos/project-store", () => ({
       listProjects,
     }));
+    vi.doMock("@/lib/repos/system-settings-store", () => ({
+      getSystemSettings: () => ({
+        indexWorkerConcurrency: 1,
+        retrievalDocumentLimit: 5,
+        llmApiKeyConfigured: false,
+        llmBaseUrl: "",
+        llmModel: "openai/deepseek-v4-flash",
+        llmRetrievalModel: "openai/deepseek-v4-flash",
+        llmConfigured: false,
+        llmMissingFields: ["API key", "Base URL"],
+      }),
+    }));
     vi.doMock("@/components/app-shell", () => ({
       AppShell: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="mock-shell">{children}</div>
@@ -363,6 +375,11 @@ describe("Chat page components", () => {
     render(view);
 
     expect(screen.getByRole("heading", { name: /new chat/i })).toBeInTheDocument();
+    expect(screen.getByText(/model service is not configured/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /configure model/i })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
     expect(
       screen.getByText(
         /ask across every indexed project, optionally select project scopes/i,
@@ -404,6 +421,18 @@ describe("Chat page components", () => {
     vi.doMock("@/lib/repos/project-store", () => ({
       listProjects,
     }));
+    vi.doMock("@/lib/repos/system-settings-store", () => ({
+      getSystemSettings: () => ({
+        indexWorkerConcurrency: 1,
+        retrievalDocumentLimit: 5,
+        llmApiKeyConfigured: true,
+        llmBaseUrl: "https://llm.example.test/v1",
+        llmModel: "openai/deepseek-v4-flash",
+        llmRetrievalModel: "openai/deepseek-v4-flash",
+        llmConfigured: true,
+        llmMissingFields: [],
+      }),
+    }));
     vi.doMock("@/components/app-shell", () => ({
       AppShell: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="mock-shell">{children}</div>
@@ -417,6 +446,7 @@ describe("Chat page components", () => {
     render(view);
 
     expect(screen.getByRole("heading", { name: /quarterly review/i })).toBeInTheDocument();
+    expect(screen.queryByText(/model service is not configured/i)).not.toBeInTheDocument();
     expect(screen.getByText("Scope")).toBeInTheDocument();
     expect(screen.getByText("Alpha", { selector: "span" })).toBeInTheDocument();
   });

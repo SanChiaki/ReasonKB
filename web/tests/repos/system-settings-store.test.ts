@@ -31,6 +31,12 @@ describe("system settings store", () => {
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 3 })).toEqual({
       indexWorkerConcurrency: 3,
       retrievalDocumentLimit: 5,
+      llmApiKeyConfigured: false,
+      llmBaseUrl: "",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
+      llmConfigured: false,
+      llmMissingFields: ["API key", "Base URL"],
     });
   });
 
@@ -40,13 +46,26 @@ describe("system settings store", () => {
     const saved = updateSystemSettings(dbPath, {
       indexWorkerConcurrency: 4,
       retrievalDocumentLimit: 12,
+      llmApiKey: "sk-test",
+      llmBaseUrl: "https://llm.example.test/v1",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
     });
 
     expect(saved.indexWorkerConcurrency).toBe(4);
     expect(saved.retrievalDocumentLimit).toBe(12);
+    expect(saved.llmApiKeyConfigured).toBe(true);
+    expect(saved.llmBaseUrl).toBe("https://llm.example.test/v1");
+    expect(saved.llmConfigured).toBe(true);
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
       indexWorkerConcurrency: 4,
       retrievalDocumentLimit: 12,
+      llmApiKeyConfigured: true,
+      llmBaseUrl: "https://llm.example.test/v1",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
+      llmConfigured: true,
+      llmMissingFields: [],
     });
   });
 
@@ -59,6 +78,12 @@ describe("system settings store", () => {
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 2 })).toEqual({
       indexWorkerConcurrency: 2,
       retrievalDocumentLimit: 5,
+      llmApiKeyConfigured: false,
+      llmBaseUrl: "",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
+      llmConfigured: false,
+      llmMissingFields: ["API key", "Base URL"],
     });
   });
 
@@ -74,6 +99,30 @@ describe("system settings store", () => {
     expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
       indexWorkerConcurrency: 6,
       retrievalDocumentLimit: 5,
+      llmApiKeyConfigured: false,
+      llmBaseUrl: "",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
+      llmConfigured: false,
+      llmMissingFields: ["API key", "Base URL"],
     });
+  });
+
+  it("clears a saved API key without clearing the public model fields", () => {
+    const dbPath = makeTempDb();
+
+    updateSystemSettings(dbPath, {
+      llmApiKey: "sk-test",
+      llmBaseUrl: "https://llm.example.test/v1",
+      llmModel: "openai/deepseek-v4-flash",
+      llmRetrievalModel: "openai/deepseek-v4-flash",
+    });
+    const cleared = updateSystemSettings(dbPath, {
+      llmApiKey: null,
+    });
+
+    expect(cleared.llmApiKeyConfigured).toBe(false);
+    expect(cleared.llmBaseUrl).toBe("https://llm.example.test/v1");
+    expect(cleared.llmMissingFields).toEqual(["API key"]);
   });
 });

@@ -34,6 +34,12 @@ describe("SettingsPage", () => {
       getSystemSettings: () => ({
         indexWorkerConcurrency: 3,
         retrievalDocumentLimit: 12,
+        llmApiKeyConfigured: true,
+        llmBaseUrl: "https://llm.example.test/v1",
+        llmModel: "openai/deepseek-v4-flash",
+        llmRetrievalModel: "openai/deepseek-v4-flash",
+        llmConfigured: true,
+        llmMissingFields: [],
       }),
     }));
     vi.doMock("@/components/app-shell", () => ({
@@ -46,5 +52,9 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("heading", { name: /system settings/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/concurrent jobs/i)).toHaveValue(3);
     expect(screen.getByLabelText(/retrieval documents/i)).toHaveValue(12);
+    expect(screen.getByLabelText(/base url/i)).toHaveValue(
+      "https://llm.example.test/v1",
+    );
+    expect(screen.getByText(/model service is ready/i)).toBeInTheDocument();
   });
 });

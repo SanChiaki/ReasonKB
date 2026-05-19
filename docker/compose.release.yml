@@ -5,6 +5,9 @@ services:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     command: ["sh", "./docker/entrypoints/web.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-./.env}
+        required: false
     ports:
       - "${WEB_PORT:-43170}:3000"
     environment:
