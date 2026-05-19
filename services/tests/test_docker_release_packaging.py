@@ -47,6 +47,13 @@ def test_release_compose_requests_published_image_platform():
         assert service["platform"] == "${REASONKB_PLATFORM:-linux/amd64}"
 
 
+def test_release_compose_always_pulls_published_images():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    for service in compose["services"].values():
+        assert service["pull_policy"] == "always"
+
+
 def test_release_web_reads_runtime_env_file_for_llm_defaults():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
@@ -73,6 +80,17 @@ def test_root_dockerfile_matches_compose_build_dockerfile_for_acr_auto_build():
     assert (ROOT / "Dockerfile").read_text(encoding="utf-8") == (
         ROOT / "docker" / "Dockerfile"
     ).read_text(encoding="utf-8")
+
+
+def test_acr_publish_embeds_git_revision_label():
+    dockerfile = (ROOT / "docker" / "Dockerfile").read_text(encoding="utf-8")
+    publish_script = (ROOT / "docker" / "publish-acr.sh").read_text(encoding="utf-8")
+
+    assert "ARG REASONKB_GIT_SHA=unknown" in dockerfile
+    assert "org.opencontainers.image.revision=$REASONKB_GIT_SHA" in dockerfile
+    assert 'GIT_SHA="$(git rev-parse HEAD)"' in publish_script
+    assert "--build-arg" in publish_script
+    assert "REASONKB_GIT_SHA=$GIT_SHA" in publish_script
 
 
 def _reserve_port(port: int) -> socket.socket | None:
@@ -130,7 +148,7 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
             fi
             if [ "$1" = "compose" ]; then
               env | sort > "$REASONKB_HOME/docker-env.txt"
-              printf '%s\\n' "$@" > "$REASONKB_HOME/docker-args.txt"
+              printf '%s\\n' "$@" >> "$REASONKB_HOME/docker-args.txt"
               exit 0
             fi
             exit 1
@@ -175,9 +193,14 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
             }
         ) == 3
         assert "Web UI: http://localhost:" in result.stdout
-        assert (reasonkb_home / "docker-args.txt").read_text(encoding="utf-8").splitlines()[
-            -2:
-        ] == ["up", "-d"]
+        docker_args = (reasonkb_home / "docker-args.txt").read_text(encoding="utf-8")
+        assert "pull" in docker_args.splitlines()
+        assert docker_args.splitlines()[-4:] == [
+            "up",
+            "-d",
+            "--force-recreate",
+            "--remove-orphans",
+        ]
     finally:
         for sock in reserved:
             sock.close()

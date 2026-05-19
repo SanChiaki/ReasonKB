@@ -3,6 +3,7 @@ name: reasonkb
 services:
   web:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     command: ["sh", "./docker/entrypoints/web.sh"]
     env_file:
@@ -26,6 +27,7 @@ services:
 
   retrieval-api:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     command: ["sh", "./docker/entrypoints/retrieval-api.sh"]
     env_file:
@@ -57,6 +59,7 @@ services:
 
   index-worker:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     command: ["sh", "./docker/entrypoints/index-worker.sh"]
     env_file:
@@ -86,6 +89,7 @@ services:
 
   directory-watcher:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
+    pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     command: ["sh", "./docker/entrypoints/directory-watcher.sh"]
     environment:
@@ -104,6 +108,7 @@ services:
 
   gotenberg:
     image: ${GOTENBERG_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8}
+    pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
     ports:
       - "${GOTENBERG_PORT:-43172}:3000"

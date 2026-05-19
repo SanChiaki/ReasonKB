@@ -135,7 +135,8 @@ ensure_port_env GOTENBERG_PORT 43172
 
 (
   cd "$REASONKB_HOME"
-  docker compose --env-file ./.env -f compose.yml up -d
+  docker compose --env-file ./.env -f compose.yml pull
+  docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
 )
 
 cat <<EOF

@@ -1,5 +1,8 @@
 FROM node:22-bookworm
 
+ARG REASONKB_GIT_SHA=unknown
+LABEL org.opencontainers.image.revision=$REASONKB_GIT_SHA
+
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1

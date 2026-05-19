@@ -8,9 +8,12 @@ PLATFORM="${PLATFORM:-linux/amd64}"
 
 cd "$(dirname "$0")/.."
 
+GIT_SHA="$(git rev-parse HEAD)"
+
 docker buildx build \
   --platform "$PLATFORM" \
   -f docker/Dockerfile \
+  --build-arg "REASONKB_GIT_SHA=$GIT_SHA" \
   -t "$ACR_IMAGE:$REASONKB_TAG" \
   --push \
   .
