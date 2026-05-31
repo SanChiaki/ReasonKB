@@ -18,9 +18,14 @@ services:
       APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
       RETRIEVAL_API_BASE_URL: http://retrieval-api:8001
       PROJECTS_ROOT: /data/projects
+      REASONKB_CURRENT_PROJECTS_ROOT: ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}
+      REASONKB_HOST_BROWSE_ROOT: ${REASONKB_HOST_BROWSE_ROOT:-${HOME:-../.reasonkb}}
+      REASONKB_HOST_BROWSE_CONTAINER_ROOT: /host-browse
+      REASONKB_COMPOSE_COMMAND: docker compose --env-file ${REASONKB_ENV_FILE:-../.env} -f docker/compose.yml up -d --force-recreate --remove-orphans
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_HOST_BROWSE_ROOT:-${HOME:-../.reasonkb}}:/host-browse:ro
     depends_on:
       retrieval-api:
         condition: service_healthy

@@ -28,7 +28,12 @@ describe("system settings store", () => {
   it("returns defaults when no runtime settings are saved", () => {
     const dbPath = makeTempDb();
 
-    expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 3 })).toEqual({
+    expect(
+      getSystemSettings(dbPath, {
+        indexWorkerConcurrency: 3,
+        projectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      }),
+    ).toEqual({
       indexWorkerConcurrency: 3,
       retrievalDocumentLimit: 5,
       llmApiKeyConfigured: false,
@@ -37,6 +42,10 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      pendingProjectsRootHostPath: "",
+      projectsRootSwitchStatus: "idle",
+      projectsRootSwitchUpdatedAt: null,
     });
   });
 
@@ -57,7 +66,12 @@ describe("system settings store", () => {
     expect(saved.llmApiKeyConfigured).toBe(true);
     expect(saved.llmBaseUrl).toBe("https://llm.example.test/v1");
     expect(saved.llmConfigured).toBe(true);
-    expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
+    expect(
+      getSystemSettings(dbPath, {
+        indexWorkerConcurrency: 1,
+        projectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      }),
+    ).toEqual({
       indexWorkerConcurrency: 4,
       retrievalDocumentLimit: 12,
       llmApiKeyConfigured: true,
@@ -66,7 +80,32 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: true,
       llmMissingFields: [],
+      currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      pendingProjectsRootHostPath: "",
+      projectsRootSwitchStatus: "idle",
+      projectsRootSwitchUpdatedAt: null,
     });
+  });
+
+  it("tracks a pending projects root switch until Docker reports the new host mount", () => {
+    const dbPath = makeTempDb();
+
+    const saved = updateSystemSettings(
+      dbPath,
+      { projectsRootHostPath: "/Volumes/Corpus/ReasonKB" },
+      { projectsRootHostPath: "/Users/oam/.reasonkb/projects" },
+    );
+
+    expect(saved.currentProjectsRootHostPath).toBe("/Users/oam/.reasonkb/projects");
+    expect(saved.pendingProjectsRootHostPath).toBe("/Volumes/Corpus/ReasonKB");
+    expect(saved.projectsRootSwitchStatus).toBe("pending");
+    expect(saved.projectsRootSwitchUpdatedAt).toEqual(expect.any(String));
+
+    const completed = getSystemSettings(dbPath, {
+      projectsRootHostPath: "/Volumes/Corpus/ReasonKB",
+    });
+    expect(completed.pendingProjectsRootHostPath).toBe("/Volumes/Corpus/ReasonKB");
+    expect(completed.projectsRootSwitchStatus).toBe("complete");
   });
 
   it("returns defaults when the settings table does not exist yet", () => {
@@ -75,7 +114,12 @@ describe("system settings store", () => {
     const dbPath = path.join(dir, "app.db");
     fs.closeSync(fs.openSync(dbPath, "w"));
 
-    expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 2 })).toEqual({
+    expect(
+      getSystemSettings(dbPath, {
+        indexWorkerConcurrency: 2,
+        projectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      }),
+    ).toEqual({
       indexWorkerConcurrency: 2,
       retrievalDocumentLimit: 5,
       llmApiKeyConfigured: false,
@@ -84,6 +128,10 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      pendingProjectsRootHostPath: "",
+      projectsRootSwitchStatus: "idle",
+      projectsRootSwitchUpdatedAt: null,
     });
   });
 
@@ -96,7 +144,12 @@ describe("system settings store", () => {
     expect(
       updateSystemSettings(dbPath, { indexWorkerConcurrency: 6 }).indexWorkerConcurrency,
     ).toBe(6);
-    expect(getSystemSettings(dbPath, { indexWorkerConcurrency: 1 })).toEqual({
+    expect(
+      getSystemSettings(dbPath, {
+        indexWorkerConcurrency: 1,
+        projectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      }),
+    ).toEqual({
       indexWorkerConcurrency: 6,
       retrievalDocumentLimit: 5,
       llmApiKeyConfigured: false,
@@ -105,6 +158,10 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      pendingProjectsRootHostPath: "",
+      projectsRootSwitchStatus: "idle",
+      projectsRootSwitchUpdatedAt: null,
     });
   });
 

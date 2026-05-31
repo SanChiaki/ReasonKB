@@ -21,6 +21,7 @@ const defaults = {
     process.env.PAGEINDEX_LLM_RETRIEVAL_MODEL ??
     process.env.PAGEINDEX_LLM_MODEL ??
     "openai/deepseek-v4-flash",
+  projectsRootHostPath: appConfig.currentProjectsRootHostPath,
 };
 
 export default async function SettingsPage() {
@@ -52,6 +53,17 @@ export default async function SettingsPage() {
             initialLlmRetrievalModel={settings.llmRetrievalModel}
             initialLlmConfigured={settings.llmConfigured}
             initialLlmMissingFields={settings.llmMissingFields}
+            initialCurrentProjectsRootHostPath={settings.currentProjectsRootHostPath}
+            initialPendingProjectsRootHostPath={settings.pendingProjectsRootHostPath}
+            initialProjectsRootSwitchStatus={settings.projectsRootSwitchStatus}
+            initialProjectsRootSwitchUpdatedAt={settings.projectsRootSwitchUpdatedAt}
+            projectsRootEnvFilePath={appConfig.envFilePath}
+            projectsRootComposeCommand={appConfig.composeCommand}
+            projectsRootBrowseRootHostPath={appConfig.hostBrowseRootHostPath}
+            projectsRootPickerAvailable={
+              Boolean(appConfig.hostBrowseRootHostPath) &&
+              Boolean(appConfig.hostBrowseRootContainerPath)
+            }
           />
         </div>
       </section>

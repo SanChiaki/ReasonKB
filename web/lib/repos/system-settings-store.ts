@@ -9,15 +9,24 @@ export type SystemSettings = {
   llmRetrievalModel: string;
   llmConfigured: boolean;
   llmMissingFields: string[];
+  currentProjectsRootHostPath: string;
+  pendingProjectsRootHostPath: string;
+  projectsRootSwitchStatus: "idle" | "pending" | "complete";
+  projectsRootSwitchUpdatedAt: string | null;
 };
 
 export type SystemSettingsUpdate = Partial<
   Pick<
     SystemSettings,
-    "indexWorkerConcurrency" | "retrievalDocumentLimit" | "llmBaseUrl" | "llmModel" | "llmRetrievalModel"
+    | "indexWorkerConcurrency"
+    | "retrievalDocumentLimit"
+    | "llmBaseUrl"
+    | "llmModel"
+    | "llmRetrievalModel"
   >
 > & {
   llmApiKey?: string | null;
+  projectsRootHostPath?: string;
 };
 
 type SystemSettingsDefaults = {
@@ -27,6 +36,7 @@ type SystemSettingsDefaults = {
   llmBaseUrl: string;
   llmModel: string;
   llmRetrievalModel: string;
+  projectsRootHostPath: string;
 };
 
 const INDEX_WORKER_CONCURRENCY_KEY = "indexWorkerConcurrency";
@@ -35,6 +45,8 @@ const LLM_API_KEY_KEY = "llmApiKey";
 const LLM_BASE_URL_KEY = "llmBaseUrl";
 const LLM_MODEL_KEY = "llmModel";
 const LLM_RETRIEVAL_MODEL_KEY = "llmRetrievalModel";
+const PENDING_PROJECTS_ROOT_HOST_PATH_KEY = "pendingProjectsRootHostPath";
+const PROJECTS_ROOT_SWITCH_UPDATED_AT_KEY = "projectsRootSwitchUpdatedAt";
 const DEFAULT_LLM_MODEL = "openai/deepseek-v4-flash";
 const FALLBACK_DEFAULTS: SystemSettingsDefaults = {
   indexWorkerConcurrency: 1,
@@ -43,6 +55,7 @@ const FALLBACK_DEFAULTS: SystemSettingsDefaults = {
   llmBaseUrl: "",
   llmModel: DEFAULT_LLM_MODEL,
   llmRetrievalModel: DEFAULT_LLM_MODEL,
+  projectsRootHostPath: "",
 };
 const CREATE_SYSTEM_SETTINGS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS system_settings (
@@ -109,6 +122,54 @@ function normalizeModel(value: unknown, label: string, fallback: string) {
   return normalized || fallback;
 }
 
+function trimTrailingSeparators(value: string) {
+  let normalized = value;
+  while (
+    normalized.length > 1 &&
+    !/^[A-Za-z]:[\\/]$/.test(normalized) &&
+    /[\\/]$/.test(normalized)
+  ) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+function isAbsoluteHostPath(value: string) {
+  return (
+    value.startsWith("/") ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    /^\\\\[^\\]+\\[^\\]+/.test(value)
+  );
+}
+
+function normalizeHostPathUpdate(value: unknown) {
+  const normalized = trimTrailingSeparators(
+    normalizeOptionalString(value, "Projects root host path"),
+  );
+  if (!normalized) {
+    throw new Error("Projects root host path is required.");
+  }
+  if (/[\r\n]/.test(normalized)) {
+    throw new Error("Projects root host path must be a single line.");
+  }
+  if (!isAbsoluteHostPath(normalized)) {
+    throw new Error("Projects root host path must be an absolute host path.");
+  }
+  return normalized;
+}
+
+function normalizeCurrentHostPath(value: unknown) {
+  return trimTrailingSeparators(normalizeOptionalString(value, "Projects root host path"));
+}
+
+function normalizeNullableDate(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function ensureSystemSettingsTable(db: InstanceType<typeof Database>) {
   db.exec(CREATE_SYSTEM_SETTINGS_TABLE_SQL);
 }
@@ -156,6 +217,9 @@ function toSystemSettings(values: {
   llmBaseUrl: string;
   llmModel: string;
   llmRetrievalModel: string;
+  currentProjectsRootHostPath: string;
+  pendingProjectsRootHostPath: string;
+  projectsRootSwitchUpdatedAt: string | null;
 }): SystemSettings {
   const missingFields: string[] = [];
   if (!values.llmApiKey) {
@@ -167,6 +231,17 @@ function toSystemSettings(values: {
   if (!values.llmModel) {
     missingFields.push("Model");
   }
+  const currentProjectsRootHostPath = normalizeCurrentHostPath(
+    values.currentProjectsRootHostPath,
+  );
+  const pendingProjectsRootHostPath = normalizeCurrentHostPath(
+    values.pendingProjectsRootHostPath,
+  );
+  const projectsRootSwitchStatus = pendingProjectsRootHostPath
+    ? pendingProjectsRootHostPath === currentProjectsRootHostPath
+      ? "complete"
+      : "pending"
+    : "idle";
 
   return {
     indexWorkerConcurrency: values.indexWorkerConcurrency,
@@ -177,6 +252,10 @@ function toSystemSettings(values: {
     llmRetrievalModel: values.llmRetrievalModel || values.llmModel,
     llmConfigured: missingFields.length === 0,
     llmMissingFields: missingFields,
+    currentProjectsRootHostPath,
+    pendingProjectsRootHostPath,
+    projectsRootSwitchStatus,
+    projectsRootSwitchUpdatedAt: values.projectsRootSwitchUpdatedAt,
   };
 }
 
@@ -193,6 +272,8 @@ export function getSystemSettings(
     const savedBaseUrl = readSetting(db, LLM_BASE_URL_KEY);
     const savedModel = readSetting(db, LLM_MODEL_KEY);
     const savedRetrievalModel = readSetting(db, LLM_RETRIEVAL_MODEL_KEY);
+    const savedProjectsRootHostPath = readSetting(db, PENDING_PROJECTS_ROOT_HOST_PATH_KEY);
+    const savedProjectsRootUpdatedAt = readSetting(db, PROJECTS_ROOT_SWITCH_UPDATED_AT_KEY);
     return toSystemSettings({
       indexWorkerConcurrency:
         savedConcurrency === undefined
@@ -222,6 +303,12 @@ export function getSystemSettings(
               normalizedDefaults.llmModel,
             )
           : normalizeModel(savedRetrievalModel, "Retrieval model", normalizedDefaults.llmModel),
+      currentProjectsRootHostPath: normalizedDefaults.projectsRootHostPath,
+      pendingProjectsRootHostPath:
+        savedProjectsRootHostPath === undefined
+          ? ""
+          : normalizeCurrentHostPath(savedProjectsRootHostPath),
+      projectsRootSwitchUpdatedAt: normalizeNullableDate(savedProjectsRootUpdatedAt),
     });
   } finally {
     db.close();
@@ -266,6 +353,11 @@ export function updateSystemSettings(
           updates.llmModel ?? normalizedDefaults.llmModel,
         );
         writeSetting(db, LLM_RETRIEVAL_MODEL_KEY, value, now);
+      }
+      if (updates.projectsRootHostPath !== undefined) {
+        const value = normalizeHostPathUpdate(updates.projectsRootHostPath);
+        writeSetting(db, PENDING_PROJECTS_ROOT_HOST_PATH_KEY, value, now);
+        writeSetting(db, PROJECTS_ROOT_SWITCH_UPDATED_AT_KEY, now, now);
       }
     });
     transaction();

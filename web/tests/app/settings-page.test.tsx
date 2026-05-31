@@ -25,7 +25,14 @@ afterEach(() => {
 describe("SettingsPage", () => {
   it("renders the index worker concurrency setting", async () => {
     vi.doMock("@/lib/config", () => ({
-      appConfig: { dbPath: "/tmp/test.db" },
+      appConfig: {
+        dbPath: "/tmp/test.db",
+        envFilePath: "/Users/oam/.reasonkb/.env",
+        composeCommand:
+          "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
+        hostBrowseRootHostPath: "/Users/oam",
+        hostBrowseRootContainerPath: "/host-browse",
+      },
     }));
     vi.doMock("@/lib/repos/conversation-store", () => ({
       listConversations: () => [],
@@ -40,6 +47,10 @@ describe("SettingsPage", () => {
         llmRetrievalModel: "openai/deepseek-v4-flash",
         llmConfigured: true,
         llmMissingFields: [],
+        currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+        pendingProjectsRootHostPath: "",
+        projectsRootSwitchStatus: "idle",
+        projectsRootSwitchUpdatedAt: null,
       }),
     }));
     vi.doMock("@/components/app-shell", () => ({
@@ -56,5 +67,7 @@ describe("SettingsPage", () => {
       "https://llm.example.test/v1",
     );
     expect(screen.getByText(/model service is ready/i)).toBeInTheDocument();
+    expect(screen.getAllByText("/Users/oam/.reasonkb/projects").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /choose folder/i })).toBeEnabled();
   });
 });

@@ -27,6 +27,14 @@ fi
 
 if [ ! -f "$REASONKB_HOME/.env" ]; then
   cat > "$REASONKB_HOME/.env" <<'EOF'
+# Host directory mounted into ReasonKB as the project corpus.
+# The settings page can update this value, but Docker containers must be recreated.
+# REASONKB_PROJECTS_ROOT=/absolute/path/to/projects
+
+# Host directory exposed read-only to the settings page folder picker.
+# The picker can only choose folders under this path.
+# REASONKB_HOST_BROWSE_ROOT=/absolute/path/to/browse/root
+
 # Optional LLM defaults. Runtime settings saved in ReasonKB take precedence.
 # PAGEINDEX_LLM_API_KEY=
 # PAGEINDEX_LLM_BASE_URL=
@@ -129,6 +137,31 @@ ensure_port_env() {
   remember_port "$selected_port"
 }
 
+ensure_path_env() {
+  name="$1"
+  default_value="$2"
+  current_value="$(eval "printf '%s' \"\${$name-}\"")"
+
+  if [ -n "$current_value" ]; then
+    eval "export $name"
+    return 0
+  fi
+
+  current_value="$(env_file_value "$name")"
+  if [ -n "$current_value" ]; then
+    eval "$name=\$current_value"
+    eval "export $name"
+    return 0
+  fi
+
+  printf '\n%s=%s\n' "$name" "$default_value" >> "$REASONKB_HOME/.env"
+  eval "$name=\$default_value"
+  eval "export $name"
+}
+
+ensure_path_env REASONKB_PROJECTS_ROOT "$REASONKB_HOME/projects"
+ensure_path_env REASONKB_HOST_BROWSE_ROOT "$HOME"
+
 ensure_port_env WEB_PORT 43170
 ensure_port_env RETRIEVAL_API_PORT 43171
 ensure_port_env GOTENBERG_PORT 43172
@@ -143,6 +176,6 @@ cat <<EOF
 ReasonKB is starting.
 
 Web UI: http://localhost:${WEB_PORT:-43170}
-Project corpus: $REASONKB_HOME/projects
+Project corpus: ${REASONKB_PROJECTS_ROOT:-"$REASONKB_HOME/projects"}
 Runtime data: $REASONKB_HOME/var
 EOF

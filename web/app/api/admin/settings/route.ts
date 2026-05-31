@@ -5,10 +5,30 @@ import {
   getSystemSettings,
   updateSystemSettings,
 } from "@/lib/repos/system-settings-store";
+import { updateEnvFileValue } from "@/lib/server-env-file";
+
+function isAbsoluteHostPath(value: string) {
+  return (
+    value.startsWith("/") ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    /^\\\\[^\\]+\\[^\\]+/.test(value)
+  );
+}
 
 const schema = z.object({
   indexWorkerConcurrency: z.number().int().min(1).max(16).optional(),
   retrievalDocumentLimit: z.number().int().min(1).max(50).optional(),
+  projectsRootHostPath: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !/[\r\n]/.test(value), {
+      message: "Projects root host path must be a single line.",
+    })
+    .refine(isAbsoluteHostPath, {
+      message: "Projects root host path must be an absolute host path.",
+    })
+    .optional(),
   llmApiKey: z.string().trim().optional().nullable(),
   llmBaseUrl: z
     .string()
@@ -45,6 +65,7 @@ const defaults = {
     process.env.PAGEINDEX_LLM_RETRIEVAL_MODEL ??
     process.env.PAGEINDEX_LLM_MODEL ??
     "openai/deepseek-v4-flash",
+  projectsRootHostPath: appConfig.currentProjectsRootHostPath,
 };
 
 export async function GET() {
@@ -62,7 +83,37 @@ export async function PATCH(request: Request) {
     );
   }
 
+  if (parsed.data.projectsRootHostPath !== undefined && appConfig.envFilePath) {
+    try {
+      updateEnvFileValue(
+        appConfig.envFilePath,
+        "REASONKB_PROJECTS_ROOT",
+        parsed.data.projectsRootHostPath,
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unable to update Docker environment file.",
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  const settings = updateSystemSettings(appConfig.dbPath, parsed.data, defaults);
+
   return NextResponse.json({
-    settings: updateSystemSettings(appConfig.dbPath, parsed.data, defaults),
+    settings,
+    projectsRootSwitch:
+      parsed.data.projectsRootHostPath === undefined
+        ? undefined
+        : {
+            envFilePath: appConfig.envFilePath,
+            composeCommand: appConfig.composeCommand,
+            pendingHostPath: settings.pendingProjectsRootHostPath,
+          },
   });
 }

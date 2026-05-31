@@ -70,6 +70,28 @@ def test_release_web_reads_runtime_env_file_for_llm_defaults():
         assert name not in web["environment"]
 
 
+def test_release_web_exposes_current_host_projects_root_to_settings_ui():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    web = compose["services"]["web"]
+    assert (
+        web["environment"]["REASONKB_CURRENT_PROJECTS_ROOT"]
+        == "${REASONKB_PROJECTS_ROOT:-./projects}"
+    )
+    assert web["environment"]["REASONKB_ENV_FILE_PATH"] == "/app/runtime.env"
+    assert "REASONKB_COMPOSE_COMMAND" in web["environment"]
+    assert "${REASONKB_ENV_FILE:-./.env}:/app/runtime.env" in web["volumes"]
+    assert (
+        web["environment"]["REASONKB_HOST_BROWSE_ROOT"]
+        == "${REASONKB_HOST_BROWSE_ROOT:-${HOME:-.}}"
+    )
+    assert web["environment"]["REASONKB_HOST_BROWSE_CONTAINER_ROOT"] == "/host-browse"
+    assert (
+        "${REASONKB_HOST_BROWSE_ROOT:-${HOME:-.}}:/host-browse:ro"
+        in web["volumes"]
+    )
+
+
 def test_gotenberg_mirror_dockerfile_tracks_official_image():
     dockerfile = (ROOT / "docker" / "Dockerfile.gotenberg").read_text(encoding="utf-8")
 
@@ -185,6 +207,10 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
         assert configured_ports["WEB_PORT"] != "43170"
         assert configured_ports["RETRIEVAL_API_PORT"] != "43171"
         assert configured_ports["GOTENBERG_PORT"] != "43172"
+        assert configured_ports["REASONKB_PROJECTS_ROOT"] == str(
+            reasonkb_home / "projects"
+        )
+        assert configured_ports["REASONKB_HOST_BROWSE_ROOT"] == os.environ["HOME"]
         assert len(
             {
                 configured_ports["WEB_PORT"],

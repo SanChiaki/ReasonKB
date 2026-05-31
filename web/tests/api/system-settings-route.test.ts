@@ -20,9 +20,15 @@ function makeTempDb() {
   const dbPath = path.join(dir, "app.db");
   migrateDatabase(dbPath);
   vi.doMock("@/lib/config", () => ({
-    appConfig: { dbPath },
+    appConfig: {
+      dbPath,
+      currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+      envFilePath: path.join(dir, ".env"),
+      composeCommand:
+        "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
+    },
   }));
-  return dbPath;
+  return { dbPath, dir };
 }
 
 describe("system settings route", () => {
@@ -38,6 +44,10 @@ describe("system settings route", () => {
     expect(json.settings.retrievalDocumentLimit).toBe(5);
     expect(json.settings.llmApiKeyConfigured).toBe(false);
     expect(json.settings.llmConfigured).toBe(false);
+    expect(json.settings.currentProjectsRootHostPath).toBe(
+      "/Users/oam/.reasonkb/projects",
+    );
+    expect(json.settings.projectsRootSwitchStatus).toBe("idle");
   });
 
   it("updates runtime settings", async () => {
@@ -66,6 +76,37 @@ describe("system settings route", () => {
     expect(json.settings.llmApiKeyConfigured).toBe(true);
     expect(json.settings.llmBaseUrl).toBe("https://llm.example.test/v1");
     expect(json.settings.llmConfigured).toBe(true);
+  });
+
+  it("saves a pending projects root switch and writes the Docker env file", async () => {
+    const { dir } = makeTempDb();
+
+    const { PATCH } = await import("@/app/api/admin/settings/route");
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          projectsRootHostPath: "/Volumes/Corpus/ReasonKB",
+        }),
+      }),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.settings.pendingProjectsRootHostPath).toBe(
+      "/Volumes/Corpus/ReasonKB",
+    );
+    expect(json.settings.projectsRootSwitchStatus).toBe("pending");
+    expect(json.projectsRootSwitch).toEqual({
+      envFilePath: path.join(dir, ".env"),
+      composeCommand:
+        "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
+      pendingHostPath: "/Volumes/Corpus/ReasonKB",
+    });
+    expect(fs.readFileSync(path.join(dir, ".env"), "utf-8")).toContain(
+      "REASONKB_PROJECTS_ROOT=/Volumes/Corpus/ReasonKB",
+    );
   });
 
   it("rejects invalid concurrency values", async () => {

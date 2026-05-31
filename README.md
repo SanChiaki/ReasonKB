@@ -60,7 +60,28 @@ For worktree-based development, keep runtime data outside individual worktrees:
 ```bash
 REASONKB_VAR_ROOT=/absolute/path/to/reasonkb/var
 REASONKB_PROJECTS_ROOT=/absolute/path/to/reasonkb/projects
+REASONKB_HOST_BROWSE_ROOT=/absolute/path/to/selectable/parent
 ```
+
+`REASONKB_PROJECTS_ROOT` is the host path mounted into containers as
+`/data/projects`. The settings page can prepare a new host path by updating the
+Docker env file, but Docker bind mounts only change after recreating the
+containers. For release installs, run this from `~/.reasonkb`:
+
+The settings page folder picker does not use a browser upload control because
+Docker needs a host absolute path. Instead, the web container receives
+`REASONKB_HOST_BROWSE_ROOT` as a read-only mount at `/host-browse`; the picker
+can browse and choose folders only inside that mounted host directory. Set
+`REASONKB_HOST_BROWSE_ROOT` to the host parent directory that should be
+selectable.
+
+```bash
+docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
+```
+
+After the restarted web container reports the requested host path, the settings
+page marks the switch complete. For repository-local compose runs, use
+`-f docker/compose.yml` from the repository root instead.
 
 Default host ports:
 
@@ -124,6 +145,13 @@ VISION_MODEL=gpt-4.1
 Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless the host mount is overridden with `REASONKB_VAR_ROOT`. Container-internal paths can still be changed with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
 
 System settings can be changed at `http://localhost:43170/settings`. Runtime settings are stored in SQLite and take precedence over `.env` defaults. `INDEX_WORKER_CONCURRENCY` remains the startup default for document indexing concurrency when no runtime value has been saved yet. Retrieval document limit is also managed there and is read by the retrieval API on each query.
+
+The projects root control is Docker-aware: it records the requested host path,
+updates `REASONKB_PROJECTS_ROOT` in the mounted env file when available, shows a
+restart-required confirmation, and keeps a progress state until Docker is
+recreated with the new bind mount. The folder picker maps the read-only
+`REASONKB_HOST_BROWSE_ROOT` mount back to host paths, so users choose a folder
+instead of typing the path manually.
 
 ## Tests
 

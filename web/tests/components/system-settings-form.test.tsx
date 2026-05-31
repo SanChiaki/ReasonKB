@@ -35,6 +35,10 @@ describe("SystemSettingsForm", () => {
               llmRetrievalModel: "openai/deepseek-v4-flash",
               llmConfigured: true,
               llmMissingFields: [],
+              currentProjectsRootHostPath: "/Volumes/Old/Projects",
+              pendingProjectsRootHostPath: "",
+              projectsRootSwitchStatus: "idle",
+              projectsRootSwitchUpdatedAt: null,
             },
           }),
         ),
@@ -50,6 +54,14 @@ describe("SystemSettingsForm", () => {
         initialLlmRetrievalModel="openai/deepseek-v4-flash"
         initialLlmConfigured={false}
         initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Volumes/Old/Projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
       />,
     );
     fireEvent.change(screen.getByLabelText(/concurrent jobs/i), {
@@ -102,6 +114,14 @@ describe("SystemSettingsForm", () => {
         initialLlmRetrievalModel="openai/deepseek-v4-flash"
         initialLlmConfigured={false}
         initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
       />,
     );
 
@@ -111,5 +131,189 @@ describe("SystemSettingsForm", () => {
       "placeholder",
       "Paste a new API key",
     );
+  });
+
+  it("uses a folder picker before switching the Docker projects root and shows progress", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            rootHostPath: "/Users/oam",
+            currentBrowsePath: "/",
+            currentHostPath: "/Users/oam",
+            parentBrowsePath: null,
+            entries: [
+              {
+                name: "Workspace",
+                browsePath: "/Workspace",
+                hostPath: "/Users/oam/Workspace",
+              },
+            ],
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            rootHostPath: "/Users/oam",
+            currentBrowsePath: "/Workspace",
+            currentHostPath: "/Users/oam/Workspace",
+            parentBrowsePath: "/",
+            entries: [
+              {
+                name: "Corpus",
+                browsePath: "/Workspace/Corpus",
+                hostPath: "/Users/oam/Workspace/Corpus",
+              },
+            ],
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            rootHostPath: "/Users/oam",
+            currentBrowsePath: "/Workspace/Corpus",
+            currentHostPath: "/Users/oam/Workspace/Corpus",
+            parentBrowsePath: "/Workspace",
+            entries: [],
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            settings: {
+              indexWorkerConcurrency: 2,
+              retrievalDocumentLimit: 5,
+              llmApiKeyConfigured: false,
+              llmBaseUrl: "",
+              llmModel: "openai/deepseek-v4-flash",
+              llmRetrievalModel: "openai/deepseek-v4-flash",
+              llmConfigured: false,
+              llmMissingFields: ["API key", "Base URL"],
+              currentProjectsRootHostPath: "/Volumes/Old/Projects",
+              pendingProjectsRootHostPath: "/Users/oam/Workspace/Corpus",
+              projectsRootSwitchStatus: "pending",
+              projectsRootSwitchUpdatedAt: "2026-05-31T00:00:00.000Z",
+            },
+            projectsRootSwitch: {
+              envFilePath: "/Users/oam/.reasonkb/.env",
+              composeCommand:
+                "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
+              pendingHostPath: "/Users/oam/Workspace/Corpus",
+            },
+          }),
+        ),
+      );
+
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={false}
+        initialLlmBaseUrl=""
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={false}
+        initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Volumes/Old/Projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("textbox", { name: /projects root host path/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /choose folder/i }));
+    expect(
+      await screen.findByRole("dialog", { name: /choose projects root folder/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Workspace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Corpus" }));
+    expect(
+      await screen.findByText("/Users/oam/Workspace/Corpus"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /use selected folder/i }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: /choose projects root folder/i })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("/Users/oam/Workspace/Corpus")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /switch projects root/i }));
+
+    expect(
+      screen.getByRole("dialog", { name: /switch projects root/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/docker bind mount changes require recreating the containers/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm switch/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/admin/host-directories?path=%2F",
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/admin/host-directories?path=%2FWorkspace",
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "/api/admin/host-directories?path=%2FWorkspace%2FCorpus",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/settings",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          projectsRootHostPath: "/Users/oam/Workspace/Corpus",
+        }),
+      }),
+    );
+    expect(
+      screen.getByText(/waiting for docker recreate to mount the new project corpus/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
+      ),
+    ).toBeInTheDocument();
+    expect(routerMocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows completion when Docker reports the requested projects root", () => {
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={false}
+        initialLlmBaseUrl=""
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={false}
+        initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Volumes/Corpus/ReasonKB"
+        initialPendingProjectsRootHostPath="/Volumes/Corpus/ReasonKB"
+        initialProjectsRootSwitchStatus="complete"
+        initialProjectsRootSwitchUpdatedAt="2026-05-31T00:00:00.000Z"
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(screen.getByText(/projects root switch is complete/i)).toBeInTheDocument();
+    expect(screen.getAllByText("/Volumes/Corpus/ReasonKB").length).toBeGreaterThan(0);
   });
 });
