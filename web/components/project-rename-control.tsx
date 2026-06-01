@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const RENAME_ERROR_MESSAGE = "Unable to rename project. Please try again.";
+import { useI18n } from "@/lib/i18n";
 
 export function ProjectRenameControl({
   projectId,
@@ -13,6 +12,7 @@ export function ProjectRenameControl({
   initialName: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(initialName);
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +41,7 @@ export function ProjectRenameControl({
         const payload = (await response.json().catch(() => null)) as
           | { error?: string }
           | null;
-        setErrorMessage(payload?.error ?? RENAME_ERROR_MESSAGE);
+        setErrorMessage(payload?.error ?? t("projects.renameError"));
         return;
       }
 
@@ -49,7 +49,7 @@ export function ProjectRenameControl({
       setEditing(false);
       router.refresh();
     } catch {
-      setErrorMessage(RENAME_ERROR_MESSAGE);
+      setErrorMessage(t("projects.renameError"));
     } finally {
       setSubmitting(false);
     }
@@ -65,7 +65,7 @@ export function ProjectRenameControl({
         }}
         className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
       >
-        Rename
+        {t("projects.rename")}
       </button>
     );
   }
@@ -90,7 +90,7 @@ export function ProjectRenameControl({
             disabled={!trimmedName || submitting}
             className="rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {submitting ? "Saving..." : "Save"}
+            {submitting ? t("common.saving") : t("common.save")}
           </button>
           <button
             type="button"
@@ -101,7 +101,7 @@ export function ProjectRenameControl({
             }}
             className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>

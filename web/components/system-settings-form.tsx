@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Folder, FolderOpen } from "lucide-react";
-
-const SAVE_ERROR_MESSAGE = "Unable to save system settings. Please try again.";
-const PROJECTS_ROOT_ERROR_MESSAGE =
-  "Unable to prepare the projects root switch. Please try again.";
-const HOST_DIRECTORIES_ERROR_MESSAGE =
-  "Unable to load host folders. Please check the Docker browse root mount.";
+import { useI18n } from "@/lib/i18n";
 
 type ProjectsRootSwitchStatus = "idle" | "pending" | "complete";
 
@@ -113,6 +108,7 @@ export function SystemSettingsForm({
   projectsRootPickerAvailable: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [indexWorkerConcurrency, setIndexWorkerConcurrency] = useState(
     String(initialIndexWorkerConcurrency),
   );
@@ -215,7 +211,7 @@ export function SystemSettingsForm({
         | HostDirectoriesResponse
         | null;
       if (!response.ok) {
-        setPickerErrorMessage(payload?.error ?? HOST_DIRECTORIES_ERROR_MESSAGE);
+        setPickerErrorMessage(payload?.error ?? t("settings.hostDirectoriesError"));
         return;
       }
       setPickerBrowsePath(payload?.currentBrowsePath ?? browsePath);
@@ -223,7 +219,7 @@ export function SystemSettingsForm({
       setPickerParentBrowsePath(payload?.parentBrowsePath ?? null);
       setPickerEntries(payload?.entries ?? []);
     } catch {
-      setPickerErrorMessage(HOST_DIRECTORIES_ERROR_MESSAGE);
+      setPickerErrorMessage(t("settings.hostDirectoriesError"));
     } finally {
       setPickerLoading(false);
     }
@@ -273,14 +269,14 @@ export function SystemSettingsForm({
         const payload = (await response.json().catch(() => null)) as
           | { error?: string }
           | null;
-        setErrorMessage(payload?.error ?? SAVE_ERROR_MESSAGE);
+        setErrorMessage(payload?.error ?? t("settings.saveError"));
         return;
       }
 
-      setStatusMessage("Settings saved.");
+      setStatusMessage(t("settings.saved"));
       router.refresh();
     } catch {
-      setErrorMessage(SAVE_ERROR_MESSAGE);
+      setErrorMessage(t("settings.saveError"));
     } finally {
       setSubmitting(false);
     }
@@ -304,7 +300,7 @@ export function SystemSettingsForm({
       });
       const payload = (await response.json().catch(() => null)) as SettingsResponse | null;
       if (!response.ok) {
-        setProjectsRootErrorMessage(payload?.error ?? PROJECTS_ROOT_ERROR_MESSAGE);
+        setProjectsRootErrorMessage(payload?.error ?? t("settings.rootPrepareError"));
         return;
       }
 
@@ -325,10 +321,10 @@ export function SystemSettingsForm({
         setProjectsRootCommand(payload.projectsRootSwitch.composeCommand);
       }
       setShowProjectsRootDialog(false);
-      setProjectsRootStatusMessage("Projects root switch prepared.");
+      setProjectsRootStatusMessage(t("settings.rootPrepared"));
       router.refresh();
     } catch {
-      setProjectsRootErrorMessage(PROJECTS_ROOT_ERROR_MESSAGE);
+      setProjectsRootErrorMessage(t("settings.rootPrepareError"));
     } finally {
       setProjectsRootSubmitting(false);
     }
@@ -347,15 +343,15 @@ export function SystemSettingsForm({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              Model service
+              {t("settings.modelEyebrow")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
               {initialLlmConfigured
-                ? "Model service is ready"
-                : "Model service is not configured"}
+                ? t("settings.modelReady")
+                : t("settings.modelMissing")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              Configure the OpenAI-compatible endpoint used by document indexing and retrieval answers.
+              {t("settings.modelDescription")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
               <span
@@ -365,7 +361,9 @@ export function SystemSettingsForm({
                     : "border-[var(--pi-danger)] bg-[rgba(190,18,60,0.08)] text-[var(--pi-danger)]"
                 }`}
               >
-                {initialLlmApiKeyConfigured ? "API key is saved" : "API key is not saved"}
+                {initialLlmApiKeyConfigured
+                  ? t("settings.apiKeySaved")
+                  : t("settings.apiKeyMissing")}
               </span>
               <span
                 className={`rounded-md border px-2.5 py-1 ${
@@ -375,22 +373,24 @@ export function SystemSettingsForm({
                 }`}
               >
                 {initialLlmMissingFields.includes("Base URL")
-                  ? "Base URL is missing"
-                  : "Base URL is set"}
+                  ? t("settings.baseUrlMissing")
+                  : t("settings.baseUrlSet")}
               </span>
             </div>
           </div>
           <div className="grid w-full gap-4 lg:w-[28rem]">
             <div>
               <label htmlFor="llm-api-key" className="text-sm font-medium text-[var(--pi-ink)]">
-                API key
+                {t("settings.apiKey")}
               </label>
               <input
                 id="llm-api-key"
                 type="password"
                 value={llmApiKey}
                 placeholder={
-                  initialLlmApiKeyConfigured ? "Leave blank to keep saved key" : "Paste a new API key"
+                  initialLlmApiKeyConfigured
+                    ? t("settings.keepApiKey")
+                    : t("settings.pasteApiKey")
                 }
                 autoComplete="off"
                 onChange={(event) => {
@@ -402,7 +402,7 @@ export function SystemSettingsForm({
             </div>
             <div>
               <label htmlFor="llm-base-url" className="text-sm font-medium text-[var(--pi-ink)]">
-                Base URL
+                {t("settings.baseUrl")}
               </label>
               <input
                 id="llm-base-url"
@@ -417,14 +417,14 @@ export function SystemSettingsForm({
               />
               {!isValidBaseUrl ? (
                 <p className="mt-2 text-xs text-[var(--pi-danger)]">
-                  Base URL must start with http:// or https://.
+                  {t("settings.invalidBaseUrl")}
                 </p>
               ) : null}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="llm-model" className="text-sm font-medium text-[var(--pi-ink)]">
-                  Model
+                  {t("settings.model")}
                 </label>
                 <input
                   id="llm-model"
@@ -441,7 +441,7 @@ export function SystemSettingsForm({
                   htmlFor="llm-retrieval-model"
                   className="text-sm font-medium text-[var(--pi-ink)]"
                 >
-                  Retrieval model
+                  {t("settings.retrievalModel")}
                 </label>
                 <input
                   id="llm-retrieval-model"
@@ -462,24 +462,24 @@ export function SystemSettingsForm({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              Project corpus
+              {t("settings.projectCorpus")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
-              Projects root
+              {t("settings.projectsRoot")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              Controls the host directory Docker mounts as the project corpus. The running containers must be recreated before the new host path is available at /data/projects.
+              {t("settings.projectsRootDescription")}
             </p>
             <div className="mt-4 grid gap-2 text-xs text-[var(--pi-muted)]">
               <p>
-                Current mounted host path:{" "}
+                {t("settings.currentMountedHostPath")}{" "}
                 <span className="font-mono text-[var(--pi-ink)]">
-                  {currentProjectsRootHostPath || "Not reported by Docker"}
+                  {currentProjectsRootHostPath || t("settings.notReportedByDocker")}
                 </span>
               </p>
               {projectsRootEnvFilePath ? (
                 <p>
-                  Docker env file:{" "}
+                  {t("settings.dockerEnvFile")}{" "}
                   <span className="font-mono text-[var(--pi-ink)]">
                     {projectsRootEnvFilePath}
                   </span>
@@ -489,27 +489,27 @@ export function SystemSettingsForm({
           </div>
           <div className="w-full lg:w-[28rem]">
             <p className="text-sm font-medium text-[var(--pi-ink)]">
-              Selected projects root
+              {t("settings.selectedProjectsRoot")}
             </p>
             <div className="mt-2 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3">
               <p className="break-all font-mono text-sm text-[var(--pi-ink)]">
-                {projectsRootHostPath || "No host folder selected"}
+                {projectsRootHostPath || t("settings.noHostFolderSelected")}
               </p>
               {projectsRootBrowseRootHostPath ? (
                 <p className="mt-2 break-all text-xs text-[var(--pi-muted)]">
-                  Folder picker root:{" "}
+                  {t("settings.folderPickerRoot")}{" "}
                   <span className="font-mono">{projectsRootBrowseRootHostPath}</span>
                 </p>
               ) : null}
             </div>
             {!isValidProjectsRootHostPath ? (
               <p className="mt-2 text-xs text-[var(--pi-danger)]">
-                Choose an absolute host folder for the project corpus.
+                {t("settings.chooseAbsoluteHostFolder")}
               </p>
             ) : null}
             {!projectsRootPickerAvailable ? (
               <p className="mt-2 text-xs text-[var(--pi-danger)]">
-                Folder picker is unavailable because REASONKB_HOST_BROWSE_ROOT is not mounted.
+                {t("settings.pickerUnavailable")}
               </p>
             ) : null}
             <button
@@ -519,7 +519,7 @@ export function SystemSettingsForm({
               className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Folder aria-hidden="true" className="h-4 w-4" />
-              Choose folder
+              {t("settings.chooseFolder")}
             </button>
             <button
               type="button"
@@ -527,7 +527,7 @@ export function SystemSettingsForm({
               onClick={() => setShowProjectsRootDialog(true)}
               className="ml-0 mt-3 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45 sm:ml-3 sm:mt-4"
             >
-              Switch projects root
+              {t("settings.switchProjectsRoot")}
             </button>
 
             {projectsRootSwitchStatus !== "idle" ? (
@@ -538,15 +538,17 @@ export function SystemSettingsForm({
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-sm font-medium text-[var(--pi-ink)]">
                     {projectsRootSwitchStatus === "complete"
-                      ? "Projects root switch is complete."
-                      : "Waiting for Docker recreate to mount the new project corpus."}
+                      ? t("settings.switchComplete")
+                      : t("settings.switchWaiting")}
                   </p>
                   <span className="text-xs font-medium text-[var(--pi-muted)]">
-                    {projectsRootSwitchStatus === "complete" ? "Complete" : "In progress"}
+                    {projectsRootSwitchStatus === "complete"
+                      ? t("common.complete")
+                      : t("common.inProgress")}
                   </span>
                 </div>
                 <div
-                  aria-label="Projects root switch progress"
+                  aria-label={t("settings.switchProgressAria")}
                   className="mt-3 h-2 overflow-hidden rounded-full bg-white"
                 >
                   <div
@@ -555,19 +557,27 @@ export function SystemSettingsForm({
                   />
                 </div>
                 <div className="mt-3 grid gap-2 text-xs text-[var(--pi-muted)]">
-                  <p>1. Switch target saved: {pendingProjectsRootHostPath}</p>
+                  <p>
+                    {t("settings.switchStep1", { path: pendingProjectsRootHostPath })}
+                  </p>
                   <p>
                     2.{" "}
                     {projectsRootEnvFilePath
-                      ? "Docker env file updated. Recreate containers on the host."
-                      : "Update REASONKB_PROJECTS_ROOT in the Docker env file, then recreate containers on the host."}
+                      ? t("settings.switchStep2Env")
+                      : t("settings.switchStep2Manual")}
                   </p>
                   <p>
-                    3. ReasonKB reports the new mounted root after restart:{" "}
-                    {projectsRootSwitchStatus === "complete" ? "done" : "waiting"}
+                    {t("settings.switchStep3", {
+                      status:
+                        projectsRootSwitchStatus === "complete"
+                          ? t("settings.done")
+                          : t("settings.waiting"),
+                    })}
                   </p>
                   {projectsRootSwitchUpdatedAt ? (
-                    <p>Requested at: {projectsRootSwitchUpdatedAt}</p>
+                    <p>
+                      {t("settings.requestedAt", { date: projectsRootSwitchUpdatedAt })}
+                    </p>
                   ) : null}
                 </div>
                 <pre className="mt-3 overflow-x-auto rounded-md border border-[var(--pi-border)] bg-white p-3 text-xs text-[var(--pi-ink)]">
@@ -594,13 +604,13 @@ export function SystemSettingsForm({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              Indexing
+              {t("settings.indexing")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
-              Worker concurrency
+              {t("settings.workerConcurrency")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              Controls how many document index jobs the single index-worker container may run at the same time. Lower values stop new dispatches; active jobs finish naturally.
+              {t("settings.workerDescription")}
             </p>
           </div>
           <div className="w-full lg:w-[18rem]">
@@ -608,7 +618,7 @@ export function SystemSettingsForm({
               htmlFor="index-worker-concurrency"
               className="text-sm font-medium text-[var(--pi-ink)]"
             >
-              Concurrent jobs
+              {t("settings.concurrentJobs")}
             </label>
             <input
               id="index-worker-concurrency"
@@ -623,7 +633,9 @@ export function SystemSettingsForm({
               }}
               className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
             />
-            <p className="mt-2 text-xs text-[var(--pi-muted)]">Allowed range: 1-16</p>
+            <p className="mt-2 text-xs text-[var(--pi-muted)]">
+              {t("settings.allowedRange", { range: "1-16" })}
+            </p>
           </div>
         </div>
       </section>
@@ -632,13 +644,13 @@ export function SystemSettingsForm({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              Retrieval
+              {t("settings.retrieval")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
-              Candidate document limit
+              {t("settings.candidateLimit")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              Controls how many ready documents may be selected for a single retrieval query before evidence is loaded and the final answer is generated.
+              {t("settings.retrievalDescription")}
             </p>
           </div>
           <div className="w-full lg:w-[18rem]">
@@ -646,7 +658,7 @@ export function SystemSettingsForm({
               htmlFor="retrieval-document-limit"
               className="text-sm font-medium text-[var(--pi-ink)]"
             >
-              Retrieval documents
+              {t("settings.retrievalDocuments")}
             </label>
             <input
               id="retrieval-document-limit"
@@ -661,7 +673,9 @@ export function SystemSettingsForm({
               }}
               className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
             />
-            <p className="mt-2 text-xs text-[var(--pi-muted)]">Allowed range: 1-50</p>
+            <p className="mt-2 text-xs text-[var(--pi-muted)]">
+              {t("settings.allowedRange", { range: "1-50" })}
+            </p>
           </div>
         </div>
       </section>
@@ -672,7 +686,7 @@ export function SystemSettingsForm({
           disabled={!canSubmit}
           className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {submitting ? "Saving..." : "Save settings"}
+          {submitting ? t("common.saving") : t("settings.saveSettings")}
         </button>
         {statusMessage ? (
           <p className="text-sm text-[var(--pi-brand)]">{statusMessage}</p>
@@ -691,16 +705,18 @@ export function SystemSettingsForm({
             className="w-full max-w-2xl rounded-lg border border-[var(--pi-border)] bg-white p-5 shadow-xl"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              Host folder picker
+              {t("settings.hostFolderPicker")}
             </p>
             <h2
               id="projects-root-picker-title"
               className="mt-2 text-xl font-semibold text-[var(--pi-ink)]"
             >
-              Choose projects root folder
+              {t("settings.chooseRootFolder")}
             </h2>
             <div className="mt-4 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3 text-xs">
-              <p className="font-medium text-[var(--pi-ink)]">Current selection</p>
+              <p className="font-medium text-[var(--pi-ink)]">
+                {t("settings.currentSelection")}
+              </p>
               <p className="mt-1 break-all font-mono text-[var(--pi-muted)]">
                 {pickerHostPath || projectsRootBrowseRootHostPath}
               </p>
@@ -718,7 +734,7 @@ export function SystemSettingsForm({
                 className="inline-flex items-center gap-2 rounded-lg border border-[var(--pi-border)] px-3 py-2 text-sm font-medium text-[var(--pi-muted)] transition enabled:hover:border-[var(--pi-ink)] enabled:hover:text-[var(--pi-ink)] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <ChevronLeft aria-hidden="true" className="h-4 w-4" />
-                Up
+                {t("common.up")}
               </button>
               <p className="min-w-0 flex-1 truncate text-right font-mono text-xs text-[var(--pi-muted)]">
                 {pickerBrowsePath}
@@ -727,7 +743,9 @@ export function SystemSettingsForm({
 
             <div className="rk-scrollbar mt-3 max-h-72 overflow-y-auto rounded-lg border border-[var(--pi-border)]">
               {pickerLoading ? (
-                <p className="p-4 text-sm text-[var(--pi-muted)]">Loading folders...</p>
+                <p className="p-4 text-sm text-[var(--pi-muted)]">
+                  {t("common.loadingFolders")}
+                </p>
               ) : pickerEntries.length > 0 ? (
                 <div className="divide-y divide-[var(--pi-border)]">
                   {pickerEntries.map((entry) => (
@@ -755,7 +773,7 @@ export function SystemSettingsForm({
                 </div>
               ) : (
                 <p className="p-4 text-sm text-[var(--pi-muted)]">
-                  This folder has no child folders.
+                  {t("settings.emptyFolder")}
                 </p>
               )}
             </div>
@@ -772,7 +790,7 @@ export function SystemSettingsForm({
                 onClick={() => setShowProjectsRootPicker(false)}
                 className="rounded-lg border border-[var(--pi-border)] px-4 py-2.5 text-sm font-medium text-[var(--pi-muted)] transition hover:border-[var(--pi-ink)] hover:text-[var(--pi-ink)]"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -780,7 +798,7 @@ export function SystemSettingsForm({
                 onClick={usePickerSelection}
                 className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Use selected folder
+                {t("settings.useSelectedFolder")}
               </button>
             </div>
           </div>
@@ -796,26 +814,30 @@ export function SystemSettingsForm({
             className="w-full max-w-xl rounded-lg border border-[var(--pi-border)] bg-white p-5 shadow-xl"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-danger)]">
-              Docker restart required
+              {t("settings.dockerRestartRequired")}
             </p>
             <h2
               id="projects-root-switch-title"
               className="mt-2 text-xl font-semibold text-[var(--pi-ink)]"
             >
-              Switch projects root
+              {t("settings.switchProjectsRoot")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--pi-muted)]">
-              Docker bind mount changes require recreating the containers. ReasonKB will save the new host path now{projectsRootEnvFilePath ? " and update the Docker env file" : ""}, then wait until Docker restarts with that path mounted.
+              {t("settings.switchDialogDescription", {
+                envNote: projectsRootEnvFilePath ? t("settings.envNote") : "",
+              })}
             </p>
             <div className="mt-4 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3 text-xs">
-              <p className="font-medium text-[var(--pi-ink)]">Target host path</p>
+              <p className="font-medium text-[var(--pi-ink)]">
+                {t("settings.targetHostPath")}
+              </p>
               <p className="mt-1 break-all font-mono text-[var(--pi-muted)]">
                 {normalizedProjectsRootHostPath}
               </p>
             </div>
             <div className="mt-4 grid gap-2 text-sm text-[var(--pi-muted)]">
-              <p>Progress will show the saved target, the Docker recreate step, and completion after the restarted app reports the new mounted root.</p>
-              <p>Run this on the host after confirming:</p>
+              <p>{t("settings.progressWillShow")}</p>
+              <p>{t("settings.runOnHost")}</p>
             </div>
             <pre className="mt-3 overflow-x-auto rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3 text-xs text-[var(--pi-ink)]">
               <code>{projectsRootCommand}</code>
@@ -826,7 +848,7 @@ export function SystemSettingsForm({
                 onClick={() => setShowProjectsRootDialog(false)}
                 className="rounded-lg border border-[var(--pi-border)] px-4 py-2.5 text-sm font-medium text-[var(--pi-muted)] transition hover:border-[var(--pi-ink)] hover:text-[var(--pi-ink)]"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -834,7 +856,9 @@ export function SystemSettingsForm({
                 onClick={handleProjectsRootSwitch}
                 className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {projectsRootSubmitting ? "Preparing..." : "Confirm switch"}
+                {projectsRootSubmitting
+                  ? t("settings.preparing")
+                  : t("settings.confirmSwitch")}
               </button>
             </div>
           </div>

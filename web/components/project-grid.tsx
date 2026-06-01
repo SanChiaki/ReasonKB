@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { ProjectCard, type ProjectCardItem } from "@/components/project-card";
+import { useI18n } from "@/lib/i18n";
 
 export function ProjectGrid({
   projects,
@@ -8,15 +11,18 @@ export function ProjectGrid({
   projects: ProjectCardItem[];
   searchQuery?: string;
 }) {
+  const { t } = useI18n();
   const trimmedSearchQuery = searchQuery?.trim() ?? "";
 
   if (projects.length === 0) {
     if (trimmedSearchQuery) {
       return (
         <section className="rounded-lg border border-dashed border-[var(--pi-border)] bg-white p-10 text-center">
-          <h2 className="text-xl font-semibold text-[var(--pi-ink)]">No matching projects</h2>
+          <h2 className="text-xl font-semibold text-[var(--pi-ink)]">
+            {t("projects.noMatchesTitle")}
+          </h2>
           <p className="mt-2 text-sm text-[var(--pi-muted)]">
-            No projects match "{trimmedSearchQuery}". Try a different search.
+            {t("projects.noMatchesDescription", { query: trimmedSearchQuery })}
           </p>
         </section>
       );
@@ -24,9 +30,11 @@ export function ProjectGrid({
 
     return (
       <section className="rounded-lg border border-dashed border-[var(--pi-border)] bg-white p-10 text-center">
-        <h2 className="text-xl font-semibold text-[var(--pi-ink)]">No projects yet</h2>
+        <h2 className="text-xl font-semibold text-[var(--pi-ink)]">
+          {t("projects.emptyTitle")}
+        </h2>
         <p className="mt-2 text-sm text-[var(--pi-muted)]">
-          Create a new project to start organizing PDFs for chat.
+          {t("projects.emptyDescription")}
         </p>
       </section>
     );

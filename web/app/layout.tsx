@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ReasonKB",
-  description: "Project-centric knowledge chat workspace",
+  description: "按项目组织的知识对话工作区",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className="antialiased">{children}</body>
     </html>
   );

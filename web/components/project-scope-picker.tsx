@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useI18n } from "@/lib/i18n";
 
 export function ProjectScopePicker({
   projects,
@@ -11,10 +12,12 @@ export function ProjectScopePicker({
   selectedProjectIds: string[];
   onToggle: (projectId: string) => void;
 }) {
+  const { t } = useI18n();
+
   if (projects.length === 0) {
     return (
       <p className="text-xs text-[var(--pi-muted)]">
-        No projects yet. Retrieval will use all ready documents once they are indexed.
+        {t("chat.noProjects")}
       </p>
     );
   }
@@ -22,7 +25,7 @@ export function ProjectScopePicker({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="rounded-md border border-[var(--pi-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--pi-muted)]">
-        {selectedProjectIds.length === 0 ? "All projects" : "Filtered"}
+        {selectedProjectIds.length === 0 ? t("scope.allProjects") : t("scope.filtered")}
       </span>
       {projects.map((project) => {
         const selected = selectedProjectIds.includes(project.id);

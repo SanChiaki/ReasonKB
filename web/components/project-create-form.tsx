@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const CREATE_ERROR_MESSAGE = "Unable to create project. Please try again.";
+import { useI18n } from "@/lib/i18n";
 
 export function ProjectCreateForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -30,14 +30,14 @@ export function ProjectCreateForm() {
         const payload = (await response.json().catch(() => null)) as
           | { error?: string }
           | null;
-        setErrorMessage(payload?.error ?? CREATE_ERROR_MESSAGE);
+        setErrorMessage(payload?.error ?? t("projects.createError"));
         return;
       }
 
       setName("");
       router.refresh();
     } catch {
-      setErrorMessage(CREATE_ERROR_MESSAGE);
+      setErrorMessage(t("projects.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +54,7 @@ export function ProjectCreateForm() {
               setErrorMessage("");
             }
           }}
-          placeholder="Enter project name"
+          placeholder={t("projects.createPlaceholder")}
           maxLength={120}
           className="w-full min-w-[15rem] rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
         />
@@ -63,7 +63,7 @@ export function ProjectCreateForm() {
           disabled={!trimmedName || submitting}
           className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {submitting ? "Creating..." : "Create Project"}
+          {submitting ? t("projects.creating") : t("projects.create")}
         </button>
       </div>
       {errorMessage ? (

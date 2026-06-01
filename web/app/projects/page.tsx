@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ProjectCreateForm } from "@/components/project-create-form";
 import { ProjectGrid } from "@/components/project-grid";
 import { appConfig } from "@/lib/config";
+import { LocalizedSearchInput, LocalizedText } from "@/lib/i18n";
 import { listConversations } from "@/lib/repos/conversation-store";
 import { listProjects } from "@/lib/repos/project-store";
 
@@ -28,27 +29,24 @@ export default async function ProjectsPage({
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
-                Workspace
+                <LocalizedText id="projects.eyebrow" />
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)]">
-                Projects
+                <LocalizedText id="projects.title" />
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--pi-muted)] md:text-base">
-                Organize documents by project, then search globally or filter chat by project.
+                <LocalizedText id="projects.description" />
               </p>
             </div>
             <ProjectCreateForm />
           </div>
           <form className="mt-5">
-            <label htmlFor="project-search" className="sr-only">
-              Search projects
-            </label>
-            <input
+            <LocalizedSearchInput
               id="project-search"
               name="q"
-              type="search"
               defaultValue={params.q ?? ""}
-              placeholder="Search projects"
+              labelKey="projects.search"
+              placeholderKey="projects.search"
               className="w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
             />
           </form>

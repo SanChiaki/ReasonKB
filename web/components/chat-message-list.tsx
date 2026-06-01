@@ -1,8 +1,13 @@
+"use client";
+
 import React from "react";
 import { CitationList, type CitationItem } from "@/components/citation-list";
+import { useI18n } from "@/lib/i18n";
 import type { RetrievalEvidence } from "@/lib/retrieval-client";
 
 function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
+  const { t } = useI18n();
+
   if (evidence.length === 0) {
     return null;
   }
@@ -11,7 +16,7 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
     <div className="mt-4 space-y-3">
       {evidence.map((item, index) => {
         const path =
-          item.projectRelativePath ?? item.sourceRelativePath ?? item.documentName ?? "Evidence";
+          item.projectRelativePath ?? item.sourceRelativePath ?? item.documentName ?? t("chat.evidence");
         return (
           <section
             key={`${item.documentName}-${item.pages}-${index}`}
@@ -20,11 +25,11 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pi-muted)]">
-                  Evidence · {item.evidenceKind}
+                  {t("chat.evidence")} · {item.evidenceKind}
                 </p>
                 <h3 className="mt-1 text-sm font-semibold text-[var(--pi-ink)]">{path}</h3>
                 <p className="mt-1 text-xs text-[var(--pi-muted)]">
-                  {item.projectName} / {item.documentName} / pages {item.pages}
+                  {item.projectName} / {item.documentName} / {t("chat.pages")} {item.pages}
                 </p>
               </div>
               {item.sourceRelativePath ? (
@@ -59,6 +64,8 @@ export function ChatMessageList({
     evidence?: RetrievalEvidence[];
   }>;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-1 pb-6 md:px-4">
       {messages.map((message) => (
@@ -71,7 +78,7 @@ export function ChatMessageList({
           }
         >
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--pi-muted)]">
-            {message.role === "user" ? "You" : "Assistant"}
+            {message.role === "user" ? t("chat.roleUser") : t("chat.roleAssistant")}
           </p>
           <div
             className={
@@ -81,7 +88,7 @@ export function ChatMessageList({
             }
           >
             <p className="whitespace-pre-wrap text-sm leading-7 md:text-[15px]">
-            {message.content}
+              {message.content}
             </p>
             {message.role === "assistant" ? (
               <>

@@ -5,6 +5,12 @@ import { ChatComposer } from "@/components/chat-composer";
 import { ChatMessageList } from "@/components/chat-message-list";
 import type { CitationItem } from "@/components/citation-list";
 import { appConfig } from "@/lib/config";
+import {
+  LocalizedConversationTitle,
+  LocalizedModelMissingDescription,
+  LocalizedScopeLabel,
+  LocalizedText,
+} from "@/lib/i18n";
 import { getConversationDetail, listConversations } from "@/lib/repos/conversation-store";
 import { listProjects } from "@/lib/repos/project-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
@@ -162,15 +168,19 @@ export default async function ChatPage({
       <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--pi-bg)]">
         <header className="shrink-0 border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-4 md:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-            ReasonKB Chat
+            <LocalizedText id="chat.eyebrow" />
           </p>
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h1 className="text-2xl font-semibold text-[var(--pi-ink)]">
-              {conversation?.title ?? "New Chat"}
+              <LocalizedConversationTitle title={conversation?.title ?? "New Chat"} />
             </h1>
             <div className="inline-flex items-center gap-2 self-start rounded-md border border-[var(--pi-border)] bg-white px-3 py-1.5 text-xs text-[var(--pi-muted)]">
-              <span className="font-semibold uppercase tracking-[0.06em]">Scope</span>
-              <span className="text-[var(--pi-ink)]">{scopeSummary}</span>
+              <span className="font-semibold uppercase tracking-[0.06em]">
+                <LocalizedText id="chat.scope" />
+              </span>
+              <span className="text-[var(--pi-ink)]">
+                <LocalizedScopeLabel value={scopeSummary} />
+              </span>
             </div>
           </div>
         </header>
@@ -181,17 +191,17 @@ export default async function ChatPage({
               <div className="mx-auto mb-5 flex w-full max-w-4xl flex-col gap-3 rounded-lg border border-[rgba(180,35,24,0.28)] bg-[rgba(255,247,237,0.82)] px-4 py-3 text-sm text-[var(--pi-ink)] md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-semibold text-[var(--pi-danger)]">
-                    Model service is not configured
+                    <LocalizedText id="chat.modelMissingTitle" />
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[var(--pi-muted)]">
-                    Missing {settings.llmMissingFields.join(" and ")}. Chat answers and document indexing need a model endpoint.
+                    <LocalizedModelMissingDescription fields={settings.llmMissingFields} />
                   </p>
                 </div>
                 <Link
                   href="/settings"
                   className="inline-flex w-fit items-center justify-center rounded-md border border-[var(--pi-danger)] bg-white px-3 py-2 text-xs font-semibold text-[var(--pi-danger)] transition hover:bg-[rgba(180,35,24,0.08)]"
                 >
-                  Configure model
+                  <LocalizedText id="chat.configureModel" />
                 </Link>
               </div>
             ) : null}
@@ -206,10 +216,10 @@ export default async function ChatPage({
                     ◌
                   </div>
                   <h2 className="text-2xl font-semibold text-[var(--pi-ink)] md:text-3xl">
-                    Ask across projects
+                    <LocalizedText id="chat.emptyTitle" />
                   </h2>
                   <p className="mx-auto mt-3 max-w-xl text-[15px] leading-6 text-[var(--pi-muted)]">
-                    Ask across every indexed project, optionally select project scopes, or switch to Evidence mode to inspect retrieved source blocks.
+                    <LocalizedText id="chat.emptyDescription" />
                   </p>
                 </div>
               </div>

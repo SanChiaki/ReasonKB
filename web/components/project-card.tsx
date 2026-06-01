@@ -1,11 +1,14 @@
-import React from "react";
+"use client";
 
-function formatUpdatedAt(value: string) {
+import React from "react";
+import { useI18n, type Locale } from "@/lib/i18n";
+
+function formatUpdatedAt(value: string, locale: Locale) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Updated recently";
+    return null;
   }
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -20,13 +23,14 @@ export type ProjectCardItem = {
 };
 
 export function ProjectCard({ project }: { project: ProjectCardItem }) {
-  const docsLabel = `${project.documentCount} docs`;
+  const { locale, t } = useI18n();
+  const updatedAt = formatUpdatedAt(project.updatedAt, locale);
 
   return (
     <article className="rounded-lg border border-[var(--pi-border)] bg-white p-5 transition hover:border-[var(--pi-border-strong)] hover:shadow-[0_10px_26px_rgba(65,88,130,0.08)]">
       <a
         href={`/projects/${project.id}`}
-        aria-label={`Open ${project.name}`}
+        aria-label={t("projects.openAria", { name: project.name })}
         className="group block rounded-md outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--pi-brand-soft)]"
       >
         <div className="flex items-start justify-between gap-4">
@@ -34,12 +38,14 @@ export function ProjectCard({ project }: { project: ProjectCardItem }) {
             {project.name}
           </h3>
           <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--pi-muted)]">
-            Folder
+            {t("projects.folder")}
           </span>
         </div>
-        <p className="mt-7 text-sm font-medium text-[var(--pi-ink)]">{docsLabel}</p>
+        <p className="mt-7 text-sm font-medium text-[var(--pi-ink)]">
+          {t("projects.docs", { count: project.documentCount })}
+        </p>
         <p className="mt-1 text-xs text-[var(--pi-muted)]">
-          Updated {formatUpdatedAt(project.updatedAt)}
+          {updatedAt ? t("projects.updated", { date: updatedAt }) : t("projects.updatedRecently")}
         </p>
       </a>
     </article>

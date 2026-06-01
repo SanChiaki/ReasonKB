@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { useI18n } from "@/lib/i18n";
 
 type UploadResult = {
   uploaded: Array<{ fileName: string }>;
@@ -11,6 +12,7 @@ type UploadResult = {
 
 export function DocumentUploadModal({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -54,7 +56,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
       }
 
       if (!response.ok && uploaded.length === 0) {
-        setErrorMessage(payload?.error ?? "Upload failed. Try again.");
+        setErrorMessage(payload?.error ?? t("documents.uploadError"));
         setResultSummary({ uploaded, failed });
         return;
       }
@@ -68,7 +70,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
       setIsOpen(false);
       resetSelection();
     } catch {
-      setErrorMessage("Upload failed. Try again.");
+      setErrorMessage(t("documents.uploadError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -86,10 +88,10 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
         className="w-full max-w-md rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel-strong)] p-6 shadow-[0_30px_70px_rgba(65,88,130,0.2)]"
       >
         <h2 id="document-upload-title" className="text-xl font-semibold text-[var(--pi-ink)]">
-          Upload documents
+          {t("documents.uploadTitle")}
         </h2>
         <p className="mt-2 text-sm text-[var(--pi-muted)]">
-          Select PDF, Word, Excel, or PowerPoint files to start indexing.
+          {t("documents.uploadDescription")}
         </p>
 
         <div className="mt-5 rounded-lg border border-dashed border-[var(--pi-border)] bg-[var(--pi-bg)] p-4">
@@ -110,12 +112,15 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
             onClick={() => fileInputRef.current?.click()}
             className="rounded-md border border-[var(--pi-border)] bg-white px-3 py-2 text-sm text-[var(--pi-ink)] transition hover:border-[var(--pi-border-strong)]"
           >
-            Choose files
+            {t("documents.chooseFiles")}
           </button>
           <p className="mt-3 text-xs text-[var(--pi-muted)]">
             {selectedFiles.length === 0
-              ? "No files selected"
-              : `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} selected`}
+              ? t("documents.noneSelected")
+              : t("documents.filesSelected", {
+                  count: selectedFiles.length,
+                  plural: selectedFiles.length === 1 ? "" : "s",
+                })}
           </p>
           {selectedFiles.length > 0 ? (
             <ul className="mt-3 space-y-1 text-xs text-[var(--pi-ink)]">
@@ -133,7 +138,12 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
         ) : null}
         {resultSummary ? (
           <div className="mt-4 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-3 text-sm text-[var(--pi-ink)]">
-            <p>{`${resultSummary.uploaded.length} uploaded, ${resultSummary.failed.length} failed`}</p>
+            <p>
+              {t("documents.uploadSummary", {
+                uploaded: resultSummary.uploaded.length,
+                failed: resultSummary.failed.length,
+              })}
+            </p>
             {resultSummary.failed.length > 0 ? (
               <ul className="mt-2 space-y-1 text-xs text-[var(--pi-danger)]">
                 {resultSummary.failed.map((item) => (
@@ -158,14 +168,14 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
             }}
             className="rounded-md border border-[var(--pi-border)] px-3.5 py-2 text-sm text-[var(--pi-muted)] transition hover:border-[var(--pi-border-strong)] hover:text-[var(--pi-ink)]"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={selectedFiles.length === 0 || isSubmitting}
             className="rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3.5 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? "Uploading..." : "Upload files"}
+            {isSubmitting ? t("documents.uploading") : t("documents.uploadFiles")}
           </button>
         </div>
       </form>
@@ -179,7 +189,7 @@ export function DocumentUploadModal({ projectId }: { projectId: string }) {
         onClick={() => setIsOpen(true)}
         className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
       >
-        Upload
+        {t("documents.upload")}
       </button>
       {modalContent && typeof document !== "undefined"
         ? createPortal(modalContent, document.body)

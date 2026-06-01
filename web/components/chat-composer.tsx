@@ -3,10 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProjectScopePicker } from "@/components/project-scope-picker";
+import { useI18n } from "@/lib/i18n";
 import type { RetrievalMode } from "@/lib/retrieval-client";
 
 type ConversationCreateResponse = { id: string };
-const SEND_ERROR_MESSAGE = "Unable to send message. Please try again.";
 
 export function ChatComposer({
   availableProjects,
@@ -18,6 +18,7 @@ export function ChatComposer({
   conversationId?: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [message, setMessage] = useState("");
   const [activeProjectIds, setActiveProjectIds] = useState(selectedProjectIds);
   const [retrievalMode, setRetrievalMode] = useState<RetrievalMode>("answer");
@@ -40,8 +41,8 @@ export function ChatComposer({
   const canSend = message.trim().length > 0 && !sending;
   const placeholder =
     activeProjectIds.length === 0
-      ? "Search across all projects, or select project chips to narrow scope..."
-      : "Ask a question about the selected projects...";
+      ? t("chat.placeholderAll")
+      : t("chat.placeholderSelected");
 
   async function handleSend() {
     if (sendInFlightRef.current || !canSend) {
@@ -61,14 +62,14 @@ export function ChatComposer({
           body: JSON.stringify({ projectIds: activeProjectIds }),
         });
         if (!createResponse.ok) {
-          setErrorMessage(SEND_ERROR_MESSAGE);
+          setErrorMessage(t("chat.sendError"));
           return;
         }
         const created = (await createResponse.json()) as
           | ConversationCreateResponse
           | undefined;
         if (!created?.id) {
-          setErrorMessage(SEND_ERROR_MESSAGE);
+          setErrorMessage(t("chat.sendError"));
           return;
         }
         currentConversationId = created.id;
@@ -85,7 +86,7 @@ export function ChatComposer({
         }),
       });
       if (!sendResponse.ok) {
-        setErrorMessage(SEND_ERROR_MESSAGE);
+        setErrorMessage(t("chat.sendError"));
         return;
       }
 
@@ -93,7 +94,7 @@ export function ChatComposer({
       router.push(`/chat?conversationId=${currentConversationId}`);
       router.refresh();
     } catch {
-      setErrorMessage(SEND_ERROR_MESSAGE);
+      setErrorMessage(t("chat.sendError"));
     } finally {
       sendInFlightRef.current = false;
       setSending(false);
@@ -109,9 +110,11 @@ export function ChatComposer({
       }}
     >
       <label htmlFor="chat-message" className="sr-only">
-        Message
+        {t("chat.messageLabel")}
       </label>
-      <div className="mb-2 text-xs font-semibold text-[var(--pi-muted)]">Message</div>
+      <div className="mb-2 text-xs font-semibold text-[var(--pi-muted)]">
+        {t("chat.messageLabel")}
+      </div>
 
       <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <ProjectScopePicker
@@ -121,13 +124,13 @@ export function ChatComposer({
         />
         <div
           className="inline-flex w-fit rounded-lg bg-[var(--pi-bg)] p-1 text-xs font-medium text-[var(--pi-muted)]"
-          aria-label="Retrieval mode"
+          aria-label={t("chat.retrievalMode")}
         >
           {(["answer", "evidence"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
-              aria-label={`${mode === "answer" ? "Answer" : "Evidence"} mode`}
+              aria-label={mode === "answer" ? t("chat.answerModeAria") : t("chat.evidenceModeAria")}
               aria-pressed={retrievalMode === mode}
               onClick={() => setRetrievalMode(mode)}
               className={`rounded-md px-4 py-2 transition ${
@@ -136,7 +139,7 @@ export function ChatComposer({
                   : "hover:text-[var(--pi-ink)]"
               }`}
             >
-              {mode === "answer" ? "Answer" : "Evidence"}
+              {mode === "answer" ? t("chat.answerMode") : t("chat.evidenceMode")}
             </button>
           ))}
         </div>
@@ -153,21 +156,21 @@ export function ChatComposer({
         />
         <button
           type="submit"
-          aria-label="Send"
+          aria-label={t("chat.send")}
           disabled={!canSend}
           className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-6 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:self-end"
         >
-          {sending ? "Sending..." : "Send"}
+          {sending ? t("chat.sending") : t("chat.send")}
         </button>
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">
         <p className="text-xs text-[var(--pi-muted)]">
           {retrievalMode === "evidence"
-            ? "Evidence mode returns source snippets and paths for downstream processing."
+            ? t("chat.evidenceHelp")
             : activeProjectIds.length === 0
-              ? "Answer mode searches every ready document unless project chips are selected."
-              : "Answer mode synthesizes a response from retrieved evidence."}
+              ? t("chat.answerAllHelp")
+              : t("chat.answerSelectedHelp")}
         </p>
       </div>
       {errorMessage ? (

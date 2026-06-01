@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { SystemSettingsForm } from "@/components/system-settings-form";
 import { appConfig } from "@/lib/config";
+import { LocalizedText } from "@/lib/i18n";
 import { listConversations } from "@/lib/repos/conversation-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
 
@@ -33,13 +34,13 @@ export default async function SettingsPage() {
       <section className="rk-scrollbar h-full overflow-y-auto px-5 py-6 md:px-8">
         <header className="border-b border-[var(--pi-border)] bg-transparent pb-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
-            Operations
+            <LocalizedText id="settings.eyebrow" />
           </p>
           <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)]">
-            System settings
+            <LocalizedText id="settings.title" />
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-[var(--pi-muted)] md:text-base">
-            Runtime controls stored in the application database and picked up by background services without a container restart.
+            <LocalizedText id="settings.description" />
           </p>
         </header>
 

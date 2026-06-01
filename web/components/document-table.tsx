@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, FolderTree, RefreshCcw, X } from "lucide-react";
+import { useI18n, type Locale, type TranslationKey } from "@/lib/i18n";
 
 export type DocumentTableRow = {
   id: string;
@@ -48,12 +49,12 @@ type TreeState =
   | { status: "loaded"; document: DocumentTableRow; tree: DocumentIndexTree }
   | { status: "error"; document: DocumentTableRow; message: string };
 
-function formatUploadedAt(value: string) {
+function formatUploadedAt(value: string, locale: Locale, unknownLabel: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Unknown";
+    return unknownLabel;
   }
-  return date.toLocaleString("en-US", {
+  return date.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -62,34 +63,38 @@ function formatUploadedAt(value: string) {
   });
 }
 
-function formatStatus(status: string) {
+function formatStatus(status: string, unknownLabel: string) {
   const normalized = status.trim().toLowerCase();
-  if (!normalized) return "Unknown";
+  if (!normalized) return unknownLabel;
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-function formatDuration(value?: number | null) {
-  if (typeof value !== "number") return "Pending";
+function formatDuration(value: number | null | undefined, pendingLabel: string) {
+  if (typeof value !== "number") return pendingLabel;
   if (value < 1000) return `${value}ms`;
   return `${(value / 1000).toFixed(1)}s`;
 }
 
-function formatTokens(value?: number | null) {
-  if (typeof value !== "number") return "0 tokens";
-  if (value < 1000) return `${value} tokens`;
-  return `${(value / 1000).toFixed(1)}K tokens`;
+function formatTokens(
+  value: number | null | undefined,
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string,
+) {
+  if (typeof value !== "number") return t("documents.tokens", { count: 0 });
+  if (value < 1000) return t("documents.tokens", { count: value });
+  return t("documents.tokenK", { count: (value / 1000).toFixed(1) });
 }
 
-function formatCalls(value?: number | null) {
-  if (typeof value !== "number") return "0 calls";
-  return `${value} ${value === 1 ? "call" : "calls"}`;
-}
-
-function pluralize(value: number, singular: string) {
-  if (singular === "leaf") {
-    return `${value} ${value === 1 ? "leaf" : "leaves"}`;
+function formatCalls(
+  value: number | null | undefined,
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string,
+) {
+  if (typeof value !== "number") {
+    return t("documents.calls", { count: 0, unit: t("documents.callPlural") });
   }
-  return `${value} ${value === 1 ? singular : `${singular}s`}`;
+  return t("documents.calls", {
+    count: value,
+    unit: value === 1 ? t("documents.callSingular") : t("documents.callPlural"),
+  });
 }
 
 export function DocumentTable({
@@ -102,6 +107,7 @@ export function DocumentTable({
   onReindexQueued?: () => void;
 }) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const trimmedSearchQuery = searchQuery?.trim() ?? "";
   const [pendingReindexId, setPendingReindexId] = useState<string | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
@@ -115,12 +121,12 @@ export function DocumentTable({
         method: "POST",
       });
       if (!response.ok) {
-        throw new Error("Failed to queue document reindex.");
+        throw new Error(t("documents.failedReindex"));
       }
       onReindexQueued?.();
       router.refresh();
     } catch (error) {
-      setReindexError(error instanceof Error ? error.message : "Failed to queue document reindex.");
+      setReindexError(error instanceof Error ? error.message : t("documents.failedReindex"));
     } finally {
       setPendingReindexId(null);
     }
@@ -132,7 +138,7 @@ export function DocumentTable({
     try {
       const response = await fetch(`/api/documents/${document.id}/structure`);
       if (!response.ok) {
-        throw new Error("Failed to load document index tree.");
+        throw new Error(t("documents.failedTree"));
       }
       const tree = (await response.json()) as DocumentIndexTree;
       setTreeState({ status: "loaded", document, tree });
@@ -140,7 +146,7 @@ export function DocumentTable({
       setTreeState({
         status: "error",
         document,
-        message: error instanceof Error ? error.message : "Failed to load document index tree.",
+        message: error instanceof Error ? error.message : t("documents.failedTree"),
       });
     }
   }
@@ -161,13 +167,13 @@ export function DocumentTable({
           <table className="min-w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--pi-border)] bg-[var(--pi-bg)] text-[var(--pi-muted)]">
-                <th className="px-5 py-4 font-medium">File Name</th>
-                <th className="px-5 py-4 font-medium">Source Path</th>
-                <th className="px-5 py-4 font-medium">Page Count</th>
-                <th className="px-5 py-4 font-medium">Indexing Status</th>
-                <th className="px-5 py-4 font-medium">Parse Metrics</th>
-                <th className="px-5 py-4 font-medium">Upload Time</th>
-                <th className="px-5 py-4 font-medium">Actions</th>
+                <th className="px-5 py-4 font-medium">{t("documents.fileName")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.sourcePath")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.pageCount")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.indexingStatus")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.parseMetrics")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.uploadTime")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -178,8 +184,8 @@ export function DocumentTable({
                     className="px-5 py-10 text-center text-sm text-[var(--pi-muted)]"
                   >
                     {trimmedSearchQuery
-                      ? `No matching documents for "${trimmedSearchQuery}" in this project.`
-                      : "No documents found in this project."}
+                      ? t("documents.noMatches", { query: trimmedSearchQuery })
+                      : t("documents.empty")}
                   </td>
                 </tr>
               ) : (
@@ -203,24 +209,24 @@ export function DocumentTable({
                     <td className="px-5 py-4 text-[var(--pi-ink)]/90">{document.pageCount}</td>
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center rounded-md border border-[var(--pi-border)] bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[var(--pi-ink)]">
-                        {formatStatus(document.status)}
+                        {formatStatus(document.status, t("documents.statusUnknown"))}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-xs text-[var(--pi-muted)]">
                       <div className="flex flex-col gap-1">
                         <span className="font-medium text-[var(--pi-ink)]/90">
-                          {formatDuration(document.lastIndexDurationMs)}
+                          {formatDuration(document.lastIndexDurationMs, t("documents.pending"))}
                         </span>
                         <span>
-                          {formatTokens(document.lastIndexTotalTokens)}
+                          {formatTokens(document.lastIndexTotalTokens, t)}
                         </span>
                         <span>
-                          {formatCalls(document.lastIndexLlmCallCount)}
+                          {formatCalls(document.lastIndexLlmCallCount, t)}
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-[var(--pi-muted)]">
-                      {formatUploadedAt(document.createdAt)}
+                      {formatUploadedAt(document.createdAt, locale, t("common.unknown"))}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
@@ -230,15 +236,15 @@ export function DocumentTable({
                           disabled={!document.hasIndexTree}
                           aria-label={
                             document.hasIndexTree
-                              ? `View index tree for ${document.fileName}`
-                              : `Index tree unavailable for ${document.fileName}`
+                              ? t("documents.viewTreeFor", { name: document.fileName })
+                              : t("documents.treeUnavailableFor", { name: document.fileName })
                           }
                           title={
                             document.hasIndexTree
                               ? typeof document.indexNodeCount === "number"
-                                ? `View ${document.indexNodeCount} PageIndex nodes`
-                                : "View PageIndex tree"
-                              : "Index tree is available after indexing completes"
+                                ? t("documents.viewNodeCount", { count: document.indexNodeCount })
+                                : t("documents.viewTree")
+                              : t("documents.treeAfterIndex")
                           }
                           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
                         >
@@ -248,7 +254,7 @@ export function DocumentTable({
                           type="button"
                           onClick={() => void handleReindex(document)}
                           disabled={pendingReindexId === document.id}
-                          aria-label={`Reindex ${document.fileName}`}
+                          aria-label={t("documents.reindex", { name: document.fileName })}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <RefreshCcw className={`h-4 w-4 ${pendingReindexId === document.id ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -274,9 +280,11 @@ function IndexTreeDialog({
   state: TreeState;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
+
   if (state.status === "idle") return null;
 
-  const title = `PageIndex tree for ${state.document.fileName}`;
+  const title = t("documents.pageIndexTreeFor", { name: state.document.fileName });
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(24,31,44,0.42)] p-3 sm:items-center sm:p-6">
       <section
@@ -288,7 +296,7 @@ function IndexTreeDialog({
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--pi-border)] px-5 py-4">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
-              PageIndex Tree
+              {t("documents.pageIndexTree")}
             </p>
             <h2 className="mt-1 truncate text-lg font-semibold text-[var(--pi-ink)]">
               {state.document.fileName}
@@ -296,20 +304,26 @@ function IndexTreeDialog({
             {state.status === "loaded" ? (
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--pi-muted)]">
                 <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-2.5 py-1">
-                  {pluralize(state.tree.stats.nodeCount, "node")}
+                  {t("documents.nodeCount", {
+                    count: state.tree.stats.nodeCount,
+                    plural: state.tree.stats.nodeCount === 1 ? "" : "s",
+                  })}
                 </span>
                 <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-2.5 py-1">
-                  {pluralize(state.tree.stats.leafCount, "leaf")}
+                  {t("documents.leafCount", {
+                    count: state.tree.stats.leafCount,
+                    leaf: state.tree.stats.leafCount === 1 ? "leaf" : "leaves",
+                  })}
                 </span>
                 <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-2.5 py-1">
-                  Depth {state.tree.stats.maxDepth}
+                  {t("documents.depth", { depth: state.tree.stats.maxDepth })}
                 </span>
               </div>
             ) : null}
           </div>
           <button
             type="button"
-            aria-label="Close PageIndex tree"
+            aria-label={t("documents.closePageIndexTree")}
             onClick={onClose}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)]"
           >
@@ -319,7 +333,7 @@ function IndexTreeDialog({
         <div className="rk-scrollbar min-h-0 flex-1 overflow-auto px-5 py-4">
           {state.status === "loading" ? (
             <div className="py-12 text-center text-sm text-[var(--pi-muted)]">
-              Loading PageIndex tree...
+              {t("documents.loadingTree")}
             </div>
           ) : null}
           {state.status === "error" ? (
@@ -336,7 +350,7 @@ function IndexTreeDialog({
               </div>
             ) : (
               <div className="py-12 text-center text-sm text-[var(--pi-muted)]">
-                This document index has no tree nodes.
+                {t("documents.noTreeNodes")}
               </div>
             )
           ) : null}

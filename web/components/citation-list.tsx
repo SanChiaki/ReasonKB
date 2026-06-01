@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useI18n } from "@/lib/i18n";
 
 export type CitationItem = {
   projectId?: string;
@@ -11,6 +14,8 @@ export type CitationItem = {
 };
 
 export function CitationList({ citations }: { citations: CitationItem[] }) {
+  const { t } = useI18n();
+
   if (citations.length === 0) {
     return null;
   }
@@ -23,8 +28,11 @@ export function CitationList({ citations }: { citations: CitationItem[] }) {
           className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-2"
         >
           <p className="text-xs text-[var(--pi-muted)]">
-            [{citation.projectName}] {citation.documentName} - pages {citation.pages}
-            {citation.focusPage ? ` · focus page ${citation.focusPage}` : ""}
+            [{citation.projectName}] {citation.documentName} - {t("chat.pages")}{" "}
+            {citation.pages}
+            {citation.focusPage
+              ? ` · ${t("chat.focusPage")} ${citation.focusPage}`
+              : ""}
           </p>
           {citation.excerpt ? (
             <p className="mt-1 text-sm leading-6 text-[var(--pi-ink)]">{citation.excerpt}</p>

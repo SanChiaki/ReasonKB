@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
+import { LanguageSwitcher, useI18n } from "@/lib/i18n";
 
 export type SidebarConversation = {
   id: string;
@@ -23,6 +24,7 @@ export function SidebarNav({
   onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   function isActivePath(href: string) {
     return pathname === href || Boolean(pathname?.startsWith(`${href}/`));
@@ -42,11 +44,11 @@ export function SidebarNav({
             </div>
             <div>
               <p className="text-base font-semibold text-[var(--pi-ink)]">ReasonKB</p>
-              <p className="text-xs text-[var(--pi-muted)]">Knowledge Workspace</p>
+              <p className="text-xs text-[var(--pi-muted)]">{t("app.subtitle")}</p>
             </div>
             <button
               type="button"
-              aria-label="Close navigation"
+              aria-label={t("nav.close")}
               onClick={onCloseMobile}
               className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--pi-border)] text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)] md:hidden"
             >
@@ -59,8 +61,9 @@ export function SidebarNav({
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
           >
             <Plus aria-hidden="true" size={16} />
-            New Chat
+            {t("nav.newChat")}
           </Link>
+          <LanguageSwitcher />
         </div>
 
         <nav className="space-y-1 border-b border-[var(--pi-border)] p-3">
@@ -75,7 +78,7 @@ export function SidebarNav({
             }`}
           >
             <MessageSquare aria-hidden="true" size={18} strokeWidth={2} />
-            Chat
+            {t("nav.chat")}
           </Link>
           <Link
             href="/projects"
@@ -88,7 +91,7 @@ export function SidebarNav({
             }`}
           >
             <Folder aria-hidden="true" size={18} strokeWidth={2} />
-            Projects
+            {t("nav.projects")}
           </Link>
           <Link
             href="/settings"
@@ -101,13 +104,13 @@ export function SidebarNav({
             }`}
           >
             <Settings aria-hidden="true" size={18} strokeWidth={2} />
-            Settings
+            {t("nav.settings")}
           </Link>
         </nav>
 
         <section className="flex min-h-0 flex-1 flex-col p-3">
           <h2 className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
-            Recent Chats
+            {t("nav.recentChats")}
           </h2>
           <div className="rk-scrollbar flex-1 space-y-0.5 overflow-y-auto">
             <ChatHistoryList conversations={conversations} />
