@@ -218,6 +218,7 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
         )
         for attempt in range(max_retries):
             try:
+                configure_litellm_environment()
                 started_at = perf_counter()
                 response = utils_module.litellm.completion(
                     model=normalized_model,
@@ -267,6 +268,7 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
         messages = [{"role": "user", "content": prompt}]
         for attempt in range(max_retries):
             try:
+                configure_litellm_environment()
                 started_at = perf_counter()
                 response = await utils_module.litellm.acompletion(
                     model=normalized_model,

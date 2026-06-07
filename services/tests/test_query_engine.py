@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -413,6 +414,64 @@ def test_retrieval_llm_uses_configured_model(monkeypatch):
     assert pages == "2"
     assert answer == "final answer"
     assert seen_models == ["gpt-retrieval", "gpt-retrieval"]
+
+
+def test_retrieval_llm_refreshes_runtime_settings_before_completion(monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE system_settings (
+          key TEXT PRIMARY KEY,
+          value_json TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+        """,
+    )
+    conn.executemany(
+        "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?)",
+        [
+            ("llmApiKey", '"runtime-key"', "2026-05-19T00:00:00Z"),
+            ("llmBaseUrl", '"https://runtime.example.test/v1"', "2026-05-19T00:00:00Z"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    query_engine._get_retrieval_model.cache_clear()
+    monkeypatch.setenv("APP_DB_PATH", str(db_path))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_API_BASE", raising=False)
+    monkeypatch.setattr(
+        "pageindex.utils.ConfigLoader.load",
+        lambda self, user_opt=None: SimpleNamespace(
+            model="gpt-base",
+            retrieve_model="gpt-retrieval",
+        ),
+    )
+
+    def fake_completion(**_kwargs):
+        assert os.environ["OPENAI_API_KEY"] == "runtime-key"
+        assert os.environ["OPENAI_BASE_URL"] == "https://runtime.example.test/v1"
+        assert os.environ["OPENAI_API_BASE"] == "https://runtime.example.test/v1"
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content="runtime answer"),
+                    finish_reason="stop",
+                )
+            ],
+        )
+
+    monkeypatch.setattr("litellm.completion", fake_completion)
+
+    answer = query_engine._generate_answer(
+        "what changed?",
+        [{"document": "settings.md", "pages": "1", "evidence": [{"page": 1, "content": "details"}]}],
+    )
+
+    assert answer == "runtime answer"
 
 
 def test_select_citation_anchor_prefers_specific_paragraph_over_full_page_blob():
