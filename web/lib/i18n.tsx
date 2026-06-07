@@ -27,6 +27,9 @@ const messages = {
     "language.label": "Language",
     "language.zh": "中文",
     "language.en": "English",
+    "language.settingsEyebrow": "Interface",
+    "language.settingsTitle": "Interface language",
+    "language.settingsDescription": "Choose the Web UI display language.",
 
     "common.cancel": "Cancel",
     "common.save": "Save",
@@ -246,6 +249,9 @@ const messages = {
     "language.label": "语言",
     "language.zh": "中文",
     "language.en": "English",
+    "language.settingsEyebrow": "界面",
+    "language.settingsTitle": "界面语言",
+    "language.settingsDescription": "选择 Web UI 显示语言。",
 
     "common.cancel": "取消",
     "common.save": "保存",
@@ -607,7 +613,7 @@ export function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
 
   return (
-    <div className="mt-4">
+    <div>
       <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
         {t("language.label")}
       </p>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
-import { LanguageSwitcher, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 
 export type SidebarConversation = {
   id: string;
@@ -63,7 +63,6 @@ export function SidebarNav({
             <Plus aria-hidden="true" size={16} />
             {t("nav.newChat")}
           </Link>
-          <LanguageSwitcher />
         </div>
 
         <nav className="space-y-1 border-b border-[var(--pi-border)] p-3">

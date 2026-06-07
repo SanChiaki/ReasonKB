@@ -22,8 +22,8 @@ describe("AppShell", () => {
     }
   });
 
-  it("defaults to Chinese navigation and persists an English switch", async () => {
-    const { unmount } = render(
+  it("defaults to Chinese navigation without occupying the sidebar with language controls", async () => {
+    render(
       <AppShell conversations={[]}>
         <div>内容区域</div>
       </AppShell>,
@@ -32,13 +32,12 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /新建对话/ })).toHaveAttribute("href", "/chat");
     expect(screen.getByRole("link", { name: /^项目$/ })).toHaveAttribute("href", "/projects");
     expect(screen.getByRole("link", { name: /^设置$/ })).toHaveAttribute("href", "/settings");
+    expect(screen.queryByRole("button", { name: "English" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "中文" })).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "English" }));
-
-    expect(screen.getByRole("link", { name: /new chat/i })).toHaveAttribute("href", "/chat");
-    expect(window.localStorage.getItem("reasonkb.locale")).toBe("en");
-
-    unmount();
+  it("uses a persisted English locale without showing sidebar language controls", async () => {
+    window.localStorage.setItem("reasonkb.locale", "en");
     render(
       <AppShell conversations={[]}>
         <div>Content area</div>
@@ -49,27 +48,8 @@ describe("AppShell", () => {
       expect(screen.getByRole("link", { name: /new chat/i })).toHaveAttribute("href", "/chat");
     });
     expect(screen.getByRole("link", { name: /^projects$/i })).toHaveAttribute("href", "/projects");
-  });
-
-  it("switches language when locale storage is unavailable", () => {
-    Object.defineProperty(window, "localStorage", {
-      configurable: true,
-      get() {
-        throw new Error("localStorage is blocked");
-      },
-    });
-
-    render(
-      <AppShell conversations={[]}>
-        <div>内容区域</div>
-      </AppShell>,
-    );
-
-    expect(screen.getByRole("link", { name: /新建对话/ })).toHaveAttribute("href", "/chat");
-
-    fireEvent.click(screen.getByRole("button", { name: "English" }));
-
-    expect(screen.getByRole("link", { name: /new chat/i })).toHaveAttribute("href", "/chat");
+    expect(screen.queryByRole("button", { name: "English" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "中文" })).not.toBeInTheDocument();
   });
 
   it("renders content with a mobile navigation trigger", () => {

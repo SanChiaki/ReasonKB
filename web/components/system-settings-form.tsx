@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Folder, FolderOpen } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher, useI18n } from "@/lib/i18n";
 
 type ProjectsRootSwitchStatus = "idle" | "pending" | "complete";
 
@@ -339,6 +339,25 @@ export function SystemSettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
+              {t("language.settingsEyebrow")}
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
+              {t("language.settingsTitle")}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
+              {t("language.settingsDescription")}
+            </p>
+          </div>
+          <div className="w-full lg:w-[18rem]">
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>

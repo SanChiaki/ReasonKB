@@ -3,8 +3,9 @@
 import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SystemSettingsForm } from "@/components/system-settings-form";
+import { I18nProvider } from "@/lib/i18n";
 
 const routerMocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -14,12 +15,108 @@ vi.mock("next/navigation", () => ({
   useRouter: () => routerMocks,
 }));
 
+const localStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+
+function renderWithI18n(children: React.ReactNode) {
+  return render(<I18nProvider>{children}</I18nProvider>);
+}
+
+beforeEach(() => {
+  if (localStorageDescriptor) {
+    Object.defineProperty(window, "localStorage", localStorageDescriptor);
+  }
+  window.localStorage.clear();
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
   routerMocks.refresh.mockClear();
+  if (localStorageDescriptor) {
+    Object.defineProperty(window, "localStorage", localStorageDescriptor);
+  }
 });
 
 describe("SystemSettingsForm", () => {
+  it("moves language switching into settings and persists the selected locale", async () => {
+    renderWithI18n(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={false}
+        initialLlmBaseUrl=""
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={false}
+        initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "界面语言" })).toBeInTheDocument();
+    expect(screen.getByText("选择 Web UI 显示语言。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "English" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Interface language" })).toBeInTheDocument();
+    });
+    expect(screen.getByText("Choose the Web UI display language.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(window.localStorage.getItem("reasonkb.locale")).toBe("en");
+  });
+
+  it("switches settings language when locale storage is unavailable", async () => {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("localStorage is blocked");
+      },
+    });
+
+    renderWithI18n(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={false}
+        initialLlmBaseUrl=""
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={false}
+        initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "界面语言" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "English" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Interface language" })).toBeInTheDocument();
+    });
+  });
+
   it("saves runtime settings", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
