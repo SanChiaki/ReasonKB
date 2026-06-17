@@ -143,6 +143,7 @@ describe("chat send route validation", () => {
     });
 
     const sendRetrievalQuery = vi.fn().mockRejectedValue(new Error("retrieval down"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.doMock("@/lib/retrieval-client", () => ({
       sendRetrievalQuery,
     }));
@@ -161,6 +162,9 @@ describe("chat send route validation", () => {
     );
     const json = await response.json();
     const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
 
     expect(response.status).toBe(200);
     expect(json).toEqual({
@@ -177,6 +181,10 @@ describe("chat send route validation", () => {
     expect(detail.messages[1].content).toBe(json.answer);
     expect(detail.messages[1].citations).toEqual([]);
     expect(sendRetrievalQuery).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      "chat retrieval failed",
+      expect.any(Error),
+    );
   });
 
   it("passes evidence mode through and persists returned evidence", async () => {
@@ -228,6 +236,9 @@ describe("chat send route validation", () => {
     );
     const json = await response.json();
     const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
 
     expect(response.status).toBe(200);
     expect(json.evidence).toEqual(evidence);
@@ -267,6 +278,9 @@ describe("chat send route validation", () => {
       }),
     );
     const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
 
     expect(response.status).toBe(200);
     expect(sendRetrievalQuery).toHaveBeenCalledWith({
@@ -276,5 +290,181 @@ describe("chat send route validation", () => {
     });
     expect(detail.projectIds).toEqual([]);
     expect(detail.messages[1].content).toBe("global answer");
+  });
+
+  it("streams retrieval progress and persists the final assistant response with progress metadata", async () => {
+    const { dbPath } = makeTempDb();
+    mockConfig(dbPath);
+    const conversation = createConversation(dbPath, "user_demo");
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+
+    const sendRetrievalQueryStream = vi.fn(async (_input, onEvent) => {
+      onEvent({
+        type: "progress",
+        stage: "documents_loaded",
+        data: { documentCount: 2 },
+      });
+      onEvent({
+        type: "progress",
+        stage: "documents_selected",
+        data: {
+          documentCount: 1,
+          documents: [
+            {
+              documentId: "doc_1",
+              documentName: "acceptance.pdf",
+              projectName: "Alpha",
+              sourceRelativePath: "Alpha/acceptance.pdf",
+            },
+          ],
+        },
+      });
+      onEvent({
+        type: "result",
+        data: {
+          answer: "streamed answer",
+          citations: [],
+          selectedDocuments: [],
+          evidence: [],
+        },
+      });
+      return {
+        answer: "streamed answer",
+        citations: [],
+        selectedDocuments: [],
+        evidence: [],
+      };
+    });
+    vi.doMock("@/lib/retrieval-client", () => ({
+      sendRetrievalQueryStream,
+    }));
+
+    const { POST } = await import("@/app/api/chat/send/route");
+    const response = await POST(
+      new Request("http://localhost/api/chat/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          projectIds: [project.id],
+          message: "Stream this",
+          mode: "answer",
+          stream: true,
+        }),
+      }),
+    );
+    const text = await response.text();
+    const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    expect(text).toContain('"type":"progress"');
+    expect(text).toContain('"stage":"documents_loaded"');
+    expect(text).toContain('"type":"result"');
+    expect(sendRetrievalQueryStream).toHaveBeenCalledWith(
+      {
+        query: "Stream this",
+        projectIds: [project.id],
+        mode: "answer",
+      },
+      expect.any(Function),
+    );
+    expect(detail.messages).toHaveLength(2);
+    expect(detail.messages[0].content).toBe("Stream this");
+    expect(detail.messages[1].content).toBe("streamed answer");
+    expect(detail.messages[1].citations).toContainEqual({
+      kind: "retrieval_progress",
+      lines: [
+        { stage: "documents_loaded", data: { documentCount: 2 } },
+        {
+          stage: "documents_selected",
+          data: {
+            documentCount: 1,
+            documents: [
+              {
+                documentId: "doc_1",
+                documentName: "acceptance.pdf",
+                projectName: "Alpha",
+                sourceRelativePath: "Alpha/acceptance.pdf",
+              },
+            ],
+          },
+        },
+      ],
+      documents: [
+        {
+          documentId: "doc_1",
+          documentName: "acceptance.pdf",
+          projectName: "Alpha",
+          sourceRelativePath: "Alpha/acceptance.pdf",
+        },
+      ],
+    });
+  });
+
+  it("streams and persists a retrieval failure progress event when streaming retrieval fails", async () => {
+    const { dbPath } = makeTempDb();
+    mockConfig(dbPath);
+    const conversation = createConversation(dbPath, "user_demo");
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+
+    const sendRetrievalQueryStream = vi
+      .fn()
+      .mockRejectedValue(new Error("connect timed out"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.doMock("@/lib/retrieval-client", () => ({
+      sendRetrievalQueryStream,
+    }));
+
+    const { POST } = await import("@/app/api/chat/send/route");
+    const response = await POST(
+      new Request("http://localhost/api/chat/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          projectIds: [project.id],
+          message: "Stream failure",
+          mode: "answer",
+          stream: true,
+        }),
+      }),
+    );
+    const text = await response.text();
+    const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
+
+    expect(response.status).toBe(200);
+    expect(text).toContain('"type":"progress"');
+    expect(text).toContain('"stage":"retrieval_failed"');
+    expect(text).toContain('"type":"result"');
+    expect(detail.messages[1].content).toBe(
+      "I ran into a retrieval error. Please try again.",
+    );
+    expect(detail.messages[1].citations).toContainEqual({
+      kind: "retrieval_progress",
+      lines: [
+        {
+          stage: "retrieval_failed",
+          data: { message: "connect timed out" },
+        },
+      ],
+      documents: [],
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "chat retrieval stream failed",
+      expect.any(Error),
+    );
   });
 });

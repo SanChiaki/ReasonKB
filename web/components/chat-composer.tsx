@@ -4,18 +4,41 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProjectScopePicker } from "@/components/project-scope-picker";
 import { useI18n } from "@/lib/i18n";
-import type { RetrievalMode } from "@/lib/retrieval-client";
+import type { RetrievalMode, RetrievalStreamEvent } from "@/lib/retrieval-client";
 
 type ConversationCreateResponse = { id: string };
+
+function parseSseChunk(buffer: string) {
+  const events: RetrievalStreamEvent[] = [];
+  const parts = buffer.split("\n\n");
+  const remainder = parts.pop() ?? "";
+
+  for (const part of parts) {
+    const dataLines = part
+      .split("\n")
+      .filter((line) => line.startsWith("data: "))
+      .map((line) => line.slice("data: ".length));
+    if (dataLines.length === 0) {
+      continue;
+    }
+    events.push(JSON.parse(dataLines.join("\n")) as RetrievalStreamEvent);
+  }
+
+  return { events, remainder };
+}
 
 export function ChatComposer({
   availableProjects,
   selectedProjectIds,
   conversationId,
+  onSendStarted,
+  onStreamEvent,
 }: {
   availableProjects: Array<{ id: string; name: string }>;
   selectedProjectIds: string[];
   conversationId?: string;
+  onSendStarted?: (input: { message: string }) => void;
+  onStreamEvent?: (event: RetrievalStreamEvent) => void;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -44,6 +67,29 @@ export function ChatComposer({
       ? t("chat.placeholderAll")
       : t("chat.placeholderSelected");
 
+  async function readProgressStream(response: Response) {
+    if (!response.body) {
+      throw new Error("Missing response body");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSseChunk(buffer);
+      buffer = parsed.remainder;
+      parsed.events.forEach((event) => onStreamEvent?.(event));
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      parseSseChunk(`${buffer}\n\n`).events.forEach((event) => onStreamEvent?.(event));
+    }
+  }
+
   async function handleSend() {
     if (sendInFlightRef.current || !canSend) {
       return;
@@ -52,6 +98,9 @@ export function ChatComposer({
     sendInFlightRef.current = true;
     setSending(true);
     setErrorMessage("");
+    const trimmedMessage = message.trim();
+    setMessage("");
+    onSendStarted?.({ message: trimmedMessage });
     try {
       let currentConversationId = conversationId;
 
@@ -81,16 +130,21 @@ export function ChatComposer({
         body: JSON.stringify({
           conversationId: currentConversationId,
           projectIds: activeProjectIds,
-          message: message.trim(),
+          message: trimmedMessage,
           mode: retrievalMode,
+          stream: true,
         }),
       });
       if (!sendResponse.ok) {
         setErrorMessage(t("chat.sendError"));
         return;
       }
+      if (sendResponse.body) {
+        await readProgressStream(sendResponse);
+      } else {
+        await sendResponse.json?.();
+      }
 
-      setMessage("");
       router.push(`/chat?conversationId=${currentConversationId}`);
       router.refresh();
     } catch {
@@ -103,6 +157,7 @@ export function ChatComposer({
 
   return (
     <form
+      data-testid="chat-composer"
       className="bg-[var(--pi-panel)]"
       onSubmit={(event) => {
         event.preventDefault();
@@ -150,6 +205,12 @@ export function ChatComposer({
           id="chat-message"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void handleSend();
+            }
+          }}
           placeholder={placeholder}
           rows={1}
           className="min-h-12 flex-1 resize-none rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-[15px] leading-6 text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"

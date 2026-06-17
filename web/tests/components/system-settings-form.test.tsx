@@ -173,11 +173,11 @@ describe("SystemSettingsForm", () => {
     fireEvent.change(screen.getByLabelText(/base url/i), {
       target: { value: "https://llm.example.test/v1" },
     });
-    fireEvent.change(screen.getByLabelText(/^model$/i), {
-      target: { value: "openai/deepseek-v4-flash" },
+    fireEvent.change(screen.getByLabelText(/^interface format$/i), {
+      target: { value: "anthropic-messages" },
     });
-    fireEvent.change(screen.getByLabelText(/retrieval model/i), {
-      target: { value: "openai/deepseek-v4-flash" },
+    fireEvent.change(screen.getByLabelText(/^model$/i), {
+      target: { value: "claude-3-5-sonnet-latest" },
     });
     fireEvent.click(screen.getByRole("button", { name: /save settings/i }));
 
@@ -191,8 +191,10 @@ describe("SystemSettingsForm", () => {
           retrievalDocumentLimit: 12,
           llmApiKey: "sk-test",
           llmBaseUrl: "https://llm.example.test/v1",
-          llmModel: "openai/deepseek-v4-flash",
-          llmRetrievalModel: "openai/deepseek-v4-flash",
+          llmInterfaceFormat: "anthropic-messages",
+          llmModelName: "claude-3-5-sonnet-latest",
+          llmRetrievalInterfaceFormat: "anthropic-messages",
+          llmRetrievalModelName: "claude-3-5-sonnet-latest",
         }),
       }),
     );
@@ -228,6 +230,264 @@ describe("SystemSettingsForm", () => {
       "placeholder",
       "Paste a new API key",
     );
+  });
+
+  it("uses one model by default when answer and retrieval models match", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            settings: {
+              indexWorkerConcurrency: 2,
+              retrievalDocumentLimit: 5,
+              llmApiKeyConfigured: true,
+              llmBaseUrl: "https://api.deepseek.com",
+              llmModel: "openai/deepseek-v4-flash",
+              llmRetrievalModel: "openai/deepseek-v4-flash",
+              llmConfigured: true,
+              llmMissingFields: [],
+              currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+              pendingProjectsRootHostPath: "",
+              projectsRootSwitchStatus: "idle",
+              projectsRootSwitchUpdatedAt: null,
+            },
+          }),
+        ),
+      );
+
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={true}
+        initialLlmBaseUrl="https://api.deepseek.com"
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={true}
+        initialLlmMissingFields={[]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^interface format$/i)).toHaveValue(
+      "openai-compatible",
+    );
+    expect(screen.getByLabelText(/^model$/i)).toHaveValue("deepseek-v4-flash");
+    expect(
+      screen.getByRole("checkbox", { name: /use a separate retrieval model/i }),
+    ).not.toBeChecked();
+    expect(
+      screen.queryByLabelText(/retrieval interface format/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^retrieval model$/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^interface format$/i), {
+      target: { value: "anthropic-messages" },
+    });
+    fireEvent.change(screen.getByLabelText(/^model$/i), {
+      target: { value: "claude-3-5-sonnet-latest" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save settings/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/settings",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          indexWorkerConcurrency: 2,
+          retrievalDocumentLimit: 5,
+          llmBaseUrl: "https://api.deepseek.com",
+          llmInterfaceFormat: "anthropic-messages",
+          llmModelName: "claude-3-5-sonnet-latest",
+          llmRetrievalInterfaceFormat: "anthropic-messages",
+          llmRetrievalModelName: "claude-3-5-sonnet-latest",
+        }),
+      }),
+    );
+  });
+
+  it("shows separate retrieval model fields only when enabled", () => {
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={true}
+        initialLlmBaseUrl="https://api.deepseek.com"
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="anthropic/claude-3-5-sonnet-latest"
+        initialLlmConfigured={true}
+        initialLlmMissingFields={[]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^interface format$/i)).toHaveValue(
+      "openai-compatible",
+    );
+    expect(screen.getByLabelText(/^model$/i)).toHaveValue("deepseek-v4-flash");
+    expect(
+      screen.getByRole("checkbox", { name: /use a separate retrieval model/i }),
+    ).toBeChecked();
+    expect(screen.getByLabelText(/retrieval interface format/i)).toHaveValue(
+      "anthropic-messages",
+    );
+    expect(screen.getByLabelText(/^retrieval model$/i)).toHaveValue(
+      "claude-3-5-sonnet-latest",
+    );
+  });
+
+  it("saves an explicitly enabled separate retrieval model", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            settings: {
+              indexWorkerConcurrency: 2,
+              retrievalDocumentLimit: 5,
+              llmApiKeyConfigured: true,
+              llmBaseUrl: "https://api.deepseek.com",
+              llmModel: "openai/deepseek-v4-flash",
+              llmRetrievalModel: "anthropic/claude-3-5-haiku-latest",
+              llmConfigured: true,
+              llmMissingFields: [],
+              currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
+              pendingProjectsRootHostPath: "",
+              projectsRootSwitchStatus: "idle",
+              projectsRootSwitchUpdatedAt: null,
+            },
+          }),
+        ),
+      );
+
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={true}
+        initialLlmBaseUrl="https://api.deepseek.com"
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={true}
+        initialLlmMissingFields={[]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: /use a separate retrieval model/i }),
+    );
+    expect(screen.getByLabelText(/retrieval interface format/i)).toHaveValue(
+      "openai-compatible",
+    );
+    expect(screen.getByLabelText(/^retrieval model$/i)).toHaveValue(
+      "deepseek-v4-flash",
+    );
+
+    fireEvent.change(screen.getByLabelText(/retrieval interface format/i), {
+      target: { value: "anthropic-messages" },
+    });
+    fireEvent.change(screen.getByLabelText(/^retrieval model$/i), {
+      target: { value: "claude-3-5-haiku-latest" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save settings/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/settings",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          indexWorkerConcurrency: 2,
+          retrievalDocumentLimit: 5,
+          llmBaseUrl: "https://api.deepseek.com",
+          llmInterfaceFormat: "openai-compatible",
+          llmModelName: "deepseek-v4-flash",
+          llmRetrievalInterfaceFormat: "anthropic-messages",
+          llmRetrievalModelName: "claude-3-5-haiku-latest",
+        }),
+      }),
+    );
+  });
+
+  it("tests the current LLM settings while preserving a blank saved API key field", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            model: "openai/deepseek-v4-flash",
+            elapsedMs: 42,
+            output: "OK",
+            errorType: null,
+            message: "Model test succeeded.",
+            details: "",
+          }),
+        ),
+      );
+
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={true}
+        initialLlmBaseUrl="https://llm.example.test/v1"
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={true}
+        initialLlmMissingFields={[]}
+        initialCurrentProjectsRootHostPath="/Users/oam/.reasonkb/projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^test$/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/settings/llm-test",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          baseUrl: "https://llm.example.test/v1",
+          interfaceFormat: "openai-compatible",
+          modelName: "deepseek-v4-flash",
+        }),
+      }),
+    );
+    expect(screen.getByText(/model test succeeded/i)).toBeInTheDocument();
+    expect(screen.getByText(/42 ms/i)).toBeInTheDocument();
+    expect(screen.getByText(/ok/i)).toBeInTheDocument();
   });
 
   it("uses a folder picker before switching the Docker projects root and shows progress", async () => {

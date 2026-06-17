@@ -1,8 +1,11 @@
 import React from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { ChatComposer } from "@/components/chat-composer";
-import { ChatMessageList } from "@/components/chat-message-list";
+import { ChatConversation } from "@/components/chat-conversation";
+import type {
+  ChatProgressLine,
+  ChatProgressState,
+} from "@/components/chat-message-list";
 import type { CitationItem } from "@/components/citation-list";
 import { appConfig } from "@/lib/config";
 import {
@@ -14,7 +17,10 @@ import {
 import { getConversationDetail, listConversations } from "@/lib/repos/conversation-store";
 import { listProjects } from "@/lib/repos/project-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
-import type { RetrievalEvidence } from "@/lib/retrieval-client";
+import {
+  isPersistedRetrievalProgress,
+  type RetrievalEvidence,
+} from "@/lib/retrieval-client";
 
 const demoUserId = "user_demo";
 const settingsDefaults = {
@@ -106,6 +112,23 @@ function isEvidenceItem(evidence: RetrievalEvidence | null): evidence is Retriev
   return evidence !== null;
 }
 
+function toProgressState(values: unknown[]): ChatProgressState | undefined {
+  const progress = values.find(isPersistedRetrievalProgress);
+  if (!progress) {
+    return undefined;
+  }
+
+  const lines: ChatProgressLine[] = progress.lines.map((line, index) => ({
+    id: `${line.stage}-${index}`,
+    stage: line.stage,
+    data: line.data,
+  }));
+  return {
+    lines,
+    documents: progress.documents,
+  };
+}
+
 function getScopeSummary(
   selectedProjectIds: string[],
   availableProjects: Array<{ id: string; name: string }>,
@@ -151,17 +174,18 @@ export default async function ChatPage({
     availableProjectIdSet.has(projectId),
   );
   const scopeSummary = getScopeSummary(selectedProjectIds, availableProjects);
-  const messages = (conversation?.messages ?? []).map((message) => ({
-    id: message.id,
-    role: message.role,
-    content: message.content,
-    citations: Array.isArray(message.citations)
-      ? message.citations.map(toCitation).filter(isCitationItem)
-      : [],
-    evidence: Array.isArray(message.citations)
-      ? message.citations.map(toEvidence).filter(isEvidenceItem)
-      : [],
-  }));
+  const messages = (conversation?.messages ?? []).map((message) => {
+    const attachments = Array.isArray(message.citations) ? message.citations : [];
+    return {
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      citations: attachments.map(toCitation).filter(isCitationItem),
+      evidence: attachments.map(toEvidence).filter(isEvidenceItem),
+      progress: toProgressState(attachments),
+      progressExpanded: false,
+    };
+  });
 
   return (
     <AppShell conversations={conversations}>
@@ -185,9 +209,13 @@ export default async function ChatPage({
           </div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8">
-            {!settings.llmConfigured ? (
+        <ChatConversation
+          messages={messages}
+          availableProjects={availableProjects}
+          selectedProjectIds={selectedProjectIds}
+          conversationId={conversation?.id}
+          modelWarning={
+            !settings.llmConfigured ? (
               <div className="mx-auto mb-5 flex w-full max-w-4xl flex-col gap-3 rounded-lg border border-[rgba(180,35,24,0.28)] bg-[rgba(255,247,237,0.82)] px-4 py-3 text-sm text-[var(--pi-ink)] md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-semibold text-[var(--pi-danger)]">
@@ -204,13 +232,10 @@ export default async function ChatPage({
                   <LocalizedText id="chat.configureModel" />
                 </Link>
               </div>
-            ) : null}
-            {messages.length > 0 ? (
-              <div className="pb-4">
-                <ChatMessageList messages={messages} />
-              </div>
-            ) : (
-              <div className="flex h-full min-h-[240px] items-center justify-center px-4 md:min-h-[420px]">
+            ) : null
+          }
+          emptyState={
+            <div className="flex h-full min-h-[240px] items-center justify-center px-4 md:min-h-[420px]">
                 <div className="w-full max-w-2xl text-center">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--pi-border)] bg-white text-xl text-[var(--pi-muted)] md:h-14 md:w-14 md:text-2xl">
                     ◌
@@ -223,19 +248,8 @@ export default async function ChatPage({
                   </p>
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-5 md:px-8">
-            <div className="mx-auto w-full max-w-4xl">
-              <ChatComposer
-                availableProjects={availableProjects}
-                selectedProjectIds={selectedProjectIds}
-                conversationId={conversation?.id}
-              />
-            </div>
-          </div>
-        </div>
+          }
+        />
       </section>
     </AppShell>
   );

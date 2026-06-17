@@ -78,6 +78,33 @@ describe("system settings route", () => {
     expect(json.settings.llmConfigured).toBe(true);
   });
 
+  it("builds LiteLLM model strings from public interface format fields", async () => {
+    makeTempDb();
+
+    const { PATCH } = await import("@/app/api/admin/settings/route");
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          llmApiKey: "sk-test",
+          llmBaseUrl: "https://llm.example.test/v1",
+          llmInterfaceFormat: "openai-compatible",
+          llmModelName: "deepseek-v4-flash",
+          llmRetrievalInterfaceFormat: "anthropic-messages",
+          llmRetrievalModelName: "claude-3-5-sonnet-latest",
+        }),
+      }),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.settings.llmModel).toBe("openai/deepseek-v4-flash");
+    expect(json.settings.llmRetrievalModel).toBe(
+      "anthropic/claude-3-5-sonnet-latest",
+    );
+  });
+
   it("saves a pending projects root switch and writes the Docker env file", async () => {
     const { dir } = makeTempDb();
 

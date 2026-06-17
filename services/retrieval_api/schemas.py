@@ -41,3 +41,19 @@ class QueryResponse(BaseModel):
     citations: list[Citation]
     selectedDocuments: list[SelectedDocument]
     evidence: list[EvidenceItem] = []
+
+
+class LlmTestRequest(BaseModel):
+    apiKey: str | None = None
+    baseUrl: str | None = None
+    model: str | None = None
+
+
+class LlmTestResponse(BaseModel):
+    success: bool
+    model: str
+    elapsedMs: int
+    output: str
+    errorType: str | None = None
+    message: str
+    details: str = ""

@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Folder, FolderOpen } from "lucide-react";
+import { ChevronLeft, Folder, FolderOpen, FlaskConical } from "lucide-react";
 import { LanguageSwitcher, useI18n } from "@/lib/i18n";
+import {
+  splitLlmModel,
+  type LlmInterfaceFormat,
+} from "@/lib/llm-model-format";
 
 type ProjectsRootSwitchStatus = "idle" | "pending" | "complete";
 
@@ -34,6 +38,16 @@ type HostDirectoriesResponse = {
   currentHostPath?: string;
   parentBrowsePath?: string | null;
   entries?: HostDirectoryEntry[];
+};
+
+type LlmTestResponse = {
+  success: boolean;
+  model: string;
+  elapsedMs: number;
+  output: string;
+  errorType?: string | null;
+  message: string;
+  details?: string;
 };
 
 function trimTrailingSeparators(value: string) {
@@ -116,9 +130,21 @@ export function SystemSettingsForm({
     String(initialRetrievalDocumentLimit),
   );
   const [llmApiKey, setLlmApiKey] = useState("");
+  const initialAnswerModel = splitLlmModel(initialLlmModel);
+  const initialRetrievalModel = splitLlmModel(initialLlmRetrievalModel);
   const [llmBaseUrl, setLlmBaseUrl] = useState(initialLlmBaseUrl);
-  const [llmModel, setLlmModel] = useState(initialLlmModel);
-  const [llmRetrievalModel, setLlmRetrievalModel] = useState(initialLlmRetrievalModel);
+  const [llmInterfaceFormat, setLlmInterfaceFormat] =
+    useState<LlmInterfaceFormat>(initialAnswerModel.interfaceFormat);
+  const [llmModelName, setLlmModelName] = useState(initialAnswerModel.modelName);
+  const [llmRetrievalInterfaceFormat, setLlmRetrievalInterfaceFormat] =
+    useState<LlmInterfaceFormat>(initialRetrievalModel.interfaceFormat);
+  const [llmRetrievalModelName, setLlmRetrievalModelName] = useState(
+    initialRetrievalModel.modelName,
+  );
+  const [useSeparateRetrievalModel, setUseSeparateRetrievalModel] = useState(
+    initialAnswerModel.interfaceFormat !== initialRetrievalModel.interfaceFormat ||
+      initialAnswerModel.modelName !== initialRetrievalModel.modelName,
+  );
   const [currentProjectsRootHostPath, setCurrentProjectsRootHostPath] = useState(
     initialCurrentProjectsRootHostPath,
   );
@@ -145,6 +171,8 @@ export function SystemSettingsForm({
   const [projectsRootSubmitting, setProjectsRootSubmitting] = useState(false);
   const [projectsRootErrorMessage, setProjectsRootErrorMessage] = useState("");
   const [projectsRootStatusMessage, setProjectsRootStatusMessage] = useState("");
+  const [llmTestSubmitting, setLlmTestSubmitting] = useState(false);
+  const [llmTestResult, setLlmTestResult] = useState<LlmTestResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -170,8 +198,15 @@ export function SystemSettingsForm({
       return false;
     }
   })();
-  const isValidModel = llmModel.trim().length > 0;
-  const isValidRetrievalModel = llmRetrievalModel.trim().length > 0;
+  const isValidModel = llmModelName.trim().length > 0;
+  const effectiveRetrievalInterfaceFormat = useSeparateRetrievalModel
+    ? llmRetrievalInterfaceFormat
+    : llmInterfaceFormat;
+  const effectiveRetrievalModelName = useSeparateRetrievalModel
+    ? llmRetrievalModelName
+    : llmModelName;
+  const isValidRetrievalModel =
+    !useSeparateRetrievalModel || llmRetrievalModelName.trim().length > 0;
   const normalizedProjectsRootHostPath = trimTrailingSeparators(projectsRootHostPath);
   const isValidProjectsRootHostPath =
     normalizedProjectsRootHostPath.length > 0 &&
@@ -193,6 +228,7 @@ export function SystemSettingsForm({
   function resetMessages() {
     setStatusMessage("");
     setErrorMessage("");
+    setLlmTestResult(null);
   }
 
   function resetProjectsRootMessages() {
@@ -261,8 +297,10 @@ export function SystemSettingsForm({
           retrievalDocumentLimit: parsedRetrievalDocumentLimit,
           llmApiKey: llmApiKey.trim() ? llmApiKey.trim() : undefined,
           llmBaseUrl: llmBaseUrl.trim(),
-          llmModel: llmModel.trim(),
-          llmRetrievalModel: llmRetrievalModel.trim(),
+          llmInterfaceFormat,
+          llmModelName: llmModelName.trim(),
+          llmRetrievalInterfaceFormat: effectiveRetrievalInterfaceFormat,
+          llmRetrievalModelName: effectiveRetrievalModelName.trim(),
         }),
       });
       if (!response.ok) {
@@ -279,6 +317,62 @@ export function SystemSettingsForm({
       setErrorMessage(t("settings.saveError"));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleLlmTest() {
+    if (!isValidBaseUrl || !isValidModel || llmTestSubmitting) {
+      return;
+    }
+
+    setLlmTestSubmitting(true);
+    setLlmTestResult(null);
+    setStatusMessage("");
+    setErrorMessage("");
+    try {
+      const payload = {
+        ...(llmApiKey.trim() ? { apiKey: llmApiKey.trim() } : {}),
+        baseUrl: llmBaseUrl.trim(),
+        interfaceFormat: llmInterfaceFormat,
+        modelName: llmModelName.trim(),
+      };
+      const response = await fetch("/api/admin/settings/llm-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json().catch(() => null)) as
+        | LlmTestResponse
+        | { error?: string }
+        | null;
+      if (!response.ok || !result || !("success" in result)) {
+        setLlmTestResult({
+          success: false,
+          model: llmModelName.trim(),
+          elapsedMs: 0,
+          output: "",
+          errorType: "configuration",
+          message:
+            result && "error" in result && result.error
+              ? result.error
+              : t("settings.modelTestError"),
+          details: "",
+        });
+        return;
+      }
+      setLlmTestResult(result);
+    } catch (error) {
+      setLlmTestResult({
+        success: false,
+        model: llmModelName.trim(),
+        elapsedMs: 0,
+        output: "",
+        errorType: "connection",
+        message: t("settings.modelTestError"),
+        details: error instanceof Error ? error.message : "",
+      });
+    } finally {
+      setLlmTestSubmitting(false);
     }
   }
 
@@ -442,36 +536,182 @@ export function SystemSettingsForm({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
+                <label
+                  htmlFor="llm-interface-format"
+                  className="text-sm font-medium text-[var(--pi-ink)]"
+                >
+                  {t("settings.interfaceFormat")}
+                </label>
+                <select
+                  id="llm-interface-format"
+                  value={llmInterfaceFormat}
+                  onChange={(event) => {
+                    setLlmInterfaceFormat(event.target.value as LlmInterfaceFormat);
+                    resetMessages();
+                  }}
+                  className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
+                >
+                  <option value="openai-compatible">
+                    {t("settings.interfaceOpenAiCompatible")}
+                  </option>
+                  <option value="anthropic-messages">
+                    {t("settings.interfaceAnthropicMessages")}
+                  </option>
+                </select>
+              </div>
+              <div>
                 <label htmlFor="llm-model" className="text-sm font-medium text-[var(--pi-ink)]">
                   {t("settings.model")}
                 </label>
                 <input
                   id="llm-model"
-                  value={llmModel}
+                  value={llmModelName}
                   onChange={(event) => {
-                    setLlmModel(event.target.value);
+                    setLlmModelName(event.target.value);
                     resetMessages();
                   }}
                   className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
                 />
               </div>
-              <div>
-                <label
-                  htmlFor="llm-retrieval-model"
-                  className="text-sm font-medium text-[var(--pi-ink)]"
+            </div>
+            <label
+              htmlFor="llm-use-separate-retrieval-model"
+              className="flex items-start gap-3 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3"
+            >
+              <input
+                id="llm-use-separate-retrieval-model"
+                type="checkbox"
+                checked={useSeparateRetrievalModel}
+                onChange={(event) => {
+                  const nextUseSeparateRetrievalModel = event.target.checked;
+                  if (
+                    nextUseSeparateRetrievalModel &&
+                    !useSeparateRetrievalModel
+                  ) {
+                    setLlmRetrievalInterfaceFormat(llmInterfaceFormat);
+                    setLlmRetrievalModelName(llmModelName);
+                  }
+                  setUseSeparateRetrievalModel(nextUseSeparateRetrievalModel);
+                  resetMessages();
+                }}
+                className="mt-1 h-4 w-4 rounded border-[var(--pi-border)] text-[var(--pi-brand)] focus:ring-[var(--pi-brand)]"
+              />
+              <span>
+                <span className="block text-sm font-medium text-[var(--pi-ink)]">
+                  {t("settings.useSeparateRetrievalModel")}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-[var(--pi-muted)]">
+                  {t("settings.useSeparateRetrievalModelDescription")}
+                </span>
+              </span>
+            </label>
+            {useSeparateRetrievalModel ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="llm-retrieval-interface-format"
+                    className="text-sm font-medium text-[var(--pi-ink)]"
+                  >
+                    {t("settings.retrievalInterfaceFormat")}
+                  </label>
+                  <select
+                    id="llm-retrieval-interface-format"
+                    value={llmRetrievalInterfaceFormat}
+                    onChange={(event) => {
+                      setLlmRetrievalInterfaceFormat(
+                        event.target.value as LlmInterfaceFormat,
+                      );
+                      resetMessages();
+                    }}
+                    className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
+                  >
+                    <option value="openai-compatible">
+                      {t("settings.interfaceOpenAiCompatible")}
+                    </option>
+                    <option value="anthropic-messages">
+                      {t("settings.interfaceAnthropicMessages")}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="llm-retrieval-model"
+                    className="text-sm font-medium text-[var(--pi-ink)]"
+                  >
+                    {t("settings.retrievalModel")}
+                  </label>
+                  <input
+                    id="llm-retrieval-model"
+                    value={llmRetrievalModelName}
+                    onChange={(event) => {
+                      setLlmRetrievalModelName(event.target.value);
+                      resetMessages();
+                    }}
+                    className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
+                  />
+                </div>
+              </div>
+            ) : null}
+            <div className="rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[var(--pi-ink)]">
+                    {t("settings.modelTest")}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--pi-muted)]">
+                    {t("settings.modelTestDescription")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!isValidBaseUrl || !isValidModel || llmTestSubmitting}
+                  onClick={handleLlmTest}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {t("settings.retrievalModel")}
-                </label>
-                <input
-                  id="llm-retrieval-model"
-                  value={llmRetrievalModel}
-                  onChange={(event) => {
-                    setLlmRetrievalModel(event.target.value);
-                    resetMessages();
-                  }}
-                  className="mt-2 w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition focus:border-[var(--pi-brand)]"
-                />
+                  <FlaskConical aria-hidden="true" className="h-4 w-4" />
+                  {llmTestSubmitting
+                    ? t("settings.modelTesting")
+                    : t("settings.testModel")}
+                </button>
               </div>
+              {llmTestResult ? (
+                <div
+                  role="status"
+                  className={`mt-3 rounded-md border p-3 text-sm ${
+                    llmTestResult.success
+                      ? "border-[var(--pi-brand-soft)] bg-white text-[var(--pi-ink)]"
+                      : "border-[var(--pi-danger)] bg-[rgba(190,18,60,0.06)] text-[var(--pi-ink)]"
+                  }`}
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p
+                      className={
+                        llmTestResult.success
+                          ? "font-medium text-[var(--pi-brand)]"
+                          : "font-medium text-[var(--pi-danger)]"
+                      }
+                    >
+                      {llmTestResult.message}
+                    </p>
+                    <span className="text-xs text-[var(--pi-muted)]">
+                      {llmTestResult.elapsedMs} ms
+                    </span>
+                  </div>
+                  <p className="mt-2 break-all font-mono text-xs text-[var(--pi-muted)]">
+                    {llmTestResult.model}
+                  </p>
+                  {llmTestResult.output ? (
+                    <p className="mt-2 rounded border border-[var(--pi-border)] bg-white px-3 py-2 font-mono text-xs text-[var(--pi-ink)]">
+                      {llmTestResult.output}
+                    </p>
+                  ) : null}
+                  {!llmTestResult.success && llmTestResult.details ? (
+                    <p className="mt-2 break-words text-xs text-[var(--pi-muted)]">
+                      {llmTestResult.details}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appConfig } from "@/lib/config";
 import {
+  buildLlmModel,
+  type LlmInterfaceFormat,
+} from "@/lib/llm-model-format";
+import {
   getSystemSettings,
   updateSystemSettings,
 } from "@/lib/repos/system-settings-store";
@@ -50,6 +54,14 @@ const schema = z.object({
     .optional(),
   llmModel: z.string().trim().min(1).optional(),
   llmRetrievalModel: z.string().trim().min(1).optional(),
+  llmInterfaceFormat: z
+    .enum(["openai-compatible", "anthropic-messages"])
+    .optional(),
+  llmModelName: z.string().trim().min(1).optional(),
+  llmRetrievalInterfaceFormat: z
+    .enum(["openai-compatible", "anthropic-messages"])
+    .optional(),
+  llmRetrievalModelName: z.string().trim().min(1).optional(),
 });
 
 const defaults = {
@@ -103,7 +115,25 @@ export async function PATCH(request: Request) {
     }
   }
 
-  const settings = updateSystemSettings(appConfig.dbPath, parsed.data, defaults);
+  const settingsUpdate = {
+    ...parsed.data,
+    llmModel:
+      parsed.data.llmInterfaceFormat && parsed.data.llmModelName
+        ? buildLlmModel(
+            parsed.data.llmInterfaceFormat as LlmInterfaceFormat,
+            parsed.data.llmModelName,
+          )
+        : parsed.data.llmModel,
+    llmRetrievalModel:
+      parsed.data.llmRetrievalInterfaceFormat && parsed.data.llmRetrievalModelName
+        ? buildLlmModel(
+            parsed.data.llmRetrievalInterfaceFormat as LlmInterfaceFormat,
+            parsed.data.llmRetrievalModelName,
+          )
+        : parsed.data.llmRetrievalModel,
+  };
+
+  const settings = updateSystemSettings(appConfig.dbPath, settingsUpdate, defaults);
 
   return NextResponse.json({
     settings,

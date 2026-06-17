@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appConfig } from "@/lib/config";
-import { sendRetrievalQuery } from "@/lib/retrieval-client";
+import {
+  sendRetrievalQuery,
+  sendRetrievalQueryStream,
+  type PersistedRetrievalProgress,
+  type RetrievalProgressDocument,
+  type RetrievalResult,
+  type RetrievalStreamEvent,
+} from "@/lib/retrieval-client";
 import {
   appendConversationMessage,
   getConversationById,
@@ -17,12 +24,52 @@ const schema = z.object({
   projectIds: z.array(z.string().min(1)).default([]),
   message: z.string().trim().min(1),
   mode: z.enum(["answer", "evidence"]).default("answer"),
+  stream: z.boolean().default(false),
 });
 
 function formatEvidenceAnswer(evidenceCount: number) {
   return `Evidence mode returned ${evidenceCount} evidence ${
     evidenceCount === 1 ? "item" : "items"
   }.`;
+}
+
+function fallbackRetrievalResult(): RetrievalResult {
+  return {
+    answer: "I ran into a retrieval error. Please try again.",
+    citations: [],
+    selectedDocuments: [],
+    evidence: [],
+  };
+}
+
+function retrievalErrorMessage(error: unknown) {
+  return error instanceof Error && error.message.trim().length > 0
+    ? error.message
+    : "Retrieval failed.";
+}
+
+function persistAssistantResponse(input: {
+  conversationId: string;
+  mode: "answer" | "evidence";
+  result: RetrievalResult;
+  progress?: PersistedRetrievalProgress;
+}) {
+  const assistantContent =
+    input.mode === "evidence"
+      ? formatEvidenceAnswer(input.result.evidence.length)
+      : input.result.answer;
+  const baseAttachments =
+    input.mode === "evidence" ? input.result.evidence : input.result.citations;
+  const assistantAttachments = input.progress
+    ? [input.progress, ...baseAttachments]
+    : baseAttachments;
+
+  appendConversationMessage(appConfig.dbPath, {
+    conversationId: input.conversationId,
+    role: "assistant",
+    content: assistantContent,
+    citations: assistantAttachments,
+  });
 }
 
 export async function POST(request: Request) {
@@ -72,6 +119,77 @@ export async function POST(request: Request) {
     );
   }
 
+  if (parsed.data.stream) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const progressLines: PersistedRetrievalProgress["lines"] = [];
+        let progressDocuments: RetrievalProgressDocument[] = [];
+        const sendEvent = (event: RetrievalStreamEvent) => {
+          if (event.type === "progress") {
+            progressLines.push({
+              stage: event.stage,
+              data: event.data,
+            });
+            if (event.stage === "documents_selected") {
+              const documents = event.data.documents;
+              progressDocuments = Array.isArray(documents)
+                ? documents as RetrievalProgressDocument[]
+                : [];
+            }
+          }
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+          );
+        };
+
+        let result: RetrievalResult;
+        try {
+          result = await sendRetrievalQueryStream(
+            {
+              query: parsed.data.message,
+              projectIds: parsed.data.projectIds,
+              mode: parsed.data.mode,
+            },
+            sendEvent,
+          );
+        } catch (error) {
+          const message = retrievalErrorMessage(error);
+          console.error("chat retrieval stream failed", error);
+          sendEvent({
+            type: "progress",
+            stage: "retrieval_failed",
+            data: { message },
+          });
+          result = fallbackRetrievalResult();
+          sendEvent({ type: "result", data: result });
+        }
+
+        persistAssistantResponse({
+          conversationId: parsed.data.conversationId,
+          mode: parsed.data.mode,
+          result,
+          progress: progressLines.length > 0 || progressDocuments.length > 0
+            ? {
+                kind: "retrieval_progress",
+                lines: progressLines,
+                documents: progressDocuments,
+              }
+            : undefined,
+        });
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  }
+
   let result: Awaited<ReturnType<typeof sendRetrievalQuery>>;
   try {
     result = await sendRetrievalQuery({
@@ -79,27 +197,15 @@ export async function POST(request: Request) {
       projectIds: parsed.data.projectIds,
       mode: parsed.data.mode,
     });
-  } catch {
-    result = {
-      answer: "I ran into a retrieval error. Please try again.",
-      citations: [],
-      selectedDocuments: [],
-      evidence: [],
-    };
+  } catch (error) {
+    console.error("chat retrieval failed", error);
+    result = fallbackRetrievalResult();
   }
 
-  const assistantContent =
-    parsed.data.mode === "evidence"
-      ? formatEvidenceAnswer(result.evidence.length)
-      : result.answer;
-  const assistantAttachments =
-    parsed.data.mode === "evidence" ? result.evidence : result.citations;
-
-  appendConversationMessage(appConfig.dbPath, {
+  persistAssistantResponse({
     conversationId: parsed.data.conversationId,
-    role: "assistant",
-    content: assistantContent,
-    citations: assistantAttachments,
+    mode: parsed.data.mode,
+    result,
   });
 
   return NextResponse.json(result);

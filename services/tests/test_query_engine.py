@@ -682,3 +682,74 @@ def test_answer_question_processes_selected_documents_concurrently_and_preserves
         "doc_1",
         "doc_2",
     ]
+
+
+def test_answer_question_events_reports_real_retrieval_progress(tmp_path, monkeypatch):
+    db_path = _seed_retrieval_db(tmp_path)
+    _insert_ready_document(
+        db_path,
+        document_id="doc_acceptance",
+        file_name="acceptance.pdf",
+        doc_description="Acceptance criteria and handover evidence.",
+        structure_json=json.dumps([{"title": "Acceptance"}]),
+        pages_json=json.dumps([{"page": 1, "content": "Acceptance content"}]),
+        source_relative_path="Alpha/delivery/acceptance.pdf",
+        project_relative_path="delivery/acceptance.pdf",
+    )
+
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.select_candidate_documents",
+        lambda _query, docs, limit=5, model=None: docs[:1],
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.choose_page_window",
+        lambda _query, _doc: "1",
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine._load_page_excerpt",
+        lambda _document, _pages: [{"page": 1, "content": "Acceptance content"}],
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine._generate_answer",
+        lambda _query, _blocks: "Acceptance answer.",
+    )
+
+    events = list(
+        query_engine.answer_question_events(
+            str(db_path),
+            "What are the acceptance criteria?",
+            ["proj_1"],
+            mode="answer",
+        )
+    )
+
+    progress_stages = [
+        event["stage"] for event in events if event["type"] == "progress"
+    ]
+    assert progress_stages == [
+        "retrieval_started",
+        "documents_loaded",
+        "document_selection_started",
+        "documents_selected",
+        "evidence_started",
+        "document_evidence_started",
+        "document_pages_selected",
+        "document_evidence_loaded",
+        "answer_generation_started",
+        "answer_generation_completed",
+        "retrieval_completed",
+    ]
+    selected_event = next(
+        event for event in events if event.get("stage") == "documents_selected"
+    )
+    assert selected_event["data"]["documents"] == [
+        {
+            "documentId": "doc_acceptance",
+            "documentName": "acceptance.pdf",
+            "projectName": "Alpha",
+            "sourceRelativePath": "Alpha/delivery/acceptance.pdf",
+        }
+    ]
+    result_event = events[-1]
+    assert result_event["type"] == "result"
+    assert result_event["data"]["answer"] == "Acceptance answer."

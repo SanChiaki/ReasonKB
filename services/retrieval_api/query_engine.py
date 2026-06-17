@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import logging
 import re
-from typing import Any
+from typing import Any, Iterable
 
 from services.common.pageindex_runtime import configure_pageindex_runtime
 from services.common.sqlite_store import open_db
@@ -19,6 +19,23 @@ MAX_PAGE_SELECTION_SIZE = 1000
 MAX_PARALLEL_DOCUMENT_RETRIEVALS = 5
 DEFAULT_RETRIEVAL_DOCUMENT_LIMIT = 5
 logger = logging.getLogger(__name__)
+
+
+def _progress_event(stage: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {"type": "progress", "stage": stage, "data": data or {}}
+
+
+def _result_event(result: dict[str, Any]) -> dict[str, Any]:
+    return {"type": "result", "data": result}
+
+
+def _document_summary(document: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "documentId": document["id"],
+        "documentName": document["file_name"],
+        "projectName": document["project_name"],
+        "sourceRelativePath": document.get("source_relative_path"),
+    }
 
 
 @lru_cache(maxsize=1)
@@ -422,12 +439,10 @@ def _build_selected_documents_evidence(
         return [result for result in results if result is not None]
 
 
-def answer_question(
+def _load_ready_documents(
     db_path: str,
-    query: str,
     project_ids: list[str] | None = None,
-    mode: str = "answer",
-) -> dict:
+) -> list[dict[str, Any]]:
     project_filter = ""
     project_params: list[str] = []
     if project_ids:
@@ -476,6 +491,61 @@ def answer_question(
                 "pages": pages,
             }
         )
+    return docs
+
+
+def _selected_documents_payload(
+    used_documents: list[dict[str, Any]],
+    mode: str,
+) -> list[dict[str, str | None]]:
+    return [
+        {"documentId": document["id"]}
+        if mode != "evidence" or not document.get("source_relative_path")
+        else {
+            "documentId": document["id"],
+            "sourceRelativePath": document.get("source_relative_path"),
+        }
+        for document in used_documents
+    ]
+
+
+def _build_answer_result(
+    query: str,
+    document_results: list[dict[str, Any]],
+    mode: str,
+) -> dict[str, Any]:
+    context_blocks = [result["contextBlock"] for result in document_results]
+    citations = [
+        result["citation"]
+        for result in document_results
+        if result["citation"] is not None
+    ]
+    evidence_blocks = [result["evidenceBlock"] for result in document_results]
+    used_documents = [result["document"] for result in document_results]
+
+    if not used_documents:
+        return {
+            "answer": "I could not find usable evidence in selected documents.",
+            "citations": [],
+            "selectedDocuments": [],
+            "evidence": [],
+        }
+
+    return {
+        "answer": "" if mode == "evidence" else _generate_answer(query, context_blocks),
+        "citations": citations,
+        "selectedDocuments": _selected_documents_payload(used_documents, mode),
+        "evidence": evidence_blocks if mode == "evidence" else [],
+    }
+
+
+def answer_question(
+    db_path: str,
+    query: str,
+    project_ids: list[str] | None = None,
+    mode: str = "answer",
+) -> dict:
+    docs = _load_ready_documents(db_path, project_ids)
 
     selected = select_candidate_documents(
         query,
@@ -495,36 +565,177 @@ def answer_question(
         }
 
     document_results = _build_selected_documents_evidence(query, selected, mode)
-    context_blocks = [result["contextBlock"] for result in document_results]
-    citations = [
-        result["citation"]
-        for result in document_results
-        if result["citation"] is not None
-    ]
-    evidence_blocks = [result["evidenceBlock"] for result in document_results]
-    used_documents = [result["document"] for result in document_results]
+    return _build_answer_result(query, document_results, mode)
 
-    if not used_documents:
-        return {
+
+def _build_document_evidence_events(
+    query: str,
+    document: dict[str, Any],
+    mode: str,
+) -> Iterable[dict[str, Any]]:
+    summary = _document_summary(document)
+    yield _progress_event("document_evidence_started", {"document": summary})
+    try:
+        pages = choose_page_window(query, document)
+        fallback_pages = _default_page_window(document)
+        if not _is_valid_page_window(pages, document):
+            pages = fallback_pages
+        yield _progress_event(
+            "document_pages_selected",
+            {"document": summary, "pages": pages},
+        )
+        evidence = _load_page_excerpt(document, pages)
+        if not evidence and pages != fallback_pages:
+            pages = fallback_pages
+            evidence = _load_page_excerpt(document, pages)
+            yield _progress_event(
+                "document_pages_selected",
+                {"document": summary, "pages": pages, "fallback": True},
+            )
+        if not evidence:
+            yield _progress_event(
+                "document_evidence_skipped",
+                {"document": summary, "reason": "empty_evidence"},
+            )
+            return
+        focus_page, excerpt = _select_citation_anchor(query, evidence)
+        context_block = {
+            "project": document["project_name"],
+            "document": document["file_name"],
+            "sourceRelativePath": document.get("source_relative_path"),
+            "projectRelativePath": document.get("project_relative_path"),
+            "pages": pages,
+            "evidence": evidence,
+        }
+        citation = None
+        if mode != "evidence":
+            citation = build_citation(
+                project={"id": document["project_id"], "name": document["project_name"]},
+                document={"id": document["id"], "file_name": document["file_name"]},
+                pages=pages,
+                focus_page=focus_page,
+                excerpt=excerpt,
+            )
+        evidence_block = {
+            "projectId": document["project_id"],
+            "projectName": document["project_name"],
+            "documentId": document["id"],
+            "documentName": document["file_name"],
+            "sourceRelativePath": document.get("source_relative_path"),
+            "projectRelativePath": document.get("project_relative_path"),
+            "pages": pages,
+            "evidenceKind": document.get("evidence_kind") or "text",
+            "excerpt": excerpt,
+            "content": _join_evidence_content(evidence),
+            "visualAssets": document.get("visual_assets", []),
+        }
+        yield _progress_event(
+            "document_evidence_loaded",
+            {
+                "document": summary,
+                "pages": pages,
+                "evidenceCount": len(evidence),
+                "excerpt": excerpt,
+            },
+        )
+        yield {
+            "type": "document_result",
+            "data": {
+                "document": document,
+                "contextBlock": context_block,
+                "citation": citation,
+                "evidenceBlock": evidence_block,
+            },
+        }
+    except Exception:
+        logger.exception(
+            "Failed to build retrieval evidence for document %s",
+            document.get("id"),
+        )
+        yield _progress_event(
+            "document_evidence_skipped",
+            {"document": summary, "reason": "error"},
+        )
+
+
+def answer_question_events(
+    db_path: str,
+    query: str,
+    project_ids: list[str] | None = None,
+    mode: str = "answer",
+) -> Iterable[dict[str, Any]]:
+    yield _progress_event(
+        "retrieval_started",
+        {"query": query, "projectIds": project_ids or [], "mode": mode},
+    )
+    docs = _load_ready_documents(db_path, project_ids)
+    yield _progress_event("documents_loaded", {"documentCount": len(docs)})
+
+    retrieval_limit = get_retrieval_document_limit(
+        db_path,
+        default=DEFAULT_RETRIEVAL_DOCUMENT_LIMIT,
+    )
+    yield _progress_event(
+        "document_selection_started",
+        {"documentCount": len(docs), "limit": retrieval_limit},
+    )
+    selected = select_candidate_documents(
+        query,
+        docs,
+        limit=retrieval_limit,
+        model=_get_retrieval_model(),
+    )
+    yield _progress_event(
+        "documents_selected",
+        {
+            "documentCount": len(selected),
+            "documents": [_document_summary(document) for document in selected],
+        },
+    )
+    if not selected:
+        result = {
+            "answer": "No ready documents matched the retrieval scope.",
+            "citations": [],
+            "selectedDocuments": [],
+            "evidence": [],
+        }
+        yield _progress_event("retrieval_completed", {"documentCount": 0})
+        yield _result_event(result)
+        return
+
+    document_results: list[dict[str, Any]] = []
+    yield _progress_event("evidence_started", {"documentCount": len(selected)})
+    for document in selected:
+        for event in _build_document_evidence_events(query, document, mode):
+            if event["type"] == "document_result":
+                document_results.append(event["data"])
+                continue
+            yield event
+
+    if not document_results:
+        result = {
             "answer": "I could not find usable evidence in selected documents.",
             "citations": [],
             "selectedDocuments": [],
             "evidence": [],
         }
+        yield _progress_event("retrieval_completed", {"documentCount": 0})
+        yield _result_event(result)
+        return
 
-    selected_documents = [
-        {"documentId": document["id"]}
-        if mode != "evidence" or not document.get("source_relative_path")
-        else {
-            "documentId": document["id"],
-            "sourceRelativePath": document.get("source_relative_path"),
-        }
-        for document in used_documents
-    ]
-
-    return {
-        "answer": "" if mode == "evidence" else _generate_answer(query, context_blocks),
-        "citations": citations,
-        "selectedDocuments": selected_documents,
-        "evidence": evidence_blocks if mode == "evidence" else [],
-    }
+    if mode != "evidence":
+        yield _progress_event(
+            "answer_generation_started",
+            {"evidenceDocumentCount": len(document_results)},
+        )
+    result = _build_answer_result(query, document_results, mode)
+    if mode != "evidence":
+        yield _progress_event(
+            "answer_generation_completed",
+            {"citationCount": len(result["citations"])},
+        )
+    yield _progress_event(
+        "retrieval_completed",
+        {"documentCount": len(result["selectedDocuments"])},
+    )
+    yield _result_event(result)
