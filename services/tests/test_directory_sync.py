@@ -1,4 +1,5 @@
 import json
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -165,6 +166,44 @@ def test_sync_once_requeues_changed_files_and_marks_missing_files_deleted(tmp_pa
     assert deleted[0:2] == ("deleted", "deleted")
     assert deleted[2] is not None
     assert queued_jobs == 1
+
+
+def test_sync_once_marks_removed_project_directory_deleted(tmp_path):
+    db_path = _create_db(tmp_path)
+    root = tmp_path / "projects"
+    (root / "ProjectA" / "delivery").mkdir(parents=True)
+    (root / "ProjectB" / "delivery").mkdir(parents=True)
+    (root / "ProjectA" / "delivery" / "report.md").write_text("# Report", encoding="utf-8")
+    (root / "ProjectB" / "delivery" / "old.txt").write_text("old", encoding="utf-8")
+
+    sync_once(str(db_path), root)
+    shutil.rmtree(root / "ProjectB")
+    summary = sync_once(str(db_path), root)
+
+    conn = sqlite3.connect(db_path)
+    projects = conn.execute(
+        """
+        SELECT name, deleted_at
+          FROM projects
+         ORDER BY name
+        """
+    ).fetchall()
+    deleted_document = conn.execute(
+        """
+        SELECT status, import_status, deleted_at
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectB/delivery/old.txt",),
+    ).fetchone()
+    conn.close()
+
+    assert summary["deleted"] == 1
+    assert projects[0] == ("ProjectA", None)
+    assert projects[1][0] == "ProjectB"
+    assert projects[1][1] is not None
+    assert deleted_document[0:2] == ("deleted", "deleted")
+    assert deleted_document[2] is not None
 
 
 def test_sync_once_marks_unsupported_files_skipped_without_jobs(tmp_path):

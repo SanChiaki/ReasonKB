@@ -106,6 +106,16 @@ def _iter_source_files(root: Path) -> list[SourceFile]:
     return source_files
 
 
+def _iter_project_directory_names(root: Path) -> set[str]:
+    if not root.exists():
+        return set()
+    return {
+        path.name
+        for path in root.iterdir()
+        if path.is_dir() and not path.name.startswith(".") and path.name not in IGNORED_NAMES
+    }
+
+
 def _get_or_create_project(conn: sqlite3.Connection, project_name: str, now: str) -> str:
     row = conn.execute(
         """
@@ -316,18 +326,63 @@ def _mark_missing_deleted(
     return deleted
 
 
+def _mark_missing_projects_deleted(
+    conn: sqlite3.Connection,
+    seen_project_names: set[str],
+    now: str,
+) -> int:
+    rows = conn.execute(
+        """
+        SELECT p.id, p.name
+          FROM projects p
+         WHERE p.owner_user_id = ?
+           AND p.deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1
+               FROM documents d
+              WHERE d.project_id = p.id
+                AND d.source_kind = 'directory'
+           )
+           AND NOT EXISTS (
+             SELECT 1
+               FROM documents d
+              WHERE d.project_id = p.id
+                AND d.deleted_at IS NULL
+                AND d.source_kind <> 'directory'
+           )
+        """,
+        (DEMO_USER_ID,),
+    ).fetchall()
+    deleted = 0
+    for row in rows:
+        if row["name"] in seen_project_names:
+            continue
+        conn.execute(
+            """
+            UPDATE projects
+               SET deleted_at = ?, updated_at = ?
+             WHERE id = ?
+            """,
+            (now, now, row["id"]),
+        )
+        deleted += 1
+    return deleted
+
+
 def sync_once(db_path: str, projects_root: str | Path) -> dict[str, int]:
     root = Path(projects_root).resolve()
     now = datetime.now(timezone.utc).isoformat()
     summary = {"created": 0, "updated": 0, "unchanged": 0, "deleted": 0, "skipped": 0}
     source_files = _iter_source_files(root)
     seen_paths = {source_file.source_relative_path for source_file in source_files}
+    seen_project_names = _iter_project_directory_names(root)
 
     with open_db(db_path) as conn:
         for source_file in source_files:
             outcome = _upsert_source_file(conn, root, source_file, now)
             summary[outcome] += 1
         summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now)
+        _mark_missing_projects_deleted(conn, seen_project_names, now)
 
     return summary
 

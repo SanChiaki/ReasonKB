@@ -23,6 +23,8 @@ COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
 RUN pnpm -C web install --frozen-lockfile
 
 COPY . .
+RUN find docker/entrypoints -type f -name "*.sh" -exec sed -i 's/\r$//' {} + \
+  && chmod +x docker/entrypoints/*.sh
 RUN pnpm -C web build
 
 EXPOSE 3000 8001
