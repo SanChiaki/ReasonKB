@@ -45,6 +45,9 @@ Open `http://localhost:3000/projects`, create a project, upload PDF/Markdown/tex
 
 ## Docker
 
+For a Windows Server-first deployment guide covering Windows, Linux, and macOS without relying on Docker Desktop, see
+[`docs/deployment.md`](docs/deployment.md).
+
 Run the full stack with a mounted project corpus:
 
 ```bash
