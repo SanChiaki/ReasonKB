@@ -19,9 +19,9 @@ export function createProject(
   dbPath: string,
   input: { ownerUserId: string; name: string },
 ) {
+  const normalizedName = normalizeProjectName(input.name);
   const db = open(dbPath);
   const now = new Date().toISOString();
-  const normalizedName = normalizeProjectName(input.name);
   const row = {
     id: `proj_${crypto.randomUUID()}`,
     owner_user_id: input.ownerUserId,
