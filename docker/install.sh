@@ -59,6 +59,8 @@ read_prompt_line() {
   PROMPT_REPLY=""
   if [ "$INSTALL_INTERACTIVE" = "1" ]; then
     IFS= read -r PROMPT_REPLY <&3 || PROMPT_REPLY=""
+    prompt_cr="$(printf '\r')"
+    PROMPT_REPLY="${PROMPT_REPLY%"$prompt_cr"}"
   fi
 }
 
@@ -81,6 +83,36 @@ prompt_value() {
   if [ -n "$PROMPT_REPLY" ]; then
     PROMPT_VALUE="$PROMPT_REPLY"
   fi
+}
+
+prompt_choice() {
+  label="$1"
+  default_value="$2"
+  choices="$3"
+
+  PROMPT_VALUE="$default_value"
+  if [ "$INSTALL_INTERACTIVE" != "1" ]; then
+    return 0
+  fi
+
+  while :; do
+    prompt_write "$label [$default_value] ($choices): "
+    read_prompt_line
+    if [ -n "$PROMPT_REPLY" ]; then
+      PROMPT_VALUE="$PROMPT_REPLY"
+    fi
+
+    case "$PROMPT_VALUE" in
+      local|smb)
+        return 0
+        ;;
+      *)
+        prompt_write "请输入 local 或 smb。"
+        prompt_newline
+        PROMPT_VALUE="$default_value"
+        ;;
+    esac
+  done
 }
 
 prompt_secret() {
@@ -127,7 +159,7 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$REASONKB_HOME/var" "$REASONKB_HOME/projects"
+mkdir -p "$REASONKB_HOME/var"
 
 download_with_curl() {
   output_file="$1"
@@ -325,22 +357,24 @@ set_env_file_value() {
   tmp_file="$REASONKB_HOME/.env.tmp.$$"
 
   if [ -f "$REASONKB_HOME/.env" ]; then
-    awk -v name="$name" -v value="$value" '
-      BEGIN { written = 0 }
-      $0 ~ ("^" name "=") {
-        if (!written) {
-          print name "=" value
-          written = 1
-        }
-        next
-      }
-      { print }
-      END {
-        if (!written) {
-          print name "=" value
-        }
-      }
-    ' "$REASONKB_HOME/.env" > "$tmp_file"
+    written=0
+    : > "$tmp_file"
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        "$name="*)
+          if [ "$written" = "0" ]; then
+            printf '%s=%s\n' "$name" "$value" >> "$tmp_file"
+            written=1
+          fi
+          ;;
+        *)
+          printf '%s\n' "$line" >> "$tmp_file"
+          ;;
+      esac
+    done < "$REASONKB_HOME/.env"
+    if [ "$written" = "0" ]; then
+      printf '%s=%s\n' "$name" "$value" >> "$tmp_file"
+    fi
     mv "$tmp_file" "$REASONKB_HOME/.env"
   else
     printf '%s=%s\n' "$name" "$value" > "$REASONKB_HOME/.env"
@@ -416,6 +450,9 @@ derive_browse_root_default() {
 }
 
 configure_paths() {
+  set_env_file_value REASONKB_CORPUS_SOURCE local
+  export REASONKB_CORPUS_SOURCE=local
+
   configure_value_env \
     REASONKB_PROJECTS_ROOT \
     "$REASONKB_HOME/projects" \
@@ -432,6 +469,136 @@ configure_paths() {
     "设置页文件夹选择器可浏览的宿主机目录"
 
   mkdir -p "$REASONKB_PROJECTS_ROOT" "$REASONKB_HOST_BROWSE_ROOT"
+}
+
+parse_smb_path() {
+  smb_path="$1"
+
+  case "$smb_path" in
+    \\\\*|//*)
+      ;;
+    *)
+      echo "SMB 路径必须形如 \\\\server\\share\\path 或 //server/share/path。" >&2
+      return 1
+      ;;
+  esac
+
+  normalized="$(printf '%s\n' "$smb_path" | sed 's#\\#/#g; s#^//##')"
+  SMB_HOST="$(printf '%s\n' "$normalized" | cut -d / -f 1)"
+  SMB_SHARE="$(printf '%s\n' "$normalized" | cut -d / -f 2)"
+  SMB_BASE_PATH="$(printf '%s\n' "$normalized" | cut -d / -f 3-)"
+
+  if [ -z "$SMB_HOST" ] || [ -z "$SMB_SHARE" ] || [ "$SMB_HOST" = "$normalized" ]; then
+    echo "SMB 路径必须包含 server 和 share。" >&2
+    return 1
+  fi
+  if [ "$SMB_BASE_PATH" = "$normalized" ]; then
+    SMB_BASE_PATH=""
+  fi
+}
+
+configured_smb_path_default() {
+  configured_path="$(current_env_or_file_value REASONKB_SMB_PATH "")"
+  if [ -n "$configured_path" ]; then
+    printf '%s\n' "$configured_path"
+    return 0
+  fi
+
+  configured_host="$(current_env_or_file_value REASONKB_SMB_HOST "")"
+  configured_share="$(current_env_or_file_value REASONKB_SMB_SHARE "")"
+  configured_base_path="$(current_env_or_file_value REASONKB_SMB_BASE_PATH "")"
+  if [ -n "$configured_host" ] && [ -n "$configured_share" ]; then
+    configured_path="//$configured_host/$configured_share"
+    if [ -n "$configured_base_path" ]; then
+      configured_path="$configured_path/$configured_base_path"
+    fi
+    printf '%s\n' "$configured_path"
+  fi
+}
+
+write_secret_file() {
+  path="$1"
+  value="$2"
+
+  mkdir -p "$(dirname "$path")"
+  printf '%s\n' "$value" > "$path"
+  chmod 600 "$path" 2>/dev/null || true
+}
+
+configure_smb_corpus() {
+  smb_path_default="$(configured_smb_path_default)"
+  prompt_value "SMB 共享路径（如 //server/share/path）" "$smb_path_default"
+  parse_smb_path "$PROMPT_VALUE"
+  smb_path_value="//$SMB_HOST/$SMB_SHARE"
+  if [ -n "$SMB_BASE_PATH" ]; then
+    smb_path_value="$smb_path_value/$SMB_BASE_PATH"
+  fi
+
+  username_default=""
+  username_file="$(current_env_or_file_value REASONKB_SMB_USERNAME_FILE "./secrets/smb_username")"
+  if [ -f "$REASONKB_HOME/$username_file" ]; then
+    username_default="$(sed -n '1p' "$REASONKB_HOME/$username_file")"
+  fi
+  prompt_value "SMB 用户名" "$username_default"
+  smb_username="$PROMPT_VALUE"
+
+  password_file="$(current_env_or_file_value REASONKB_SMB_PASSWORD_FILE "./secrets/smb_password")"
+  keep_password_marker="__REASONKB_KEEP_EXISTING_SMB_PASSWORD__"
+  password_default=""
+  if [ -f "$REASONKB_HOME/$password_file" ]; then
+    password_default="$keep_password_marker"
+  fi
+  prompt_secret "SMB 密码" "$password_default"
+  smb_password="$PROMPT_VALUE"
+
+  domain_default="$(current_env_or_file_value REASONKB_SMB_DOMAIN "")"
+  prompt_value "SMB 域（可选，按 Enter 跳过）" "$domain_default"
+  smb_domain="$PROMPT_VALUE"
+
+  set_env_file_value REASONKB_CORPUS_SOURCE smb
+  set_env_file_value REASONKB_SMB_HOST "$SMB_HOST"
+  set_env_file_value REASONKB_SMB_SHARE "$SMB_SHARE"
+  set_env_file_value REASONKB_SMB_BASE_PATH "$SMB_BASE_PATH"
+  set_env_file_value REASONKB_SMB_PATH "$smb_path_value"
+  set_env_file_value REASONKB_SMB_DOMAIN "$smb_domain"
+  set_env_file_value REASONKB_SMB_PORT 445
+  set_env_file_value REASONKB_SMB_AUTH_PROTOCOL ntlm
+  set_env_file_value REASONKB_REMOTE_CACHE_ROOT /app/var/remote-cache
+  set_env_file_value REASONKB_SECRETS_ROOT ./secrets
+  set_env_file_value REASONKB_SMB_USERNAME_FILE ./secrets/smb_username
+  set_env_file_value REASONKB_SMB_PASSWORD_FILE ./secrets/smb_password
+
+  write_secret_file "$REASONKB_HOME/secrets/smb_username" "$smb_username"
+  if [ "$smb_password" != "$keep_password_marker" ]; then
+    write_secret_file "$REASONKB_HOME/secrets/smb_password" "$smb_password"
+  fi
+
+  export REASONKB_CORPUS_SOURCE=smb
+  export REASONKB_SMB_HOST="$SMB_HOST"
+  export REASONKB_SMB_SHARE="$SMB_SHARE"
+  export REASONKB_SMB_BASE_PATH="$SMB_BASE_PATH"
+  export REASONKB_SMB_DOMAIN="$smb_domain"
+}
+
+configure_corpus_source() {
+  source_default="$(current_env_or_file_value REASONKB_CORPUS_SOURCE local)"
+  case "$source_default" in
+    smb)
+      ;;
+    *)
+      source_default=local
+      ;;
+  esac
+
+  prompt_choice "项目语料来源" "$source_default" "local/smb"
+  case "$PROMPT_VALUE" in
+    smb)
+      configure_smb_corpus
+      ;;
+    *)
+      configure_paths
+      ;;
+  esac
 }
 
 configure_llm_defaults() {
@@ -482,7 +649,7 @@ if [ "$INSTALL_INTERACTIVE" = "1" ]; then
   prompt_newline
 fi
 
-configure_paths
+configure_corpus_source
 configure_llm_defaults
 
 ensure_port_env WEB_PORT 43170
@@ -495,10 +662,20 @@ ensure_port_env GOTENBERG_PORT 43172
   docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
 )
 
+if [ "${REASONKB_CORPUS_SOURCE:-local}" = "smb" ]; then
+  corpus_summary="//${REASONKB_SMB_HOST}/${REASONKB_SMB_SHARE}"
+  if [ -n "${REASONKB_SMB_BASE_PATH:-}" ]; then
+    corpus_summary="$corpus_summary/${REASONKB_SMB_BASE_PATH}"
+  fi
+  corpus_summary_line="项目语料来源：SMB $corpus_summary"
+else
+  corpus_summary_line="项目语料目录：${REASONKB_PROJECTS_ROOT:-"$REASONKB_HOME/projects"}"
+fi
+
 cat <<EOF
 ReasonKB 正在启动。
 
 Web 界面：http://localhost:${WEB_PORT:-43170}
-项目语料目录：${REASONKB_PROJECTS_ROOT:-"$REASONKB_HOME/projects"}
+$corpus_summary_line
 运行数据目录：$REASONKB_HOME/var
 EOF

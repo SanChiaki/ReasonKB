@@ -19,6 +19,7 @@ from services.common.index_metrics import current_index_metrics, index_run_metri
 from services.common.models import IndexedDocumentPayload
 from services.common.sqlite_store import open_db
 from services.index_worker.office_conversion import convert_office_to_pdf
+from services.index_worker.remote_fetch import prepared_index_file
 from services.index_worker.vision import VisionExtractionSkipped, extract_image_evidence_text
 
 
@@ -242,7 +243,8 @@ def process_document_job(db_path: str, job_id: str):
         row = conn.execute(
             """
             SELECT j.id AS job_id, d.id AS document_id, d.storage_path,
-                   d.file_name, d.media_type, d.source_relative_path,
+                   d.file_name, d.media_type, d.source_kind, d.source_root,
+                   d.source_relative_path,
                    d.project_relative_path, d.content_hash, d.source_mtime,
                    d.source_size, p.name AS project_name
             FROM jobs j
@@ -275,7 +277,16 @@ def process_document_job(db_path: str, job_id: str):
     metrics = None
     try:
         with index_run_metrics() as metrics:
-            payload = _invoke_payload_builder(document)
+            with prepared_index_file(document) as prepared_file:
+                document_for_payload = {
+                    **document,
+                    "storage_path": str(prepared_file.local_path),
+                }
+                if prepared_file.content_hash:
+                    document_for_payload["content_hash"] = prepared_file.content_hash
+                payload = _invoke_payload_builder(document_for_payload)
+                if prepared_file.content_hash:
+                    document["content_hash"] = prepared_file.content_hash
             snapshot = metrics.snapshot()
             finished_at = datetime.now(timezone.utc).isoformat()
             duration_ms = int((perf_counter() - started_perf) * 1000)
@@ -387,6 +398,7 @@ def _persist_completed_document(
             UPDATE documents
                SET status = ?, page_count = ?, error_message = NULL,
                    import_status = ?,
+                   content_hash = COALESCE(?, content_hash),
                    last_index_duration_ms = ?,
                    last_index_total_tokens = ?,
                    last_index_llm_call_count = ?,
@@ -398,6 +410,7 @@ def _persist_completed_document(
                 "ready",
                 payload["page_count"],
                 "imported",
+                document.get("content_hash"),
                 duration_ms,
                 snapshot["total_tokens"],
                 snapshot["llm_call_count"],

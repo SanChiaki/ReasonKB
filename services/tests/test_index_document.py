@@ -7,6 +7,7 @@ import pytest
 
 from services.common.sqlite_store import open_db
 from services.index_worker.index_document import process_document_job
+from services.index_worker.remote_fetch import RemoteFetchError, prepared_index_file
 from services.index_worker.worker import (
     INDEX_JOB_TIMEOUT_SECONDS,
     INDEX_WORKER_CONCURRENCY,
@@ -286,6 +287,131 @@ def test_process_document_job_indexes_markdown_document_without_llm(tmp_path):
     assert pages[0]["content"].startswith("# Handover")
     assert row[4] == "markdown_text"
     assert run == ("completed", 0)
+
+
+def test_process_document_job_fetches_smb_file_before_indexing(tmp_path, monkeypatch):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        UPDATE documents
+           SET file_name = ?, storage_path = ?, source_kind = ?, source_root = ?,
+               source_relative_path = ?, project_relative_path = ?, media_type = ?,
+               content_hash = ?, source_mtime = ?, source_size = ?
+         WHERE id = 'doc_1'
+        """,
+        (
+            "remote.md",
+            "smb://server/share/Alpha/remote.md",
+            "smb",
+            "smb://server/share",
+            "Alpha/remote.md",
+            "remote.md",
+            "markdown",
+            "smb-meta:old",
+            "2026-07-06T00:00:00+00:00",
+            11,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    fetched_paths = []
+
+    def fake_fetch(document, destination):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text("# Remote", encoding="utf-8")
+        fetched_paths.append(destination)
+        return "sha256:realhash"
+
+    monkeypatch.setattr("services.index_worker.remote_fetch.fetch_smb_document", fake_fetch)
+    monkeypatch.setattr(
+        "services.index_worker.index_document.build_pageindex_payload",
+        lambda file_path, document=None: {
+            "doc_name": Path(file_path).name,
+            "doc_description": document["content_hash"],
+            "structure": [{"title": "Remote"}],
+            "pages": [{"page": 1, "content": Path(file_path).read_text(encoding="utf-8")}],
+            "page_count": 1,
+            "evidence_kind": "markdown_text",
+            "visual_assets": [],
+            "source_metadata": {"contentHash": document["content_hash"]},
+        },
+    )
+
+    process_document_job(str(db_path), "job_1")
+
+    conn = sqlite3.connect(db_path)
+    document_hash = conn.execute("SELECT content_hash FROM documents WHERE id = 'doc_1'").fetchone()[0]
+    description = conn.execute("SELECT doc_description FROM document_indexes WHERE document_id = 'doc_1'").fetchone()[0]
+    conn.close()
+
+    assert fetched_paths
+    assert document_hash == "sha256:realhash"
+    assert description == "sha256:realhash"
+
+
+def test_process_document_job_fails_smb_download_without_leaking_password(tmp_path, monkeypatch):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        UPDATE documents
+           SET storage_path = ?, source_kind = ?, source_root = ?,
+               source_relative_path = ?, media_type = ?
+         WHERE id = 'doc_1'
+        """,
+        ("smb://server/share/Alpha/remote.md", "smb", "smb://server/share", "Alpha/remote.md", "markdown"),
+    )
+    conn.commit()
+    conn.close()
+
+    def fake_fetch(document, destination):
+        raise RuntimeError("bad password super-secret")
+
+    monkeypatch.setattr("services.index_worker.remote_fetch.fetch_smb_document", fake_fetch)
+
+    with pytest.raises(RuntimeError, match="SMB download failed"):
+        process_document_job(str(db_path), "job_1")
+
+    conn = sqlite3.connect(db_path)
+    run_error = conn.execute("SELECT error_message FROM document_index_runs WHERE document_id = 'doc_1'").fetchone()[0]
+    conn.close()
+    assert "Alpha/remote.md" in run_error
+    assert "super-secret" not in run_error
+    assert "password" not in run_error.lower()
+
+
+def test_prepared_index_file_rejects_smb_source_root_mismatch_without_fetching(tmp_path, monkeypatch):
+    fetch_calls = []
+
+    class FakeSmbSource:
+        source_root = "smb://server/share-b"
+
+        def __init__(self, config):
+            self.config = config
+
+        def fetch_file(self, source_relative_path, destination):
+            fetch_calls.append((source_relative_path, destination))
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text("# Wrong share", encoding="utf-8")
+
+    monkeypatch.setattr("services.index_worker.remote_fetch.SmbCorpusSource", FakeSmbSource)
+    monkeypatch.setattr("services.index_worker.remote_fetch.REMOTE_CACHE_ROOT", tmp_path / "remote-cache")
+    document = {
+        "document_id": "doc_remote",
+        "source_kind": "smb",
+        "source_root": "smb://server/share-a",
+        "source_relative_path": "Alpha/remote.md",
+        "storage_path": "smb://server/share-a/Alpha/remote.md",
+        "file_name": "remote.md",
+    }
+
+    with pytest.raises(RemoteFetchError, match="SMB download failed for Alpha/remote.md"):
+        with prepared_index_file(document):
+            raise AssertionError("source root mismatch should fail before yielding")
+
+    assert fetch_calls == []
 
 
 def test_process_document_job_indexes_office_document_via_converted_pdf(tmp_path, monkeypatch):

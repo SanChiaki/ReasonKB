@@ -50,6 +50,9 @@ class SourceFile:
     size: int
     mtime: str
     content_hash: str
+    source_kind: str = "directory"
+    source_root: str = ""
+    storage_path: str = ""
 
 
 def _utc_iso_from_timestamp(timestamp: float) -> str:
@@ -62,6 +65,18 @@ def _hash_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return f"sha256:{digest.hexdigest()}"
+
+
+def metadata_fingerprint(source_root: str, source_relative_path: str, mtime: str, size: int) -> str:
+    digest = hashlib.sha256()
+    digest.update(source_root.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(source_relative_path.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(mtime.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(str(size).encode("utf-8"))
+    return f"smb-meta:{digest.hexdigest()}"
 
 
 def _media_type(path: Path) -> str:
@@ -90,6 +105,8 @@ def classify_source_file(root: Path, file_path: Path) -> SourceFile | None:
         size=stat.st_size,
         mtime=_utc_iso_from_timestamp(stat.st_mtime),
         content_hash=_hash_file(file_path),
+        source_root=str(root),
+        storage_path=str(file_path),
     )
 
 
@@ -191,16 +208,33 @@ def _upsert_source_file(
     now: str,
 ) -> str:
     project_id = _get_or_create_project(conn, source_file.project_name, now)
-    existing = conn.execute(
-        """
-        SELECT id, content_hash, source_mtime, source_size, media_type, import_status
-          FROM documents
-         WHERE source_kind = 'directory'
-           AND source_relative_path = ?
-         LIMIT 1
-        """,
-        (source_file.source_relative_path,),
-    ).fetchone()
+    source_root = source_file.source_root or str(root)
+    storage_path = source_file.storage_path or str(source_file.path)
+    if source_file.source_kind == "smb":
+        existing = conn.execute(
+            """
+            SELECT id, content_hash, source_mtime, source_size, media_type,
+                   import_status, source_root, storage_path
+              FROM documents
+             WHERE source_kind = ?
+               AND source_root = ?
+               AND source_relative_path = ?
+             LIMIT 1
+            """,
+            (source_file.source_kind, source_root, source_file.source_relative_path),
+        ).fetchone()
+    else:
+        existing = conn.execute(
+            """
+            SELECT id, content_hash, source_mtime, source_size, media_type,
+                   import_status, source_root, storage_path
+              FROM documents
+             WHERE source_kind = ?
+               AND source_relative_path = ?
+             LIMIT 1
+            """,
+            (source_file.source_kind, source_file.source_relative_path),
+        ).fetchone()
 
     unsupported_reason = (
         f"Unsupported file type: {source_file.path.suffix or 'no extension'}"
@@ -227,11 +261,11 @@ def _upsert_source_file(
                 project_id,
                 DEMO_USER_ID,
                 source_file.path.name,
-                str(source_file.path),
+                storage_path,
                 source_file.mime_type,
                 source_file.size,
-                "directory",
-                str(root),
+                source_file.source_kind,
+                source_root,
                 source_file.source_relative_path,
                 source_file.project_relative_path,
                 source_file.content_hash,
@@ -251,14 +285,22 @@ def _upsert_source_file(
         return "skipped"
 
     document_id = existing["id"]
-    changed = (
-        existing["content_hash"] != source_file.content_hash
+    content_hash_changed = (
+        source_file.source_kind != "smb"
+        and existing["content_hash"] != source_file.content_hash
+    )
+    content_changed = (
+        content_hash_changed
         or existing["source_mtime"] != source_file.mtime
         or existing["source_size"] != source_file.size
         or existing["media_type"] != source_file.media_type
         or existing["import_status"] == "deleted"
     )
-    if not changed:
+    locator_changed = (
+        existing["source_root"] != source_root
+        or existing["storage_path"] != storage_path
+    )
+    if not content_changed and not locator_changed:
         return "unchanged"
 
     conn.execute(
@@ -274,10 +316,10 @@ def _upsert_source_file(
         (
             project_id,
             source_file.path.name,
-            str(source_file.path),
+            storage_path,
             source_file.mime_type,
             source_file.size,
-            str(root),
+            source_root,
             source_file.project_relative_path,
             source_file.content_hash,
             source_file.mtime,
@@ -290,24 +332,30 @@ def _upsert_source_file(
             document_id,
         ),
     )
-    if not unsupported_reason:
+    if content_changed and not unsupported_reason:
         _queue_index_job(conn, document_id, now)
         return "updated"
-    return "skipped"
+    return "skipped" if unsupported_reason else "updated"
 
 
 def _mark_missing_deleted(
     conn: sqlite3.Connection,
     seen_paths: set[str],
     now: str,
+    source_kind: str = "directory",
+    source_root: str | None = None,
 ) -> int:
+    source_root_filter = "" if source_root is None else "AND source_root = ?"
+    params: tuple[str, ...] = (source_kind,) if source_root is None else (source_kind, source_root)
     rows = conn.execute(
-        """
+        f"""
         SELECT id, source_relative_path
           FROM documents
-         WHERE source_kind = 'directory'
+         WHERE source_kind = ?
+           {source_root_filter}
            AND deleted_at IS NULL
-        """
+        """,
+        params,
     ).fetchall()
     deleted = 0
     for row in rows:
@@ -330,28 +378,39 @@ def _mark_missing_projects_deleted(
     conn: sqlite3.Connection,
     seen_project_names: set[str],
     now: str,
+    source_kind: str = "directory",
+    source_root: str | None = None,
 ) -> int:
+    if source_root is None:
+        exists_source_root_filter = ""
+        other_active_filter = "AND d.source_kind <> ?"
+        params: tuple[str, ...] = (DEMO_USER_ID, source_kind, source_kind)
+    else:
+        exists_source_root_filter = "AND d.source_root = ?"
+        other_active_filter = "AND NOT (d.source_kind = ? AND d.source_root = ?)"
+        params = (DEMO_USER_ID, source_kind, source_root, source_kind, source_root)
     rows = conn.execute(
-        """
+        f"""
         SELECT p.id, p.name
           FROM projects p
          WHERE p.owner_user_id = ?
            AND p.deleted_at IS NULL
            AND EXISTS (
              SELECT 1
-               FROM documents d
-              WHERE d.project_id = p.id
-                AND d.source_kind = 'directory'
+              FROM documents d
+             WHERE d.project_id = p.id
+                AND d.source_kind = ?
+                {exists_source_root_filter}
            )
            AND NOT EXISTS (
              SELECT 1
                FROM documents d
               WHERE d.project_id = p.id
                 AND d.deleted_at IS NULL
-                AND d.source_kind <> 'directory'
+                {other_active_filter}
            )
         """,
-        (DEMO_USER_ID,),
+        params,
     ).fetchall()
     deleted = 0
     for row in rows:
@@ -381,8 +440,8 @@ def sync_once(db_path: str, projects_root: str | Path) -> dict[str, int]:
         for source_file in source_files:
             outcome = _upsert_source_file(conn, root, source_file, now)
             summary[outcome] += 1
-        summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now)
-        _mark_missing_projects_deleted(conn, seen_project_names, now)
+        summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now, "directory")
+        _mark_missing_projects_deleted(conn, seen_project_names, now, "directory")
 
     return summary
 

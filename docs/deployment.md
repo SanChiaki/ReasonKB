@@ -565,7 +565,79 @@ cd ~/.reasonkb
 docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
 ```
 
-## 七、常用运维命令
+## 七、SMB / Windows 共享语料部署
+
+如果项目文件已经放在 Windows Server 文件共享上，ReasonKB 可以直接把 SMB / Windows 共享作为语料源。这个模式适合 release Docker Compose 部署：容器不挂载 SMB 文件系统，ReasonKB 在应用层用 SMB client 访问共享。
+
+### 1. 使用安装脚本
+
+运行 release 安装脚本：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
+```
+
+脚本询问语料源时选择 `smb`，然后输入共享路径、用户名、密码和可选域。共享路径可以写成：
+
+```text
+//server/share/path
+\\server\share\path
+```
+
+安装脚本会把 SMB 配置写入 `$REASONKB_HOME/.env`，默认是 `~/.reasonkb/.env`；用户名和密码会分别写入 `$REASONKB_HOME/secrets/smb_username` 和 `$REASONKB_HOME/secrets/smb_password`。
+
+### 2. 手动配置 release Compose
+
+也可以手动编辑部署目录中的 `.env`：
+
+```env
+REASONKB_CORPUS_SOURCE=smb
+REASONKB_SMB_HOST=server
+REASONKB_SMB_SHARE=share
+REASONKB_SMB_BASE_PATH=path
+REASONKB_SMB_USERNAME_FILE=./secrets/smb_username
+REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password
+REASONKB_SMB_DOMAIN=
+REASONKB_SMB_PORT=445
+REASONKB_SMB_AUTH_PROTOCOL=ntlm
+REASONKB_SECRETS_ROOT=./secrets
+```
+
+`REASONKB_SMB_BASE_PATH` 是共享内的子目录；如果要索引整个 share 根目录，可以留空。`REASONKB_SMB_DOMAIN` 没有域时也可以留空。
+
+创建 secret 文件：
+
+```sh
+cd ~/.reasonkb
+mkdir -p secrets
+printf '%s\n' 'your-username' > secrets/smb_username
+printf '%s\n' 'your-password' > secrets/smb_password
+chmod 600 secrets/smb_username secrets/smb_password
+```
+
+release Compose 会把 `${REASONKB_SECRETS_ROOT:-./secrets}` 只读挂载到容器内 `/app/secrets`。Compose 默认会把容器内 secret 路径设为 `/app/secrets/smb_username` 和 `/app/secrets/smb_password`；安装脚本写入的 `./secrets/...` 路径适用于 release 部署目录中的 `.env`。
+
+修改后重建容器：
+
+```sh
+docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
+```
+
+### 3. 安全边界
+
+SMB 凭据放在 `$REASONKB_HOME/secrets`，容器只读挂载到 `/app/secrets`。不要把密码直接写进 `.env`，因为 `.env` 更容易被日志、排障命令或配置同步流程带出去。
+
+ReasonKB 默认不需要 `CAP_SYS_ADMIN`、`SYS_ADMIN`、`privileged`，也不需要在容器内执行 `mount.cifs`。如果你选择先在宿主机挂载 SMB，再把挂载点 bind mount 进容器，那是另一个部署方案；当前 SMB remote corpus 实现默认不走这条路。
+
+Settings UI 管理 SMB credential 属于遗留任务 / 后续计划。本版本如需换账号或密码，请修改 `$REASONKB_HOME/secrets/smb_username` 和 `$REASONKB_HOME/secrets/smb_password`，然后重建相关容器。
+
+### 4. 更新机制
+
+在 SMB 模式下，`directory-watcher` 扫描远端 metadata，例如 mtime 和 size；文件新增、删除或 mtime/size 变化时，会更新数据库并产生重新索引任务。`index-worker` 真正索引某个文档时才从 SMB 读取该文件，临时放入 remote cache/temp，索引结束后清理。
+
+因此 ReasonKB 不会把整个 SMB 共享长期同步到本地，也不会依赖容器级 SMB mount。运行状态、SQLite、转换结果和临时缓存仍保留在 `$REASONKB_HOME/var` 对应的 Docker volume/bind mount 中。
+
+## 八、常用运维命令
 
 以下命令都在部署目录执行：
 
@@ -624,9 +696,9 @@ cd ~/.reasonkb
 docker compose --env-file ./.env -f compose.yml up -d
 ```
 
-Windows Server 还要另外备份实际语料目录，例如 `D:\ReasonKB\projects`。
+Windows Server 本地语料模式还要另外备份实际语料目录，例如 `D:\ReasonKB\projects`。SMB 语料模式下，另外备份 SMB 共享本身和 `$REASONKB_HOME/secrets`。
 
-## 八、常见问题
+## 九、常见问题
 
 ### 1. 打不开 `http://localhost:43170`
 
@@ -785,7 +857,7 @@ rm -rf ~/.reasonkb
 
 Windows Server 上如果不再需要项目语料，再删除 `D:\ReasonKB\projects`。
 
-## 九、从源码运行或开发
+## 十、从源码运行或开发
 
 如果要改代码，使用本地开发模式，而不是 release 部署模式。
 
@@ -814,7 +886,7 @@ pnpm -C web dev
 
 源码开发时如需 Office 转 PDF，可以单独用 Docker 启动 Gotenberg，或使用完整 Docker Compose 做最终集成验证。
 
-## 十、参考
+## 十一、参考
 
 - Microsoft WSL on Windows Server: https://learn.microsoft.com/en-us/windows/wsl/install-on-server
 - Microsoft WSL systemd: https://learn.microsoft.com/en-us/windows/wsl/systemd

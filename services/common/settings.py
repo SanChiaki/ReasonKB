@@ -16,3 +16,26 @@ VISION_MODEL = os.getenv("VISION_MODEL")
 VISION_EXTRACTION_ENABLED = os.getenv("VISION_EXTRACTION_ENABLED", "false").lower() == "true"
 DIRECTORY_SCAN_INTERVAL_SECONDS = float(os.getenv("DIRECTORY_SCAN_INTERVAL_SECONDS", "5"))
 INDEX_DEBUG_METRICS = os.getenv("INDEX_DEBUG_METRICS", "false").lower() == "true"
+
+
+def corpus_source_from_env(env: dict[str, str] | None = None) -> str:
+    values = env if env is not None else os.environ
+    source = values.get("REASONKB_CORPUS_SOURCE", "local").strip().lower()
+    return source or "local"
+
+
+def remote_cache_root_from_env(env: dict[str, str] | None = None) -> Path:
+    values = env if env is not None else os.environ
+    return Path(values.get("REASONKB_REMOTE_CACHE_ROOT", VAR_ROOT / "remote-cache"))
+
+
+CORPUS_SOURCE = corpus_source_from_env()
+REMOTE_CACHE_ROOT = remote_cache_root_from_env()
+SMB_HOST = os.getenv("REASONKB_SMB_HOST", "")
+SMB_SHARE = os.getenv("REASONKB_SMB_SHARE", "")
+SMB_BASE_PATH = os.getenv("REASONKB_SMB_BASE_PATH", "")
+SMB_USERNAME_FILE = os.getenv("REASONKB_SMB_USERNAME_FILE", "")
+SMB_PASSWORD_FILE = os.getenv("REASONKB_SMB_PASSWORD_FILE", "")
+SMB_DOMAIN = os.getenv("REASONKB_SMB_DOMAIN", "")
+SMB_PORT = int(os.getenv("REASONKB_SMB_PORT", "445"))
+SMB_AUTH_PROTOCOL = os.getenv("REASONKB_SMB_AUTH_PROTOCOL", "ntlm")

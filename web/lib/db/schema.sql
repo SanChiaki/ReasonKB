@@ -136,6 +136,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_source_relative_path
   ON documents(source_kind, source_relative_path)
   WHERE source_kind = 'directory' AND deleted_at IS NULL;
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_smb_source_relative_path
+  ON documents(source_root, source_relative_path)
+  WHERE source_kind = 'smb' AND deleted_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_conversations_owner_updated
   ON conversations(owner_user_id, updated_at DESC);
 

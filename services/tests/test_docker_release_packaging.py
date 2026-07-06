@@ -18,11 +18,67 @@ ACR_IMAGE = (
 
 def _sh_executable() -> str:
     shell = shutil.which("sh")
-    if not shell:
-        import pytest
+    if shell:
+        return shell
 
-        pytest.skip("POSIX sh is required for install.sh integration tests")
-    return shell
+    for candidate in (
+        Path("C:/Program Files/Git/usr/bin/sh.exe"),
+        Path("C:/Program Files/Git/bin/sh.exe"),
+        Path("C:/msys64/usr/bin/sh.exe"),
+    ):
+        if candidate.exists():
+            return str(candidate)
+
+    import pytest
+
+    pytest.skip("POSIX sh is required for install.sh integration tests")
+
+
+def _shell_path(path: Path) -> str:
+    shell = _sh_executable()
+    result = subprocess.run(
+        [shell, "-lc", "pwd"],
+        cwd=path,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout.strip().replace("\\", "/")
+
+
+def _shell_file_path(path: Path) -> str:
+    return f"{_shell_path(path.parent)}/{path.name}"
+
+
+def _windows_path(value: str) -> str:
+    if len(value) >= 3 and value[0] == "/" and value[2] == "/":
+        value = f"{value[1].upper()}:{value[2:]}"
+    return value.replace("/", "\\")
+
+
+def _installer_env(base_env: dict[str, str], fake_bin: Path) -> dict[str, str]:
+    env = dict(base_env)
+    env["REASONKB_TEST_FAKE_BIN"] = _shell_path(fake_bin)
+    return env
+
+
+def _run_install(tmp_path: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            _sh_executable(),
+            "-c",
+            'PATH="$REASONKB_TEST_FAKE_BIN:/usr/bin:/bin:/mingw64/bin:$PATH"; export PATH; exec "$@"',
+            "sh",
+            _shell_file_path(ROOT / "docker" / "install.sh"),
+        ],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=False,
+    )
 
 
 def test_dockerignore_excludes_local_env_files_from_image_context():
@@ -64,6 +120,18 @@ def test_release_compose_always_pulls_published_images():
         assert service["pull_policy"] == "always"
 
 
+def test_release_compose_mounts_smb_secrets_for_remote_corpus_workers():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    for service_name in ("directory-watcher", "index-worker"):
+        service = compose["services"][service_name]
+        assert "${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro" in service["volumes"]
+        assert service["environment"]["REASONKB_CORPUS_SOURCE"] == "${REASONKB_CORPUS_SOURCE:-local}"
+        assert service["environment"]["REASONKB_SMB_USERNAME_FILE"] == "${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}"
+        assert service["environment"]["REASONKB_SMB_PASSWORD_FILE"] == "${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}"
+        assert "SYS_ADMIN" not in service.get("cap_add", [])
+
+
 def test_release_web_reads_runtime_env_file_for_llm_defaults():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
@@ -100,6 +168,17 @@ def test_release_web_exposes_current_host_projects_root_to_settings_ui():
         "${REASONKB_HOST_BROWSE_ROOT:-${HOME:-.}}:/host-browse:ro"
         in web["volumes"]
     )
+
+
+def test_release_web_exposes_remote_corpus_source_to_settings_ui():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    web = compose["services"]["web"]
+    assert web["environment"]["REASONKB_CORPUS_SOURCE"] == "${REASONKB_CORPUS_SOURCE:-local}"
+    assert web["environment"]["REASONKB_SMB_HOST"] == "${REASONKB_SMB_HOST:-}"
+    assert web["environment"]["REASONKB_SMB_SHARE"] == "${REASONKB_SMB_SHARE:-}"
+    assert web["environment"]["REASONKB_SMB_BASE_PATH"] == "${REASONKB_SMB_BASE_PATH:-}"
+    assert web["environment"]["REASONKB_SMB_PORT"] == "${REASONKB_SMB_PORT:-445}"
 
 
 def test_gotenberg_mirror_dockerfile_tracks_official_image():
@@ -207,25 +286,17 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
         """,
     )
 
-    env = {
+    env = _installer_env({
         **os.environ,
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
         "REASONKB_HOME": str(reasonkb_home),
         "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
-        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
         "REASONKB_INTERACTIVE": "0",
-    }
+    }, fake_bin)
     for key in ("WEB_PORT", "RETRIEVAL_API_PORT", "GOTENBERG_PORT"):
         env.pop(key, None)
 
-    result = subprocess.run(
-        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    result = _run_install(tmp_path, env)
 
     assert result.returncode == 0, result.stderr
     dotenv = (reasonkb_home / ".env").read_text(encoding="utf-8")
@@ -238,8 +309,11 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
     assert configured_ports["WEB_PORT"] != "43170"
     assert configured_ports["RETRIEVAL_API_PORT"] != "43171"
     assert configured_ports["GOTENBERG_PORT"] != "43172"
-    assert configured_ports["REASONKB_PROJECTS_ROOT"] == str(reasonkb_home / "projects")
-    assert configured_ports["REASONKB_HOST_BROWSE_ROOT"] == os.environ["HOME"]
+    assert _windows_path(configured_ports["REASONKB_PROJECTS_ROOT"]) == str(
+        reasonkb_home / "projects"
+    )
+    assert configured_ports["REASONKB_HOST_BROWSE_ROOT"]
+    assert _windows_path(configured_ports["REASONKB_HOST_BROWSE_ROOT"]) == str(Path.home())
     assert len(
         {
             configured_ports["WEB_PORT"],
@@ -297,12 +371,11 @@ def test_install_script_persists_environment_configuration(tmp_path):
         """,
     )
 
-    env = {
+    env = _installer_env({
         **os.environ,
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
         "REASONKB_HOME": str(reasonkb_home),
         "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
-        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
         "REASONKB_INTERACTIVE": "0",
         "REASONKB_PROJECTS_ROOT": str(projects_root),
         "REASONKB_HOST_BROWSE_ROOT": str(browse_root),
@@ -310,16 +383,9 @@ def test_install_script_persists_environment_configuration(tmp_path):
         "PAGEINDEX_LLM_BASE_URL": "https://llm.example.test/v1",
         "PAGEINDEX_LLM_MODEL": "openai/env-chat",
         "PAGEINDEX_LLM_RETRIEVAL_MODEL": "openai/env-retrieval",
-    }
+    }, fake_bin)
 
-    result = subprocess.run(
-        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    result = _run_install(tmp_path, env)
 
     assert result.returncode == 0, result.stderr
     dotenv = (reasonkb_home / ".env").read_text(encoding="utf-8")
@@ -337,6 +403,80 @@ def test_install_script_persists_environment_configuration(tmp_path):
     assert configured["PAGEINDEX_LLM_RETRIEVAL_MODEL"] == "openai/env-retrieval"
     assert "项目语料目录" in dotenv
     assert "设置页保存的运行时配置优先于这些默认值" in dotenv
+
+
+def test_install_script_preserves_backslashes_when_updating_existing_env_values(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    reasonkb_home.mkdir()
+    windows_root = tmp_path / "windows-like"
+    projects_root = str(windows_root / "ReasonKB Corpus" / "Projects")
+    browse_root = str(windows_root / "Shared Corpus")
+    (reasonkb_home / ".env").write_text(
+        "\n".join(
+            [
+                "REASONKB_PROJECTS_ROOT=C:\\old\\projects",
+                "REASONKB_HOST_BROWSE_ROOT=D:\\old\\browse",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(
+        fake_bin / "curl",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        output=""
+        while [ "$#" -gt 0 ]; do
+          if [ "$1" = "-o" ]; then
+            shift
+            output="$1"
+            break
+          fi
+          shift
+        done
+        cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+        """,
+    )
+    _write_executable(
+        fake_bin / "docker",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+          exit 0
+        fi
+        if [ "$1" = "compose" ]; then
+          exit 0
+        fi
+        exit 1
+        """,
+    )
+
+    env = _installer_env({
+        **os.environ,
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "0",
+        "REASONKB_PROJECTS_ROOT": projects_root,
+        "REASONKB_HOST_BROWSE_ROOT": browse_root,
+    }, fake_bin)
+
+    result = _run_install(tmp_path, env)
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_PROJECTS_ROOT"] == projects_root
+    assert configured["REASONKB_HOST_BROWSE_ROOT"] == browse_root
 
 
 def test_install_script_falls_back_to_wget_when_curl_download_fails(tmp_path):
@@ -392,24 +532,16 @@ def test_install_script_falls_back_to_wget_when_curl_download_fails(tmp_path):
         """,
     )
 
-    env = {
+    env = _installer_env({
         **os.environ,
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
         "REASONKB_HOME": str(reasonkb_home),
         "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
-        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
         "REASONKB_INTERACTIVE": "0",
         "REASONKB_DOWNLOAD_RETRY_DELAY": "0",
-    }
+    }, fake_bin)
 
-    result = subprocess.run(
-        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    result = _run_install(tmp_path, env)
 
     assert result.returncode == 0, result.stderr
     assert (reasonkb_home / "compose.yml").read_text(encoding="utf-8") == (
@@ -458,29 +590,21 @@ def test_install_script_explains_compose_download_failures(tmp_path):
         """,
     )
 
-    env = {
+    env = _installer_env({
         **os.environ,
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
         "REASONKB_HOME": str(reasonkb_home),
         "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
         "REASONKB_INTERACTIVE": "0",
         "REASONKB_DOWNLOAD_RETRY_DELAY": "0",
-    }
+    }, fake_bin)
 
-    result = subprocess.run(
-        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    result = _run_install(tmp_path, env)
 
     assert result.returncode != 0
     assert "https://example.invalid/compose.yml" in result.stderr
     assert "下载 ReasonKB Compose 文件失败" in result.stderr
     assert "REASONKB_COMPOSE_URL" in result.stderr
-    assert str(reasonkb_home / "compose.yml") in result.stderr
+    assert str(reasonkb_home / "compose.yml").replace("\\", "/") in result.stderr.replace("\\", "/")
     assert (reasonkb_home / "curl-count.txt").read_text(encoding="utf-8").strip() == "3"
 
 
@@ -495,6 +619,7 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
     prompt_input.write_text(
         "\n".join(
             [
+                "local",
                 str(projects_root),
                 str(browse_root),
                 "sk-interactive-test",
@@ -539,16 +664,15 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
         """,
     )
 
-    env = {
+    env = _installer_env({
         **os.environ,
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
         "REASONKB_HOME": str(reasonkb_home),
         "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
-        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
         "REASONKB_INTERACTIVE": "1",
-        "REASONKB_INSTALL_INPUT": str(prompt_input),
-        "REASONKB_INSTALL_OUTPUT": str(prompt_output),
-    }
+        "REASONKB_INSTALL_INPUT": _shell_file_path(prompt_input),
+        "REASONKB_INSTALL_OUTPUT": _shell_file_path(prompt_output),
+    }, fake_bin)
     for key in (
         "REASONKB_PROJECTS_ROOT",
         "REASONKB_HOST_BROWSE_ROOT",
@@ -559,14 +683,7 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
     ):
         env.pop(key, None)
 
-    result = subprocess.run(
-        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    result = _run_install(tmp_path, env)
 
     assert result.returncode == 0, result.stderr
     dotenv = (reasonkb_home / ".env").read_text(encoding="utf-8")
@@ -577,6 +694,7 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
         for key, value in [line.split("=", 1)]
     }
     assert configured["REASONKB_PROJECTS_ROOT"] == str(projects_root)
+    assert configured["REASONKB_CORPUS_SOURCE"] == "local"
     assert configured["REASONKB_HOST_BROWSE_ROOT"] == str(browse_root)
     assert configured["PAGEINDEX_LLM_API_KEY"] == "sk-interactive-test"
     assert configured["PAGEINDEX_LLM_BASE_URL"] == "https://interactive.example.test/v1"
@@ -586,3 +704,264 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
     assert "项目语料目录" in prompt_log
     assert "可选，按 Enter 跳过" in prompt_log
     assert "LLM 服务 Base URL" in prompt_log
+
+
+def test_install_script_interactive_smb_flow_writes_env_and_secret_files(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    prompt_input = tmp_path / "prompt-input.txt"
+    prompt_output = tmp_path / "prompt-output.txt"
+    prompt_input.write_text(
+        "\n".join(
+            [
+                "smb",
+                r"\\fileserver\Projects\Division A",
+                "alice",
+                "super-secret",
+                "DOMAIN",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = _installer_env({
+        **os.environ,
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "1",
+        "REASONKB_INSTALL_INPUT": _shell_file_path(prompt_input),
+        "REASONKB_INSTALL_OUTPUT": _shell_file_path(prompt_output),
+    }, fake_bin)
+
+    result = _run_install(tmp_path, env)
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_CORPUS_SOURCE"] == "smb"
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
+    assert configured["REASONKB_SMB_DOMAIN"] == "DOMAIN"
+    assert configured["REASONKB_SMB_USERNAME_FILE"] == "./secrets/smb_username"
+    assert configured["REASONKB_SMB_PASSWORD_FILE"] == "./secrets/smb_password"
+    assert (reasonkb_home / "secrets" / "smb_username").read_text(encoding="utf-8") == "alice\n"
+    assert (reasonkb_home / "secrets" / "smb_password").read_text(encoding="utf-8") == "super-secret\n"
+    assert "super-secret" not in result.stdout
+    assert "super-secret" not in prompt_output.read_text(encoding="utf-8")
+
+
+def test_install_script_noninteractive_smb_rerun_derives_path_from_split_env(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    secrets_root = reasonkb_home / "secrets"
+    secrets_root.mkdir(parents=True)
+    (secrets_root / "smb_username").write_text("alice\n", encoding="utf-8")
+    (secrets_root / "smb_password").write_text("existing-secret\n", encoding="utf-8")
+    reasonkb_home.mkdir(exist_ok=True)
+    (reasonkb_home / ".env").write_text(
+        "\n".join(
+            [
+                "REASONKB_CORPUS_SOURCE=smb",
+                "REASONKB_SMB_HOST=fileserver",
+                "REASONKB_SMB_SHARE=Projects",
+                "REASONKB_SMB_BASE_PATH=Division A",
+                "REASONKB_SMB_DOMAIN=DOMAIN",
+                "REASONKB_SMB_USERNAME_FILE=./secrets/smb_username",
+                "REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = _installer_env({
+        **os.environ,
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "0",
+    }, fake_bin)
+
+    result = _run_install(tmp_path, env)
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_CORPUS_SOURCE"] == "smb"
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
+    assert configured["REASONKB_SMB_USERNAME_FILE"] == "./secrets/smb_username"
+    assert configured["REASONKB_SMB_PASSWORD_FILE"] == "./secrets/smb_password"
+    assert (secrets_root / "smb_username").read_text(encoding="utf-8") == "alice\n"
+    assert (secrets_root / "smb_password").read_text(encoding="utf-8") == "existing-secret\n"
+
+
+def test_install_script_interactive_smb_rerun_keeps_password_secret_when_blank(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    secrets_root = reasonkb_home / "secrets"
+    secrets_root.mkdir(parents=True)
+    (secrets_root / "smb_username").write_text("alice\n", encoding="utf-8")
+    (secrets_root / "smb_password").write_text("existing-secret\n", encoding="utf-8")
+    (reasonkb_home / ".env").write_text(
+        "\n".join(
+            [
+                "REASONKB_CORPUS_SOURCE=smb",
+                "REASONKB_SMB_HOST=fileserver",
+                "REASONKB_SMB_SHARE=Projects",
+                "REASONKB_SMB_BASE_PATH=Division A",
+                "REASONKB_SMB_DOMAIN=DOMAIN",
+                "REASONKB_SMB_USERNAME_FILE=./secrets/smb_username",
+                "REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prompt_input = tmp_path / "prompt-input.txt"
+    prompt_output = tmp_path / "prompt-output.txt"
+    prompt_input.write_text(
+        "\n".join(
+            [
+                "smb",
+                "",
+                "bob",
+                "",
+                "NEWDOMAIN",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = _installer_env({
+        **os.environ,
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "1",
+        "REASONKB_INSTALL_INPUT": _shell_file_path(prompt_input),
+        "REASONKB_INSTALL_OUTPUT": _shell_file_path(prompt_output),
+    }, fake_bin)
+
+    result = _run_install(tmp_path, env)
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
+    assert configured["REASONKB_SMB_DOMAIN"] == "NEWDOMAIN"
+    assert (secrets_root / "smb_username").read_text(encoding="utf-8") == "bob\n"
+    assert (secrets_root / "smb_password").read_text(encoding="utf-8") == "existing-secret\n"
+    assert "existing-secret" not in result.stdout
+    assert "existing-secret" not in prompt_output.read_text(encoding="utf-8")
