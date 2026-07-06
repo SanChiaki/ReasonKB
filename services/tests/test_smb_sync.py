@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 
 from services.directory_watcher.smb_sync import sync_smb_once
-from services.remote_corpus.models import RemoteCorpusFile
+from services.remote_corpus.models import RemoteCorpusFile, SmbConfig
+from services.remote_corpus.smb_source import SmbCorpusSource
 
 
 def _schema_sql() -> str:
@@ -21,10 +22,11 @@ def _create_db(tmp_path: Path) -> Path:
 
 
 class FakeRemoteSource:
-    def __init__(self, files=None, exc=None):
+    def __init__(self, files=None, exc=None, source_root=""):
         self.files = files or []
         self.exc = exc
         self.fetch_count = 0
+        self.source_root = source_root
 
     def list_files(self):
         if self.exc:
@@ -120,3 +122,30 @@ def test_failed_smb_scan_does_not_delete_existing_documents(tmp_path):
     row = conn.execute("SELECT status, deleted_at FROM documents").fetchone()
     conn.close()
     assert row == ("uploaded", None)
+
+
+class EmptySmbClient:
+    def register_session(self, *args, **kwargs):
+        return None
+
+    def scandir(self, remote_path):
+        return []
+
+
+def test_empty_successful_smb_scan_marks_existing_documents_deleted_when_source_root_is_exposed(tmp_path):
+    db_path = _create_db(tmp_path)
+    sync_smb_once(str(db_path), FakeRemoteSource([remote_file("ProjectA/report.md")]))
+
+    source = SmbCorpusSource(
+        SmbConfig(host="server", share="share"),
+        smbclient_module=EmptySmbClient(),
+    )
+    summary = sync_smb_once(str(db_path), source)
+
+    conn = sqlite3.connect(db_path)
+    row = conn.execute("SELECT status, import_status, deleted_at FROM documents").fetchone()
+    conn.close()
+
+    assert summary["deleted"] == 1
+    assert row[0:2] == ("deleted", "deleted")
+    assert row[2] is not None

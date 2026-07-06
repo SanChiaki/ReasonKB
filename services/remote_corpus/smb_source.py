@@ -26,6 +26,14 @@ class SmbCorpusSource:
             self._smbclient = smbclient
         return self._smbclient
 
+    @property
+    def source_root(self) -> str:
+        return build_smb_source_root(
+            self.config.host,
+            self.config.share,
+            self.config.base_path,
+        )
+
     def list_files(self) -> list[RemoteCorpusFile]:
         self._ensure_session()
         root = self._root_url()
@@ -87,11 +95,7 @@ class SmbCorpusSource:
         return RemoteCorpusFile(
             locator=entry.path,
             project_name=relative.parts[0],
-            source_root=build_smb_source_root(
-                self.config.host,
-                self.config.share,
-                self.config.base_path,
-            ),
+            source_root=self.source_root,
             source_relative_path=relative.as_posix(),
             project_relative_path=PurePosixPath(*relative.parts[1:]).as_posix(),
             file_name=relative.name,
