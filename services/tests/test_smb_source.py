@@ -49,6 +49,9 @@ class FakeSmbClient:
 
     def open_file(self, path, mode="rb"):
         class Handle:
+            def __init__(self_inner):
+                self_inner.chunks = [b"hello", b""]
+
             def __enter__(self_inner):
                 return self_inner
 
@@ -56,7 +59,26 @@ class FakeSmbClient:
                 return None
 
             def read(self_inner, size=-1):
-                return b"hello"
+                return self_inner.chunks.pop(0)
+
+        self.downloads.append((path, mode))
+        return Handle()
+
+
+class FakeShortReadSmbClient(FakeSmbClient):
+    def open_file(self, path, mode="rb"):
+        class Handle:
+            def __init__(self_inner):
+                self_inner.chunks = [b"he", b"llo", b""]
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, exc_type, exc, tb):
+                return None
+
+            def read(self_inner, size=-1):
+                return self_inner.chunks.pop(0)
 
         self.downloads.append((path, mode))
         return Handle()
@@ -96,6 +118,30 @@ def test_smb_source_fetches_single_file(tmp_path):
     username_file.write_text("alice", encoding="utf-8")
     password_file.write_text("secret", encoding="utf-8")
     fake_client = FakeSmbClient()
+    source = SmbCorpusSource(
+        SmbConfig(
+            host="server",
+            share="share",
+            base_path="base",
+            username_file=username_file,
+            password_file=password_file,
+        ),
+        smbclient_module=fake_client,
+    )
+    destination = tmp_path / "report.md"
+
+    source.fetch_file("ProjectA/report.md", destination)
+
+    assert destination.read_bytes() == b"hello"
+    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb")]
+
+
+def test_smb_source_fetches_until_empty_read_after_short_chunks(tmp_path):
+    username_file = tmp_path / "username"
+    password_file = tmp_path / "password"
+    username_file.write_text("alice", encoding="utf-8")
+    password_file.write_text("secret", encoding="utf-8")
+    fake_client = FakeShortReadSmbClient()
     source = SmbCorpusSource(
         SmbConfig(
             host="server",

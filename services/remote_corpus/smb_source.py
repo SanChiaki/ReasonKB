@@ -45,8 +45,6 @@ class SmbCorpusSource:
             with destination.open("wb") as target:
                 while chunk := source.read(CHUNK_SIZE):
                     target.write(chunk)
-                    if len(chunk) < CHUNK_SIZE:
-                        break
 
     def _ensure_session(self) -> None:
         if self._registered:
