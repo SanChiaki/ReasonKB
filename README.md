@@ -103,6 +103,45 @@ The mounted corpus should use first-level directories as projects:
     handover/report.pdf
 ```
 
+### SMB / Windows Share Corpus
+
+ReasonKB can also use an SMB / Windows share as the project corpus without
+mounting that share in the container. The app uses an SMB client library, so the
+Docker services do not need `SYS_ADMIN`, `CAP_SYS_ADMIN`, `privileged`, or a
+container-level SMB mount.
+
+There are two setup paths:
+
+1. Run `docker/install.sh` and choose `smb` when prompted for the corpus source.
+   Enter a share path such as `//server/share/path` or
+   `\\server\share\path`, then enter the SMB username, password, and optional
+   domain.
+2. Configure the release `.env` manually:
+
+```env
+REASONKB_CORPUS_SOURCE=smb
+REASONKB_SMB_HOST=server
+REASONKB_SMB_SHARE=share
+REASONKB_SMB_BASE_PATH=path
+REASONKB_SMB_USERNAME_FILE=./secrets/smb_username
+REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password
+REASONKB_SMB_DOMAIN=
+REASONKB_SMB_PORT=445
+REASONKB_SMB_AUTH_PROTOCOL=ntlm
+REASONKB_SECRETS_ROOT=./secrets
+```
+
+Create `./secrets/smb_username` and `./secrets/smb_password` with one line each:
+the username in the first file and the password in the second. Do not put the
+SMB password directly in `.env`.
+
+In SMB mode the directory watcher stores remote metadata such as mtime and size
+and queues indexing work. It does not keep a long-lived local sync of the share.
+The index worker reads each file from SMB on demand into the remote cache/temp
+area while indexing, then cleans up that temporary copy. Settings UI management
+for SMB credentials is a legacy follow-up task; update the secret files manually
+for this release.
+
 ### One-command ACR deployment
 
 ReasonKB publishes China-mainland-friendly release images to Alibaba Cloud ACR:
