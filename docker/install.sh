@@ -59,6 +59,8 @@ read_prompt_line() {
   PROMPT_REPLY=""
   if [ "$INSTALL_INTERACTIVE" = "1" ]; then
     IFS= read -r PROMPT_REPLY <&3 || PROMPT_REPLY=""
+    prompt_cr="$(printf '\r')"
+    PROMPT_REPLY="${PROMPT_REPLY%"$prompt_cr"}"
   fi
 }
 
@@ -355,22 +357,24 @@ set_env_file_value() {
   tmp_file="$REASONKB_HOME/.env.tmp.$$"
 
   if [ -f "$REASONKB_HOME/.env" ]; then
-    awk -v name="$name" -v value="$value" '
-      BEGIN { written = 0 }
-      $0 ~ ("^" name "=") {
-        if (!written) {
-          print name "=" value
-          written = 1
-        }
-        next
-      }
-      { print }
-      END {
-        if (!written) {
-          print name "=" value
-        }
-      }
-    ' "$REASONKB_HOME/.env" > "$tmp_file"
+    written=0
+    : > "$tmp_file"
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        "$name="*)
+          if [ "$written" = "0" ]; then
+            printf '%s=%s\n' "$name" "$value" >> "$tmp_file"
+            written=1
+          fi
+          ;;
+        *)
+          printf '%s\n' "$line" >> "$tmp_file"
+          ;;
+      esac
+    done < "$REASONKB_HOME/.env"
+    if [ "$written" = "0" ]; then
+      printf '%s=%s\n' "$name" "$value" >> "$tmp_file"
+    fi
     mv "$tmp_file" "$REASONKB_HOME/.env"
   else
     printf '%s=%s\n' "$name" "$value" > "$REASONKB_HOME/.env"
