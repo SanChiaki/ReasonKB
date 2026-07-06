@@ -493,6 +493,25 @@ parse_smb_path() {
   fi
 }
 
+configured_smb_path_default() {
+  configured_path="$(current_env_or_file_value REASONKB_SMB_PATH "")"
+  if [ -n "$configured_path" ]; then
+    printf '%s\n' "$configured_path"
+    return 0
+  fi
+
+  configured_host="$(current_env_or_file_value REASONKB_SMB_HOST "")"
+  configured_share="$(current_env_or_file_value REASONKB_SMB_SHARE "")"
+  configured_base_path="$(current_env_or_file_value REASONKB_SMB_BASE_PATH "")"
+  if [ -n "$configured_host" ] && [ -n "$configured_share" ]; then
+    configured_path="//$configured_host/$configured_share"
+    if [ -n "$configured_base_path" ]; then
+      configured_path="$configured_path/$configured_base_path"
+    fi
+    printf '%s\n' "$configured_path"
+  fi
+}
+
 write_secret_file() {
   path="$1"
   value="$2"
@@ -503,9 +522,13 @@ write_secret_file() {
 }
 
 configure_smb_corpus() {
-  smb_path_default="$(current_env_or_file_value REASONKB_SMB_PATH "")"
+  smb_path_default="$(configured_smb_path_default)"
   prompt_value "SMB 共享路径（如 //server/share/path）" "$smb_path_default"
   parse_smb_path "$PROMPT_VALUE"
+  smb_path_value="//$SMB_HOST/$SMB_SHARE"
+  if [ -n "$SMB_BASE_PATH" ]; then
+    smb_path_value="$smb_path_value/$SMB_BASE_PATH"
+  fi
 
   username_default=""
   username_file="$(current_env_or_file_value REASONKB_SMB_USERNAME_FILE "./secrets/smb_username")"
@@ -515,7 +538,13 @@ configure_smb_corpus() {
   prompt_value "SMB 用户名" "$username_default"
   smb_username="$PROMPT_VALUE"
 
-  prompt_secret "SMB 密码" ""
+  password_file="$(current_env_or_file_value REASONKB_SMB_PASSWORD_FILE "./secrets/smb_password")"
+  keep_password_marker="__REASONKB_KEEP_EXISTING_SMB_PASSWORD__"
+  password_default=""
+  if [ -f "$REASONKB_HOME/$password_file" ]; then
+    password_default="$keep_password_marker"
+  fi
+  prompt_secret "SMB 密码" "$password_default"
   smb_password="$PROMPT_VALUE"
 
   domain_default="$(current_env_or_file_value REASONKB_SMB_DOMAIN "")"
@@ -526,6 +555,7 @@ configure_smb_corpus() {
   set_env_file_value REASONKB_SMB_HOST "$SMB_HOST"
   set_env_file_value REASONKB_SMB_SHARE "$SMB_SHARE"
   set_env_file_value REASONKB_SMB_BASE_PATH "$SMB_BASE_PATH"
+  set_env_file_value REASONKB_SMB_PATH "$smb_path_value"
   set_env_file_value REASONKB_SMB_DOMAIN "$smb_domain"
   set_env_file_value REASONKB_SMB_PORT 445
   set_env_file_value REASONKB_SMB_AUTH_PROTOCOL ntlm
@@ -535,7 +565,9 @@ configure_smb_corpus() {
   set_env_file_value REASONKB_SMB_PASSWORD_FILE ./secrets/smb_password
 
   write_secret_file "$REASONKB_HOME/secrets/smb_username" "$smb_username"
-  write_secret_file "$REASONKB_HOME/secrets/smb_password" "$smb_password"
+  if [ "$smb_password" != "$keep_password_marker" ]; then
+    write_secret_file "$REASONKB_HOME/secrets/smb_password" "$smb_password"
+  fi
 
   export REASONKB_CORPUS_SOURCE=smb
   export REASONKB_SMB_HOST="$SMB_HOST"

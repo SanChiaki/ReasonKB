@@ -683,6 +683,7 @@ def test_install_script_interactive_smb_flow_writes_env_and_secret_files(tmp_pat
     assert configured["REASONKB_SMB_HOST"] == "fileserver"
     assert configured["REASONKB_SMB_SHARE"] == "Projects"
     assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
     assert configured["REASONKB_SMB_DOMAIN"] == "DOMAIN"
     assert configured["REASONKB_SMB_USERNAME_FILE"] == "./secrets/smb_username"
     assert configured["REASONKB_SMB_PASSWORD_FILE"] == "./secrets/smb_password"
@@ -690,3 +691,197 @@ def test_install_script_interactive_smb_flow_writes_env_and_secret_files(tmp_pat
     assert (reasonkb_home / "secrets" / "smb_password").read_text(encoding="utf-8") == "super-secret\n"
     assert "super-secret" not in result.stdout
     assert "super-secret" not in prompt_output.read_text(encoding="utf-8")
+
+
+def test_install_script_noninteractive_smb_rerun_derives_path_from_split_env(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    secrets_root = reasonkb_home / "secrets"
+    secrets_root.mkdir(parents=True)
+    (secrets_root / "smb_username").write_text("alice\n", encoding="utf-8")
+    (secrets_root / "smb_password").write_text("existing-secret\n", encoding="utf-8")
+    reasonkb_home.mkdir(exist_ok=True)
+    (reasonkb_home / ".env").write_text(
+        "\n".join(
+            [
+                "REASONKB_CORPUS_SOURCE=smb",
+                "REASONKB_SMB_HOST=fileserver",
+                "REASONKB_SMB_SHARE=Projects",
+                "REASONKB_SMB_BASE_PATH=Division A",
+                "REASONKB_SMB_DOMAIN=DOMAIN",
+                "REASONKB_SMB_USERNAME_FILE=./secrets/smb_username",
+                "REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = {
+        **os.environ,
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "0",
+    }
+
+    result = subprocess.run(
+        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_CORPUS_SOURCE"] == "smb"
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
+    assert configured["REASONKB_SMB_USERNAME_FILE"] == "./secrets/smb_username"
+    assert configured["REASONKB_SMB_PASSWORD_FILE"] == "./secrets/smb_password"
+    assert (secrets_root / "smb_username").read_text(encoding="utf-8") == "alice\n"
+    assert (secrets_root / "smb_password").read_text(encoding="utf-8") == "existing-secret\n"
+
+
+def test_install_script_interactive_smb_rerun_keeps_password_secret_when_blank(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    secrets_root = reasonkb_home / "secrets"
+    secrets_root.mkdir(parents=True)
+    (secrets_root / "smb_username").write_text("alice\n", encoding="utf-8")
+    (secrets_root / "smb_password").write_text("existing-secret\n", encoding="utf-8")
+    (reasonkb_home / ".env").write_text(
+        "\n".join(
+            [
+                "REASONKB_CORPUS_SOURCE=smb",
+                "REASONKB_SMB_HOST=fileserver",
+                "REASONKB_SMB_SHARE=Projects",
+                "REASONKB_SMB_BASE_PATH=Division A",
+                "REASONKB_SMB_DOMAIN=DOMAIN",
+                "REASONKB_SMB_USERNAME_FILE=./secrets/smb_username",
+                "REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prompt_input = tmp_path / "prompt-input.txt"
+    prompt_output = tmp_path / "prompt-output.txt"
+    prompt_input.write_text(
+        "\n".join(
+            [
+                "smb",
+                "",
+                "bob",
+                "",
+                "NEWDOMAIN",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = {
+        **os.environ,
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "1",
+        "REASONKB_INSTALL_INPUT": str(prompt_input),
+        "REASONKB_INSTALL_OUTPUT": str(prompt_output),
+    }
+
+    result = subprocess.run(
+        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_PATH"] == "//fileserver/Projects/Division A"
+    assert configured["REASONKB_SMB_DOMAIN"] == "NEWDOMAIN"
+    assert (secrets_root / "smb_username").read_text(encoding="utf-8") == "bob\n"
+    assert (secrets_root / "smb_password").read_text(encoding="utf-8") == "existing-secret\n"
+    assert "existing-secret" not in result.stdout
+    assert "existing-secret" not in prompt_output.read_text(encoding="utf-8")
