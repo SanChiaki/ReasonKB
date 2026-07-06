@@ -64,6 +64,18 @@ def test_release_compose_always_pulls_published_images():
         assert service["pull_policy"] == "always"
 
 
+def test_release_compose_mounts_smb_secrets_for_remote_corpus_workers():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    for service_name in ("directory-watcher", "index-worker"):
+        service = compose["services"][service_name]
+        assert "${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro" in service["volumes"]
+        assert service["environment"]["REASONKB_CORPUS_SOURCE"] == "${REASONKB_CORPUS_SOURCE:-local}"
+        assert service["environment"]["REASONKB_SMB_USERNAME_FILE"] == "${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}"
+        assert service["environment"]["REASONKB_SMB_PASSWORD_FILE"] == "${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}"
+        assert "SYS_ADMIN" not in service.get("cap_add", [])
+
+
 def test_release_web_reads_runtime_env_file_for_llm_defaults():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
@@ -495,6 +507,7 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
     prompt_input.write_text(
         "\n".join(
             [
+                "local",
                 str(projects_root),
                 str(browse_root),
                 "sk-interactive-test",
@@ -577,6 +590,7 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
         for key, value in [line.split("=", 1)]
     }
     assert configured["REASONKB_PROJECTS_ROOT"] == str(projects_root)
+    assert configured["REASONKB_CORPUS_SOURCE"] == "local"
     assert configured["REASONKB_HOST_BROWSE_ROOT"] == str(browse_root)
     assert configured["PAGEINDEX_LLM_API_KEY"] == "sk-interactive-test"
     assert configured["PAGEINDEX_LLM_BASE_URL"] == "https://interactive.example.test/v1"
@@ -586,3 +600,93 @@ def test_install_script_prompts_for_corpus_and_llm_configuration(tmp_path):
     assert "项目语料目录" in prompt_log
     assert "可选，按 Enter 跳过" in prompt_log
     assert "LLM 服务 Base URL" in prompt_log
+
+
+def test_install_script_interactive_smb_flow_writes_env_and_secret_files(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    prompt_input = tmp_path / "prompt-input.txt"
+    prompt_output = tmp_path / "prompt-output.txt"
+    prompt_input.write_text(
+        "\n".join(
+            [
+                "smb",
+                r"\\fileserver\Projects\Division A",
+                "alice",
+                "super-secret",
+                "DOMAIN",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _write_executable(fake_bin / "curl", """
+    #!/usr/bin/env sh
+    set -eu
+    output=""
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "-o" ]; then
+        shift
+        output="$1"
+        break
+      fi
+      shift
+    done
+    cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+    """)
+    _write_executable(fake_bin / "docker", """
+    #!/usr/bin/env sh
+    set -eu
+    if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+      exit 0
+    fi
+    if [ "$1" = "compose" ]; then
+      exit 0
+    fi
+    exit 1
+    """)
+
+    env = {
+        **os.environ,
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        "REASONKB_HOME": str(reasonkb_home),
+        "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+        "REASONKB_FAKE_COMPOSE_SOURCE": str(ROOT / "docker" / "compose.release.yml"),
+        "REASONKB_INTERACTIVE": "1",
+        "REASONKB_INSTALL_INPUT": str(prompt_input),
+        "REASONKB_INSTALL_OUTPUT": str(prompt_output),
+    }
+
+    result = subprocess.run(
+        [_sh_executable(), str(ROOT / "docker" / "install.sh")],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    configured = {
+        key: value
+        for line in (reasonkb_home / ".env").read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+        for key, value in [line.split("=", 1)]
+    }
+    assert configured["REASONKB_CORPUS_SOURCE"] == "smb"
+    assert configured["REASONKB_SMB_HOST"] == "fileserver"
+    assert configured["REASONKB_SMB_SHARE"] == "Projects"
+    assert configured["REASONKB_SMB_BASE_PATH"] == "Division A"
+    assert configured["REASONKB_SMB_DOMAIN"] == "DOMAIN"
+    assert configured["REASONKB_SMB_USERNAME_FILE"] == "./secrets/smb_username"
+    assert configured["REASONKB_SMB_PASSWORD_FILE"] == "./secrets/smb_password"
+    assert (reasonkb_home / "secrets" / "smb_username").read_text(encoding="utf-8") == "alice\n"
+    assert (reasonkb_home / "secrets" / "smb_password").read_text(encoding="utf-8") == "super-secret\n"
+    assert "super-secret" not in result.stdout
+    assert "super-secret" not in prompt_output.read_text(encoding="utf-8")

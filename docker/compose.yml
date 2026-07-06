@@ -83,9 +83,20 @@ services:
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
       INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
       INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-1}
+      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
+      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
+      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
+      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
+      REASONKB_SMB_USERNAME_FILE: ${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}
+      REASONKB_SMB_PASSWORD_FILE: ${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}
+      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
+      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
+      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
+      REASONKB_REMOTE_CACHE_ROOT: ${REASONKB_REMOTE_CACHE_ROOT:-/app/var/remote-cache}
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -104,9 +115,20 @@ services:
       APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
       PROJECTS_ROOT: /data/projects
       DIRECTORY_SCAN_INTERVAL_SECONDS: ${DIRECTORY_SCAN_INTERVAL_SECONDS:-5}
+      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
+      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
+      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
+      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
+      REASONKB_SMB_USERNAME_FILE: ${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}
+      REASONKB_SMB_PASSWORD_FILE: ${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}
+      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
+      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
+      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
+      REASONKB_REMOTE_CACHE_ROOT: ${REASONKB_REMOTE_CACHE_ROOT:-/app/var/remote-cache}
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
