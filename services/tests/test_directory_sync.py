@@ -230,3 +230,54 @@ def test_sync_once_marks_unsupported_files_skipped_without_jobs(tmp_path):
     assert document[0:3] == ("unsupported", "skipped", "skipped")
     assert "Unsupported file type" in document[3]
     assert job_count == 0
+
+
+def test_local_sync_does_not_delete_smb_documents_when_local_scan_succeeds(tmp_path):
+    db_path = _create_db(tmp_path)
+    root = tmp_path / "projects"
+    (root / "ProjectA").mkdir(parents=True)
+    (root / "ProjectA" / "local.md").write_text("local", encoding="utf-8")
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO projects (id, owner_user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        ("proj_smb", "user_demo", "Remote", "2026-07-06T00:00:00Z", "2026-07-06T00:00:00Z"),
+    )
+    conn.execute(
+        """INSERT INTO documents
+           (id, project_id, owner_user_id, file_name, storage_path, mime_type, file_size,
+            source_kind, source_root, source_relative_path, project_relative_path,
+            content_hash, source_mtime, source_size, media_type, import_status,
+            status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            "doc_smb",
+            "proj_smb",
+            "user_demo",
+            "remote.md",
+            "smb://server/share/Remote/remote.md",
+            "text/markdown",
+            6,
+            "smb",
+            "smb://server/share",
+            "Remote/remote.md",
+            "remote.md",
+            "smb-meta:old",
+            "2026-07-06T00:00:00+00:00",
+            6,
+            "markdown",
+            "imported",
+            "ready",
+            "2026-07-06T00:00:00Z",
+            "2026-07-06T00:00:00Z",
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    sync_once(str(db_path), root)
+
+    conn = sqlite3.connect(db_path)
+    smb_status = conn.execute("SELECT status, deleted_at FROM documents WHERE id = 'doc_smb'").fetchone()
+    conn.close()
+    assert smb_status == ("ready", None)
