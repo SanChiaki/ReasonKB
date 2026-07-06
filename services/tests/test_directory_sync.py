@@ -206,6 +206,92 @@ def test_sync_once_marks_removed_project_directory_deleted(tmp_path):
     assert deleted_document[2] is not None
 
 
+def test_sync_once_root_switch_updates_same_directory_document(tmp_path):
+    db_path = _create_db(tmp_path)
+    root_a = tmp_path / "root-a"
+    root_b = tmp_path / "root-b"
+    (root_a / "ProjectA").mkdir(parents=True)
+    (root_b / "ProjectA").mkdir(parents=True)
+    (root_a / "ProjectA" / "report.md").write_text("# Report A", encoding="utf-8")
+    (root_b / "ProjectA" / "report.md").write_text("# Report B", encoding="utf-8")
+
+    sync_once(str(db_path), root_a)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET status = 'completed'")
+    original = conn.execute(
+        """
+        SELECT id, source_root, storage_path, content_hash
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/report.md",),
+    ).fetchone()
+    conn.commit()
+    conn.close()
+
+    summary = sync_once(str(db_path), root_b)
+
+    conn = sqlite3.connect(db_path)
+    documents = conn.execute(
+        """
+        SELECT id, source_root, storage_path, content_hash, status, import_status
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/report.md",),
+    ).fetchall()
+    queued_jobs = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'queued'").fetchone()[0]
+    conn.close()
+
+    assert summary["updated"] == 1
+    assert len(documents) == 1
+    updated = documents[0]
+    assert updated[0] == original[0]
+    assert updated[1] == str(root_b.resolve())
+    assert updated[2] == str((root_b / "ProjectA" / "report.md").resolve())
+    assert updated[3] != original[3]
+    assert updated[4:] == ("uploaded", "imported")
+    assert queued_jobs == 1
+
+
+def test_sync_once_root_switch_marks_missing_directory_docs_deleted(tmp_path):
+    db_path = _create_db(tmp_path)
+    root_a = tmp_path / "root-a"
+    root_b = tmp_path / "root-b"
+    (root_a / "ProjectA").mkdir(parents=True)
+    (root_b / "ProjectB").mkdir(parents=True)
+    (root_a / "ProjectA" / "old.md").write_text("old", encoding="utf-8")
+    (root_b / "ProjectB" / "new.md").write_text("new", encoding="utf-8")
+
+    sync_once(str(db_path), root_a)
+    summary = sync_once(str(db_path), root_b)
+
+    conn = sqlite3.connect(db_path)
+    old_document = conn.execute(
+        """
+        SELECT status, import_status, deleted_at
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/old.md",),
+    ).fetchone()
+    new_document = conn.execute(
+        """
+        SELECT status, import_status, deleted_at
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectB/new.md",),
+    ).fetchone()
+    conn.close()
+
+    assert summary["created"] == 1
+    assert summary["deleted"] == 1
+    assert old_document[0:2] == ("deleted", "deleted")
+    assert old_document[2] is not None
+    assert new_document == ("uploaded", "imported", None)
+
+
 def test_sync_once_marks_unsupported_files_skipped_without_jobs(tmp_path):
     db_path = _create_db(tmp_path)
     root = tmp_path / "projects"

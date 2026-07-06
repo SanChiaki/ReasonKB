@@ -58,6 +58,9 @@ def fetch_smb_document(document: dict, destination: Path) -> str:
     source_relative_path = document.get("source_relative_path")
     if not source_relative_path:
         raise ValueError("SMB document is missing source_relative_path")
+    document_source_root = document.get("source_root")
+    if not document_source_root:
+        raise ValueError("SMB document is missing source_root")
 
     source = SmbCorpusSource(
         SmbConfig(
@@ -71,6 +74,8 @@ def fetch_smb_document(document: dict, destination: Path) -> str:
             auth_protocol=SMB_AUTH_PROTOCOL,
         )
     )
+    if source.source_root != document_source_root:
+        raise ValueError("SMB document source_root does not match the configured SMB source")
     source.fetch_file(source_relative_path, destination)
     return f"sha256:{_sha256_file(destination)}"
 

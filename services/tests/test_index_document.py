@@ -7,6 +7,7 @@ import pytest
 
 from services.common.sqlite_store import open_db
 from services.index_worker.index_document import process_document_job
+from services.index_worker.remote_fetch import RemoteFetchError, prepared_index_file
 from services.index_worker.worker import (
     INDEX_JOB_TIMEOUT_SECONDS,
     INDEX_WORKER_CONCURRENCY,
@@ -379,6 +380,38 @@ def test_process_document_job_fails_smb_download_without_leaking_password(tmp_pa
     assert "Alpha/remote.md" in run_error
     assert "super-secret" not in run_error
     assert "password" not in run_error.lower()
+
+
+def test_prepared_index_file_rejects_smb_source_root_mismatch_without_fetching(tmp_path, monkeypatch):
+    fetch_calls = []
+
+    class FakeSmbSource:
+        source_root = "smb://server/share-b"
+
+        def __init__(self, config):
+            self.config = config
+
+        def fetch_file(self, source_relative_path, destination):
+            fetch_calls.append((source_relative_path, destination))
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text("# Wrong share", encoding="utf-8")
+
+    monkeypatch.setattr("services.index_worker.remote_fetch.SmbCorpusSource", FakeSmbSource)
+    monkeypatch.setattr("services.index_worker.remote_fetch.REMOTE_CACHE_ROOT", tmp_path / "remote-cache")
+    document = {
+        "document_id": "doc_remote",
+        "source_kind": "smb",
+        "source_root": "smb://server/share-a",
+        "source_relative_path": "Alpha/remote.md",
+        "storage_path": "smb://server/share-a/Alpha/remote.md",
+        "file_name": "remote.md",
+    }
+
+    with pytest.raises(RemoteFetchError, match="SMB download failed for Alpha/remote.md"):
+        with prepared_index_file(document):
+            raise AssertionError("source root mismatch should fail before yielding")
+
+    assert fetch_calls == []
 
 
 def test_process_document_job_indexes_office_document_via_converted_pdf(tmp_path, monkeypatch):

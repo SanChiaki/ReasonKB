@@ -89,8 +89,6 @@ class SmbCorpusSource:
         if len(relative.parts) < 2:
             return None
         media_type = SUPPORTED_MEDIA_BY_EXTENSION.get(relative.suffix.lower(), "unsupported")
-        if media_type == "unsupported":
-            return None
         stat = entry.stat()
         return RemoteCorpusFile(
             locator=entry.path,

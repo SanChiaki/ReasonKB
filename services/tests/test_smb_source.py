@@ -37,6 +37,7 @@ class FakeSmbClient:
             ],
             "//server/share/base/ProjectA": [
                 FakeDirEntry("//server/share/base/ProjectA/report.md", size=12),
+                FakeDirEntry("//server/share/base/ProjectA/archive.zip", size=5),
                 FakeDirEntry("//server/share/base/ProjectA/.hidden", size=1),
             ],
         }
@@ -104,12 +105,26 @@ def test_smb_source_lists_supported_files_without_downloading(tmp_path):
 
     files = source.list_files()
 
-    assert [file.source_relative_path for file in files] == ["ProjectA/report.md"]
+    assert [file.source_relative_path for file in files] == ["ProjectA/report.md", "ProjectA/archive.zip"]
     assert files[0].project_name == "ProjectA"
     assert files[0].project_relative_path == "report.md"
     assert files[0].media_type == "markdown"
+    assert files[1].media_type == "unsupported"
     assert fake_client.downloads == []
     assert fake_client.registered == [("server", "DOMAIN\\alice", "secret", 445, "ntlm")]
+
+
+def test_smb_source_ignores_root_level_unsupported_files(tmp_path):
+    fake_client = FakeSmbClient()
+    fake_client.tree["//server/share/base"].append(FakeDirEntry("//server/share/base/archive.zip", size=5))
+    source = SmbCorpusSource(
+        SmbConfig(host="server", share="share", base_path="base"),
+        smbclient_module=fake_client,
+    )
+
+    files = source.list_files()
+
+    assert "archive.zip" not in [file.source_relative_path for file in files]
 
 
 def test_smb_source_fetches_single_file(tmp_path):

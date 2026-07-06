@@ -38,7 +38,15 @@ class FakeRemoteSource:
         raise AssertionError("metadata sync must not download file contents")
 
 
-def remote_file(path, *, size=10, mtime="2026-07-06T00:00:00+00:00", source_root="smb://server/share"):
+def remote_file(
+    path,
+    *,
+    size=10,
+    mtime="2026-07-06T00:00:00+00:00",
+    source_root="smb://server/share",
+    media_type="markdown",
+    mime_type="text/markdown",
+):
     file_name = path.rsplit("/", 1)[-1]
     project, rest = path.split("/", 1)
     return RemoteCorpusFile(
@@ -48,8 +56,8 @@ def remote_file(path, *, size=10, mtime="2026-07-06T00:00:00+00:00", source_root
         source_relative_path=path,
         project_relative_path=rest,
         file_name=file_name,
-        media_type="markdown",
-        mime_type="text/markdown",
+        media_type=media_type,
+        mime_type=mime_type,
         size=size,
         mtime=mtime,
     )
@@ -109,6 +117,39 @@ def test_sync_smb_once_uses_mtime_and_size_for_change_detection(tmp_path):
     assert row[0] != original_hash
     assert row[1:] == (13, "uploaded")
     assert queued == 1
+
+
+def test_sync_smb_once_marks_unsupported_files_skipped_without_jobs(tmp_path):
+    db_path = _create_db(tmp_path)
+    source = FakeRemoteSource(
+        [
+            remote_file(
+                "ProjectA/archive.zip",
+                media_type="unsupported",
+                mime_type="application/zip",
+            )
+        ],
+        source_root="smb://server/share",
+    )
+
+    summary = sync_smb_once(str(db_path), source)
+
+    conn = sqlite3.connect(db_path)
+    document = conn.execute(
+        """
+        SELECT media_type, import_status, status, import_error
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/archive.zip",),
+    ).fetchone()
+    job_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+    conn.close()
+
+    assert summary == {"created": 0, "updated": 0, "unchanged": 0, "deleted": 0, "skipped": 1}
+    assert document[0:3] == ("unsupported", "skipped", "skipped")
+    assert "Unsupported file type" in document[3]
+    assert job_count == 0
 
 
 def test_failed_smb_scan_does_not_delete_existing_documents(tmp_path):

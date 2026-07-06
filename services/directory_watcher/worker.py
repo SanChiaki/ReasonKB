@@ -1,3 +1,4 @@
+import sys
 import time
 from pathlib import Path
 
@@ -43,9 +44,20 @@ def sync_configured_source() -> dict[str, int]:
     return sync_once(str(DB_PATH), PROJECTS_ROOT)
 
 
+def _safe_error_message(exc: Exception) -> str:
+    message = str(exc)
+    lowered = message.lower()
+    if any(token in lowered for token in ("password", "secret", "credential")):
+        return f"{type(exc).__name__}: details redacted"
+    return message
+
+
 def run_forever(poll_seconds: float = DIRECTORY_SCAN_INTERVAL_SECONDS):
     while True:
-        sync_configured_source()
+        try:
+            sync_configured_source()
+        except Exception as exc:
+            print(f"directory watcher sync failed: {_safe_error_message(exc)}", file=sys.stderr)
         time.sleep(poll_seconds)
 
 

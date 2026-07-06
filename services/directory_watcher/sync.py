@@ -210,17 +210,29 @@ def _upsert_source_file(
     project_id = _get_or_create_project(conn, source_file.project_name, now)
     source_root = source_file.source_root or str(root)
     storage_path = source_file.storage_path or str(source_file.path)
-    existing = conn.execute(
-        """
-        SELECT id, content_hash, source_mtime, source_size, media_type, import_status
-          FROM documents
-         WHERE source_kind = ?
-           AND source_root = ?
-           AND source_relative_path = ?
-         LIMIT 1
-        """,
-        (source_file.source_kind, source_root, source_file.source_relative_path),
-    ).fetchone()
+    if source_file.source_kind == "smb":
+        existing = conn.execute(
+            """
+            SELECT id, content_hash, source_mtime, source_size, media_type, import_status
+              FROM documents
+             WHERE source_kind = ?
+               AND source_root = ?
+               AND source_relative_path = ?
+             LIMIT 1
+            """,
+            (source_file.source_kind, source_root, source_file.source_relative_path),
+        ).fetchone()
+    else:
+        existing = conn.execute(
+            """
+            SELECT id, content_hash, source_mtime, source_size, media_type, import_status
+              FROM documents
+             WHERE source_kind = ?
+               AND source_relative_path = ?
+             LIMIT 1
+            """,
+            (source_file.source_kind, source_file.source_relative_path),
+        ).fetchone()
 
     unsupported_reason = (
         f"Unsupported file type: {source_file.path.suffix or 'no extension'}"
@@ -418,8 +430,8 @@ def sync_once(db_path: str, projects_root: str | Path) -> dict[str, int]:
         for source_file in source_files:
             outcome = _upsert_source_file(conn, root, source_file, now)
             summary[outcome] += 1
-        summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now, "directory", str(root))
-        _mark_missing_projects_deleted(conn, seen_project_names, now, "directory", str(root))
+        summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now, "directory")
+        _mark_missing_projects_deleted(conn, seen_project_names, now, "directory")
 
     return summary
 
