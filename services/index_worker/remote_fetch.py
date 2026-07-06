@@ -29,6 +29,10 @@ class PreparedIndexFile:
     content_hash: str | None = None
 
 
+class RemoteFetchError(RuntimeError):
+    pass
+
+
 @contextmanager
 def prepared_index_file(document: dict) -> Iterator[PreparedIndexFile]:
     if document.get("source_kind") != "smb":
@@ -41,7 +45,10 @@ def prepared_index_file(document: dict) -> Iterator[PreparedIndexFile]:
     destination = document_cache_dir / safe_cache_file_name(source_path)
 
     try:
-        content_hash = fetch_smb_document(document, destination)
+        try:
+            content_hash = fetch_smb_document(document, destination)
+        except Exception as exc:
+            raise RemoteFetchError(f"SMB download failed for {source_path}") from exc
         yield PreparedIndexFile(destination, content_hash)
     finally:
         shutil.rmtree(document_cache_dir, ignore_errors=True)

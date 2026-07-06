@@ -366,7 +366,7 @@ def test_process_document_job_fails_smb_download_without_leaking_password(tmp_pa
     conn.close()
 
     def fake_fetch(document, destination):
-        raise RuntimeError("SMB download failed for Alpha/remote.md")
+        raise RuntimeError("bad password super-secret")
 
     monkeypatch.setattr("services.index_worker.remote_fetch.fetch_smb_document", fake_fetch)
 
@@ -377,6 +377,7 @@ def test_process_document_job_fails_smb_download_without_leaking_password(tmp_pa
     run_error = conn.execute("SELECT error_message FROM document_index_runs WHERE document_id = 'doc_1'").fetchone()[0]
     conn.close()
     assert "Alpha/remote.md" in run_error
+    assert "super-secret" not in run_error
     assert "password" not in run_error.lower()
 
 
