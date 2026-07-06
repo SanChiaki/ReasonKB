@@ -23,6 +23,11 @@ services:
       REASONKB_HOST_BROWSE_CONTAINER_ROOT: /host-browse
       REASONKB_ENV_FILE_PATH: /app/runtime.env
       REASONKB_COMPOSE_COMMAND: docker compose --env-file ${REASONKB_ENV_FILE:-./.env} -f compose.yml up -d --force-recreate --remove-orphans
+      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
+      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
+      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
+      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
+      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
     volumes:
       - ${REASONKB_VAR_ROOT:-./var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro

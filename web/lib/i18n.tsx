@@ -204,6 +204,14 @@ const messages = {
     "settings.projectsRoot": "Projects root",
     "settings.projectsRootDescription":
       "Controls the host directory Docker mounts as the project corpus. The running containers must be recreated before the new host path is available at /data/projects.",
+    "settings.smbCorpusSource": "SMB corpus source",
+    "settings.smbCorpusDescription":
+      "ReasonKB is reading project metadata from a Windows/SMB share. Documents are downloaded only when indexing needs file contents.",
+    "settings.corpusSourceType": "Corpus source:",
+    "settings.smbTarget": "SMB target",
+    "settings.smbLocalSwitchDisabled":
+      "Local Projects root switching is disabled while the corpus source is SMB. Change the SMB connection in the Docker environment and recreate the containers.",
+    "settings.notConfigured": "Not configured",
     "settings.currentMountedHostPath": "Current mounted host path:",
     "settings.notReportedByDocker": "Not reported by Docker",
     "settings.dockerEnvFile": "Docker env file:",
@@ -442,6 +450,14 @@ const messages = {
     "settings.projectsRoot": "Projects 根目录",
     "settings.projectsRootDescription":
       "控制 Docker 挂载为项目语料库的宿主机目录。运行中的容器必须重新创建，新宿主机路径才会在 /data/projects 可用。",
+    "settings.smbCorpusSource": "SMB 语料来源",
+    "settings.smbCorpusDescription":
+      "ReasonKB 正在从 Windows/SMB 共享读取项目元数据。只有索引需要文件内容时，才会下载文档。",
+    "settings.corpusSourceType": "语料来源：",
+    "settings.smbTarget": "SMB 目标",
+    "settings.smbLocalSwitchDisabled":
+      "当前语料来源为 SMB，本地 Projects 根目录切换不适用。如需修改 SMB 连接，请更新 Docker 环境配置并重新创建容器。",
+    "settings.notConfigured": "未配置",
     "settings.currentMountedHostPath": "当前挂载的宿主机路径：",
     "settings.notReportedByDocker": "Docker 未上报",
     "settings.dockerEnvFile": "Docker env 文件：",

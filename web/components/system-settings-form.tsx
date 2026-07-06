@@ -10,6 +10,7 @@ import {
 } from "@/lib/llm-model-format";
 
 type ProjectsRootSwitchStatus = "idle" | "pending" | "complete";
+type CorpusSource = "local" | "smb";
 
 type SettingsResponse = {
   error?: string;
@@ -103,6 +104,8 @@ export function SystemSettingsForm({
   projectsRootComposeCommand,
   projectsRootBrowseRootHostPath,
   projectsRootPickerAvailable,
+  corpusSource = "local",
+  smbCorpusTarget = "",
 }: {
   initialIndexWorkerConcurrency: number;
   initialRetrievalDocumentLimit: number;
@@ -120,6 +123,8 @@ export function SystemSettingsForm({
   projectsRootComposeCommand: string;
   projectsRootBrowseRootHostPath: string;
   projectsRootPickerAvailable: boolean;
+  corpusSource?: CorpusSource;
+  smbCorpusTarget?: string;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -212,6 +217,7 @@ export function SystemSettingsForm({
     normalizedProjectsRootHostPath.length > 0 &&
     !/[\r\n]/.test(normalizedProjectsRootHostPath) &&
     isAbsoluteHostPath(normalizedProjectsRootHostPath);
+  const isSmbCorpus = corpusSource === "smb";
   const projectsRootNeedsSwitch =
     normalizedProjectsRootHostPath.length > 0 &&
     normalizedProjectsRootHostPath !== currentProjectsRootHostPath;
@@ -724,19 +730,28 @@ export function SystemSettingsForm({
               {t("settings.projectCorpus")}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
-              {t("settings.projectsRoot")}
+              {isSmbCorpus ? t("settings.smbCorpusSource") : t("settings.projectsRoot")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              {t("settings.projectsRootDescription")}
+              {isSmbCorpus
+                ? t("settings.smbCorpusDescription")
+                : t("settings.projectsRootDescription")}
             </p>
             <div className="mt-4 grid gap-2 text-xs text-[var(--pi-muted)]">
-              <p>
-                {t("settings.currentMountedHostPath")}{" "}
-                <span className="font-mono text-[var(--pi-ink)]">
-                  {currentProjectsRootHostPath || t("settings.notReportedByDocker")}
-                </span>
-              </p>
-              {projectsRootEnvFilePath ? (
+              {isSmbCorpus ? (
+                <p>
+                  {t("settings.corpusSourceType")}{" "}
+                  <span className="font-mono text-[var(--pi-ink)]">SMB</span>
+                </p>
+              ) : (
+                <p>
+                  {t("settings.currentMountedHostPath")}{" "}
+                  <span className="font-mono text-[var(--pi-ink)]">
+                    {currentProjectsRootHostPath || t("settings.notReportedByDocker")}
+                  </span>
+                </p>
+              )}
+              {projectsRootEnvFilePath && !isSmbCorpus ? (
                 <p>
                   {t("settings.dockerEnvFile")}{" "}
                   <span className="font-mono text-[var(--pi-ink)]">
@@ -747,49 +762,67 @@ export function SystemSettingsForm({
             </div>
           </div>
           <div className="w-full lg:w-[28rem]">
-            <p className="text-sm font-medium text-[var(--pi-ink)]">
-              {t("settings.selectedProjectsRoot")}
-            </p>
-            <div className="mt-2 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3">
-              <p className="break-all font-mono text-sm text-[var(--pi-ink)]">
-                {projectsRootHostPath || t("settings.noHostFolderSelected")}
-              </p>
-              {projectsRootBrowseRootHostPath ? (
-                <p className="mt-2 break-all text-xs text-[var(--pi-muted)]">
-                  {t("settings.folderPickerRoot")}{" "}
-                  <span className="font-mono">{projectsRootBrowseRootHostPath}</span>
+            {isSmbCorpus ? (
+              <>
+                <p className="text-sm font-medium text-[var(--pi-ink)]">
+                  {t("settings.smbTarget")}
                 </p>
-              ) : null}
-            </div>
-            {!isValidProjectsRootHostPath ? (
-              <p className="mt-2 text-xs text-[var(--pi-danger)]">
-                {t("settings.chooseAbsoluteHostFolder")}
-              </p>
-            ) : null}
-            {!projectsRootPickerAvailable ? (
-              <p className="mt-2 text-xs text-[var(--pi-danger)]">
-                {t("settings.pickerUnavailable")}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              disabled={!projectsRootPickerAvailable || projectsRootSubmitting}
-              onClick={openProjectsRootPicker}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <Folder aria-hidden="true" className="h-4 w-4" />
-              {t("settings.chooseFolder")}
-            </button>
-            <button
-              type="button"
-              disabled={!canSwitchProjectsRoot}
-              onClick={() => setShowProjectsRootDialog(true)}
-              className="ml-0 mt-3 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45 sm:ml-3 sm:mt-4"
-            >
-              {t("settings.switchProjectsRoot")}
-            </button>
+                <div className="mt-2 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3">
+                  <p className="break-all font-mono text-sm text-[var(--pi-ink)]">
+                    {smbCorpusTarget || t("settings.notConfigured")}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--pi-muted)]">
+                    {t("settings.smbLocalSwitchDisabled")}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-[var(--pi-ink)]">
+                  {t("settings.selectedProjectsRoot")}
+                </p>
+                <div className="mt-2 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-3">
+                  <p className="break-all font-mono text-sm text-[var(--pi-ink)]">
+                    {projectsRootHostPath || t("settings.noHostFolderSelected")}
+                  </p>
+                  {projectsRootBrowseRootHostPath ? (
+                    <p className="mt-2 break-all text-xs text-[var(--pi-muted)]">
+                      {t("settings.folderPickerRoot")}{" "}
+                      <span className="font-mono">{projectsRootBrowseRootHostPath}</span>
+                    </p>
+                  ) : null}
+                </div>
+                {!isValidProjectsRootHostPath ? (
+                  <p className="mt-2 text-xs text-[var(--pi-danger)]">
+                    {t("settings.chooseAbsoluteHostFolder")}
+                  </p>
+                ) : null}
+                {!projectsRootPickerAvailable ? (
+                  <p className="mt-2 text-xs text-[var(--pi-danger)]">
+                    {t("settings.pickerUnavailable")}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={!projectsRootPickerAvailable || projectsRootSubmitting}
+                  onClick={openProjectsRootPicker}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <Folder aria-hidden="true" className="h-4 w-4" />
+                  {t("settings.chooseFolder")}
+                </button>
+                <button
+                  type="button"
+                  disabled={!canSwitchProjectsRoot}
+                  onClick={() => setShowProjectsRootDialog(true)}
+                  className="ml-0 mt-3 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45 sm:ml-3 sm:mt-4"
+                >
+                  {t("settings.switchProjectsRoot")}
+                </button>
+              </>
+            )}
 
-            {projectsRootSwitchStatus !== "idle" ? (
+            {!isSmbCorpus && projectsRootSwitchStatus !== "idle" ? (
               <div
                 role="status"
                 className="mt-5 rounded-lg border border-[var(--pi-border)] bg-[var(--pi-bg)] p-4"
@@ -838,15 +871,16 @@ export function SystemSettingsForm({
                       {t("settings.requestedAt", { date: projectsRootSwitchUpdatedAt })}
                     </p>
                   ) : null}
+                  {projectsRootCommand ? (
+                    <p className="break-all font-mono text-[var(--pi-ink)]">
+                      {projectsRootCommand}
+                    </p>
+                  ) : null}
                 </div>
-                <pre className="mt-3 overflow-x-auto rounded-md border border-[var(--pi-border)] bg-white p-3 text-xs text-[var(--pi-ink)]">
-                  <code>{projectsRootCommand}</code>
-                </pre>
               </div>
             ) : null}
-
             {projectsRootStatusMessage ? (
-              <p className="mt-3 text-sm text-[var(--pi-brand)]">
+              <p className="mt-3 text-sm text-[var(--pi-success)]">
                 {projectsRootStatusMessage}
               </p>
             ) : null}

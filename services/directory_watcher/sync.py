@@ -285,8 +285,12 @@ def _upsert_source_file(
         return "skipped"
 
     document_id = existing["id"]
+    content_hash_changed = (
+        source_file.source_kind != "smb"
+        and existing["content_hash"] != source_file.content_hash
+    )
     content_changed = (
-        existing["content_hash"] != source_file.content_hash
+        content_hash_changed
         or existing["source_mtime"] != source_file.mtime
         or existing["source_size"] != source_file.size
         or existing["media_type"] != source_file.media_type

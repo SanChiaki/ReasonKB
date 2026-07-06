@@ -49,7 +49,7 @@ class SmbCorpusSource:
             self._join_paths(self.config.base_path, source_relative_path),
         )
         destination.parent.mkdir(parents=True, exist_ok=True)
-        with self.smbclient.open_file(remote_path, mode="rb") as source:
+        with self.smbclient.open_file(remote_path, mode="rb", port=self.config.port) as source:
             with destination.open("wb") as target:
                 while chunk := source.read(CHUNK_SIZE):
                     target.write(chunk)
@@ -71,7 +71,7 @@ class SmbCorpusSource:
         self._registered = True
 
     def _walk(self, remote_path: str, relative_path: str, files: list[RemoteCorpusFile]) -> None:
-        for entry in self.smbclient.scandir(remote_path):
+        for entry in self.smbclient.scandir(remote_path, port=self.config.port):
             name = entry.name
             if self._is_ignored_name(name):
                 continue
@@ -80,18 +80,18 @@ class SmbCorpusSource:
                 self._walk(entry.path, child_relative_path, files)
                 continue
             if entry.is_file():
-                file = self._classify_file(entry, child_relative_path)
+                file = self._classify_file(entry.path, child_relative_path)
                 if file is not None:
                     files.append(file)
 
-    def _classify_file(self, entry: Any, source_relative_path: str) -> RemoteCorpusFile | None:
+    def _classify_file(self, remote_path: str, source_relative_path: str) -> RemoteCorpusFile | None:
         relative = PurePosixPath(source_relative_path)
         if len(relative.parts) < 2:
             return None
         media_type = SUPPORTED_MEDIA_BY_EXTENSION.get(relative.suffix.lower(), "unsupported")
-        stat = entry.stat()
+        stat = self.smbclient.stat(remote_path, port=self.config.port)
         return RemoteCorpusFile(
-            locator=entry.path,
+            locator=remote_path,
             project_name=relative.parts[0],
             source_root=self.source_root,
             source_relative_path=relative.as_posix(),

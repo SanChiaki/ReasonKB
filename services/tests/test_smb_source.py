@@ -31,6 +31,9 @@ class FakeSmbClient:
     def __init__(self):
         self.registered = []
         self.downloads = []
+        self.scans = []
+        self.stats = []
+        self.entries = {}
         self.tree = {
             "//server/share/base": [
                 FakeDirEntry("//server/share/base/ProjectA", is_dir=True),
@@ -41,14 +44,18 @@ class FakeSmbClient:
                 FakeDirEntry("//server/share/base/ProjectA/.hidden", size=1),
             ],
         }
+        for entries in self.tree.values():
+            for entry in entries:
+                self.entries[entry.path] = entry
 
     def register_session(self, server, username=None, password=None, port=445, auth_protocol="ntlm", **kwargs):
         self.registered.append((server, username, password, port, auth_protocol))
 
-    def scandir(self, path):
+    def scandir(self, path, port=445):
+        self.scans.append((path, port))
         return self.tree[path]
 
-    def open_file(self, path, mode="rb"):
+    def open_file(self, path, mode="rb", port=445):
         class Handle:
             def __init__(self_inner):
                 self_inner.chunks = [b"hello", b""]
@@ -62,12 +69,16 @@ class FakeSmbClient:
             def read(self_inner, size=-1):
                 return self_inner.chunks.pop(0)
 
-        self.downloads.append((path, mode))
+        self.downloads.append((path, mode, port))
         return Handle()
+
+    def stat(self, path, port=445):
+        self.stats.append((path, port))
+        return self.entries[path].stat()
 
 
 class FakeShortReadSmbClient(FakeSmbClient):
-    def open_file(self, path, mode="rb"):
+    def open_file(self, path, mode="rb", port=445):
         class Handle:
             def __init__(self_inner):
                 self_inner.chunks = [b"he", b"llo", b""]
@@ -81,7 +92,7 @@ class FakeShortReadSmbClient(FakeSmbClient):
             def read(self_inner, size=-1):
                 return self_inner.chunks.pop(0)
 
-        self.downloads.append((path, mode))
+        self.downloads.append((path, mode, port))
         return Handle()
 
 
@@ -112,6 +123,29 @@ def test_smb_source_lists_supported_files_without_downloading(tmp_path):
     assert files[1].media_type == "unsupported"
     assert fake_client.downloads == []
     assert fake_client.registered == [("server", "DOMAIN\\alice", "secret", 445, "ntlm")]
+
+
+def test_smb_source_uses_configured_port_for_scan_and_fetch(tmp_path):
+    fake_client = FakeSmbClient()
+    source = SmbCorpusSource(
+        SmbConfig(host="server", share="share", base_path="base", port=1445),
+        smbclient_module=fake_client,
+    )
+
+    source.list_files()
+    destination = tmp_path / "report.md"
+    source.fetch_file("ProjectA/report.md", destination)
+
+    assert fake_client.registered == [("server", None, None, 1445, "ntlm")]
+    assert fake_client.scans == [
+        ("//server/share/base", 1445),
+        ("//server/share/base/ProjectA", 1445),
+    ]
+    assert fake_client.stats == [
+        ("//server/share/base/ProjectA/report.md", 1445),
+        ("//server/share/base/ProjectA/archive.zip", 1445),
+    ]
+    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb", 1445)]
 
 
 def test_smb_source_ignores_root_level_unsupported_files(tmp_path):
@@ -148,7 +182,7 @@ def test_smb_source_fetches_single_file(tmp_path):
     source.fetch_file("ProjectA/report.md", destination)
 
     assert destination.read_bytes() == b"hello"
-    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb")]
+    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb", 445)]
 
 
 def test_smb_source_fetches_until_empty_read_after_short_chunks(tmp_path):
@@ -172,4 +206,4 @@ def test_smb_source_fetches_until_empty_read_after_short_chunks(tmp_path):
     source.fetch_file("ProjectA/report.md", destination)
 
     assert destination.read_bytes() == b"hello"
-    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb")]
+    assert fake_client.downloads == [("//server/share/base/ProjectA/report.md", "rb", 445)]

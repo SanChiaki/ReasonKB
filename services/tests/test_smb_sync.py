@@ -119,6 +119,28 @@ def test_sync_smb_once_uses_mtime_and_size_for_change_detection(tmp_path):
     assert queued == 1
 
 
+def test_sync_smb_once_does_not_requeue_when_indexer_replaces_smb_content_hash(tmp_path):
+    db_path = _create_db(tmp_path)
+    source_file = remote_file("ProjectA/report.md", size=12)
+    sync_smb_once(str(db_path), FakeRemoteSource([source_file]))
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET status = 'completed'")
+    conn.execute("UPDATE documents SET content_hash = 'sha256:downloaded-content'")
+    conn.commit()
+    conn.close()
+
+    summary = sync_smb_once(str(db_path), FakeRemoteSource([source_file]))
+
+    conn = sqlite3.connect(db_path)
+    row = conn.execute("SELECT content_hash, source_size, status FROM documents").fetchone()
+    queued = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'queued'").fetchone()[0]
+    conn.close()
+
+    assert summary == {"created": 0, "updated": 0, "unchanged": 1, "deleted": 0, "skipped": 0}
+    assert row == ("sha256:downloaded-content", 12, "uploaded")
+    assert queued == 0
+
+
 def test_sync_smb_once_marks_unsupported_files_skipped_without_jobs(tmp_path):
     db_path = _create_db(tmp_path)
     source = FakeRemoteSource(
@@ -169,7 +191,7 @@ class EmptySmbClient:
     def register_session(self, *args, **kwargs):
         return None
 
-    def scandir(self, remote_path):
+    def scandir(self, remote_path, **kwargs):
         return []
 
 

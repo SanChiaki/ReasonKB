@@ -648,6 +648,51 @@ describe("SystemSettingsForm", () => {
     expect(routerMocks.refresh).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the SMB corpus source without local projects root switching controls", () => {
+    render(
+      <SystemSettingsForm
+        initialIndexWorkerConcurrency={2}
+        initialRetrievalDocumentLimit={5}
+        initialLlmApiKeyConfigured={false}
+        initialLlmBaseUrl=""
+        initialLlmModel="openai/deepseek-v4-flash"
+        initialLlmRetrievalModel="openai/deepseek-v4-flash"
+        initialLlmConfigured={false}
+        initialLlmMissingFields={["API key", "Base URL"]}
+        initialCurrentProjectsRootHostPath="../.reasonkb/manual-projects"
+        initialPendingProjectsRootHostPath=""
+        initialProjectsRootSwitchStatus="idle"
+        initialProjectsRootSwitchUpdatedAt={null}
+        projectsRootEnvFilePath="/Users/oam/.reasonkb/.env"
+        projectsRootComposeCommand="docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans"
+        projectsRootBrowseRootHostPath="/Users/oam"
+        projectsRootPickerAvailable={true}
+        corpusSource="smb"
+        smbCorpusTarget="//172.19.0.1:1445/ReasonKBE2E/Division A"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: /SMB corpus source/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /ReasonKB is reading project metadata from a Windows\/SMB share/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("//172.19.0.1:1445/ReasonKBE2E/Division A"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/local Projects root switching is disabled/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /choose folder/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /switch projects root/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/choose an absolute host folder/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows completion when Docker reports the requested projects root", () => {
     render(
       <SystemSettingsForm

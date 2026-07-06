@@ -65,6 +65,8 @@ export default async function SettingsPage() {
               Boolean(appConfig.hostBrowseRootHostPath) &&
               Boolean(appConfig.hostBrowseRootContainerPath)
             }
+            corpusSource={appConfig.corpusSource}
+            smbCorpusTarget={appConfig.smbCorpusTarget}
           />
         </div>
       </section>

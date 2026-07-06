@@ -170,6 +170,17 @@ def test_release_web_exposes_current_host_projects_root_to_settings_ui():
     )
 
 
+def test_release_web_exposes_remote_corpus_source_to_settings_ui():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    web = compose["services"]["web"]
+    assert web["environment"]["REASONKB_CORPUS_SOURCE"] == "${REASONKB_CORPUS_SOURCE:-local}"
+    assert web["environment"]["REASONKB_SMB_HOST"] == "${REASONKB_SMB_HOST:-}"
+    assert web["environment"]["REASONKB_SMB_SHARE"] == "${REASONKB_SMB_SHARE:-}"
+    assert web["environment"]["REASONKB_SMB_BASE_PATH"] == "${REASONKB_SMB_BASE_PATH:-}"
+    assert web["environment"]["REASONKB_SMB_PORT"] == "${REASONKB_SMB_PORT:-445}"
+
+
 def test_gotenberg_mirror_dockerfile_tracks_official_image():
     dockerfile = (ROOT / "docker" / "Dockerfile.gotenberg").read_text(encoding="utf-8")
 
