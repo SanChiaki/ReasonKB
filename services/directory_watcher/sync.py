@@ -357,9 +357,18 @@ def _mark_missing_projects_deleted(
     seen_project_names: set[str],
     now: str,
     source_kind: str = "directory",
+    source_root: str | None = None,
 ) -> int:
+    if source_root is None:
+        exists_source_root_filter = ""
+        other_active_filter = "AND d.source_kind <> ?"
+        params: tuple[str, ...] = (DEMO_USER_ID, source_kind, source_kind)
+    else:
+        exists_source_root_filter = "AND d.source_root = ?"
+        other_active_filter = "AND NOT (d.source_kind = ? AND d.source_root = ?)"
+        params = (DEMO_USER_ID, source_kind, source_root, source_kind, source_root)
     rows = conn.execute(
-        """
+        f"""
         SELECT p.id, p.name
           FROM projects p
          WHERE p.owner_user_id = ?
@@ -369,16 +378,17 @@ def _mark_missing_projects_deleted(
               FROM documents d
              WHERE d.project_id = p.id
                 AND d.source_kind = ?
+                {exists_source_root_filter}
            )
            AND NOT EXISTS (
              SELECT 1
                FROM documents d
               WHERE d.project_id = p.id
                 AND d.deleted_at IS NULL
-                AND d.source_kind <> ?
+                {other_active_filter}
            )
         """,
-        (DEMO_USER_ID, source_kind, source_kind),
+        params,
     ).fetchall()
     deleted = 0
     for row in rows:
@@ -409,7 +419,7 @@ def sync_once(db_path: str, projects_root: str | Path) -> dict[str, int]:
             outcome = _upsert_source_file(conn, root, source_file, now)
             summary[outcome] += 1
         summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now, "directory", str(root))
-        _mark_missing_projects_deleted(conn, seen_project_names, now, "directory")
+        _mark_missing_projects_deleted(conn, seen_project_names, now, "directory", str(root))
 
     return summary
 

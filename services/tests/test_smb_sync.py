@@ -38,13 +38,13 @@ class FakeRemoteSource:
         raise AssertionError("metadata sync must not download file contents")
 
 
-def remote_file(path, *, size=10, mtime="2026-07-06T00:00:00+00:00"):
+def remote_file(path, *, size=10, mtime="2026-07-06T00:00:00+00:00", source_root="smb://server/share"):
     file_name = path.rsplit("/", 1)[-1]
     project, rest = path.split("/", 1)
     return RemoteCorpusFile(
-        locator=f"smb://server/share/{path}",
+        locator=f"{source_root}/{path}",
         project_name=project,
-        source_root="smb://server/share",
+        source_root=source_root,
         source_relative_path=path,
         project_relative_path=rest,
         file_name=file_name,
@@ -149,3 +149,41 @@ def test_empty_successful_smb_scan_marks_existing_documents_deleted_when_source_
     assert summary["deleted"] == 1
     assert row[0:2] == ("deleted", "deleted")
     assert row[2] is not None
+
+
+def test_empty_smb_scan_only_deletes_projects_for_matching_source_root(tmp_path):
+    db_path = _create_db(tmp_path)
+    sync_smb_once(
+        str(db_path),
+        FakeRemoteSource(
+            [remote_file("ProjectA/report.md", source_root="smb://server/share-a")],
+            source_root="smb://server/share-a",
+        ),
+    )
+    sync_smb_once(
+        str(db_path),
+        FakeRemoteSource(
+            [remote_file("ProjectB/report.md", source_root="smb://server/share-b")],
+            source_root="smb://server/share-b",
+        ),
+    )
+
+    summary = sync_smb_once(str(db_path), FakeRemoteSource(source_root="smb://server/share-a"))
+
+    conn = sqlite3.connect(db_path)
+    projects = conn.execute(
+        """
+        SELECT p.name, p.deleted_at, d.status, d.deleted_at
+          FROM projects p
+          JOIN documents d ON d.project_id = p.id
+         ORDER BY p.name
+        """
+    ).fetchall()
+    conn.close()
+
+    assert summary["deleted"] == 1
+    assert projects[0][0] == "ProjectA"
+    assert projects[0][1] is not None
+    assert projects[0][2] == "deleted"
+    assert projects[0][3] is not None
+    assert projects[1] == ("ProjectB", None, "uploaded", None)

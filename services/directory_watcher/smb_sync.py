@@ -57,6 +57,6 @@ def sync_smb_once(db_path: str, remote_source: RemoteCorpusSource) -> dict[str, 
             summary[outcome] += 1
         if source_root:
             summary["deleted"] = _mark_missing_deleted(conn, seen_paths, now, "smb", source_root)
-            _mark_missing_projects_deleted(conn, seen_project_names, now, "smb")
+            _mark_missing_projects_deleted(conn, seen_project_names, now, "smb", source_root)
 
     return summary
