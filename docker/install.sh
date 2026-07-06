@@ -127,7 +127,7 @@ prompt_secret() {
   if [ -n "$default_value" ]; then
     prompt_write "$label [留空则保留现有值]: "
   else
-    prompt_write "$label（可选，按 Enter 跳过）: "
+    prompt_write "${label}（可选，按 Enter 跳过）: "
   fi
 
   if [ -z "${REASONKB_INSTALL_INPUT:-}" ] && [ -r /dev/tty ] && command -v stty >/dev/null 2>&1; then
@@ -403,7 +403,7 @@ ensure_port_env() {
   selected_port="$default_port"
   if ! is_port_available "$selected_port"; then
     selected_port="$(find_available_port "$default_port")"
-    echo "端口 $default_port 已被占用，$name 将改用 $selected_port。"
+    echo "端口 ${default_port} 已被占用，${name} 将改用 ${selected_port}。"
   fi
 
   set_env_file_value "$name" "$selected_port"
