@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+import re
 from urllib.parse import quote
+
+_UNSAFE_FILE_NAME_CHARS = re.compile(r"[^A-Za-z0-9._-]")
 
 
 @dataclass(frozen=True)
@@ -48,4 +51,4 @@ def safe_cache_file_name(source_relative_path: str) -> str:
     name = PurePosixPath(source_relative_path.replace("\\", "/")).name
     if not name or name.startswith("."):
         return "downloaded-file"
-    return name.replace(" ", "_")
+    return _UNSAFE_FILE_NAME_CHARS.sub("_", name)

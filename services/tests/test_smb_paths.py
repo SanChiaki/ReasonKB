@@ -64,4 +64,5 @@ def test_build_smb_source_root_and_url_escape_backslashes():
 
 def test_safe_cache_file_name_preserves_extension():
     assert safe_cache_file_name("Project A/final report.v1.pdf") == "final_report.v1.pdf"
+    assert safe_cache_file_name("Project/report:final?.pdf") == "report_final_.pdf"
     assert safe_cache_file_name("Project A/.hidden") == "downloaded-file"
