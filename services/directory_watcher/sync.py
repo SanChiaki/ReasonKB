@@ -213,7 +213,8 @@ def _upsert_source_file(
     if source_file.source_kind == "smb":
         existing = conn.execute(
             """
-            SELECT id, content_hash, source_mtime, source_size, media_type, import_status
+            SELECT id, content_hash, source_mtime, source_size, media_type,
+                   import_status, source_root, storage_path
               FROM documents
              WHERE source_kind = ?
                AND source_root = ?
@@ -225,7 +226,8 @@ def _upsert_source_file(
     else:
         existing = conn.execute(
             """
-            SELECT id, content_hash, source_mtime, source_size, media_type, import_status
+            SELECT id, content_hash, source_mtime, source_size, media_type,
+                   import_status, source_root, storage_path
               FROM documents
              WHERE source_kind = ?
                AND source_relative_path = ?
@@ -283,14 +285,18 @@ def _upsert_source_file(
         return "skipped"
 
     document_id = existing["id"]
-    changed = (
+    content_changed = (
         existing["content_hash"] != source_file.content_hash
         or existing["source_mtime"] != source_file.mtime
         or existing["source_size"] != source_file.size
         or existing["media_type"] != source_file.media_type
         or existing["import_status"] == "deleted"
     )
-    if not changed:
+    locator_changed = (
+        existing["source_root"] != source_root
+        or existing["storage_path"] != storage_path
+    )
+    if not content_changed and not locator_changed:
         return "unchanged"
 
     conn.execute(
@@ -322,10 +328,10 @@ def _upsert_source_file(
             document_id,
         ),
     )
-    if not unsupported_reason:
+    if content_changed and not unsupported_reason:
         _queue_index_job(conn, document_id, now)
         return "updated"
-    return "skipped"
+    return "skipped" if unsupported_reason else "updated"
 
 
 def _mark_missing_deleted(

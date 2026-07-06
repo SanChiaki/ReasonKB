@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import sqlite3
 from pathlib import Path
@@ -252,6 +253,58 @@ def test_sync_once_root_switch_updates_same_directory_document(tmp_path):
     assert updated[3] != original[3]
     assert updated[4:] == ("uploaded", "imported")
     assert queued_jobs == 1
+
+
+def test_sync_once_root_switch_refreshes_locator_for_identical_directory_file_without_requeue(tmp_path):
+    db_path = _create_db(tmp_path)
+    root_a = tmp_path / "root-a"
+    root_b = tmp_path / "root-b"
+    (root_a / "ProjectA").mkdir(parents=True)
+    (root_b / "ProjectA").mkdir(parents=True)
+    report_a = root_a / "ProjectA" / "report.md"
+    report_b = root_b / "ProjectA" / "report.md"
+    report_a.write_text("# Same Report", encoding="utf-8")
+    report_b.write_text("# Same Report", encoding="utf-8")
+    mtime = 1_788_000_000
+    os.utime(report_a, (mtime, mtime))
+    os.utime(report_b, (mtime, mtime))
+
+    sync_once(str(db_path), root_a)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET status = 'completed'")
+    original = conn.execute(
+        """
+        SELECT id, source_root, storage_path, content_hash, source_mtime, source_size
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/report.md",),
+    ).fetchone()
+    conn.commit()
+    conn.close()
+
+    summary = sync_once(str(db_path), root_b)
+
+    conn = sqlite3.connect(db_path)
+    document = conn.execute(
+        """
+        SELECT id, source_root, storage_path, content_hash, source_mtime, source_size,
+               status, import_status
+          FROM documents
+         WHERE source_relative_path = ?
+        """,
+        ("ProjectA/report.md",),
+    ).fetchone()
+    queued_jobs = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'queued'").fetchone()[0]
+    conn.close()
+
+    assert summary["updated"] == 1
+    assert document[0] == original[0]
+    assert document[1] == str(root_b.resolve())
+    assert document[2] == str(report_b.resolve())
+    assert document[3:6] == original[3:6]
+    assert document[6:] == ("uploaded", "imported")
+    assert queued_jobs == 0
 
 
 def test_sync_once_root_switch_marks_missing_directory_docs_deleted(tmp_path):
