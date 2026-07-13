@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("ProjectsPage", () => {
-  it("renders the explicit create-name form", async () => {
+  it("renders Projects as a read-only source view", async () => {
     vi.doMock("@/lib/config", () => ({
       appConfig: { dbPath: "/tmp/test.db" },
     }));
@@ -42,8 +42,8 @@ describe("ProjectsPage", () => {
     const module = await import("@/app/projects/page");
     render(await module.default({ searchParams: Promise.resolve({}) }));
 
-    expect(screen.getByPlaceholderText(/enter project name/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /create project/i })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: /search projects/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create project/i })).not.toBeInTheDocument();
   });
 
   it("renders a search no-match state instead of the empty-project copy", async () => {

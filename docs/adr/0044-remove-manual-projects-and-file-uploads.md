@@ -1,0 +1,3 @@
+# Remove manual projects and file uploads
+
+The multi-source design removes ReasonKB-managed file upload and manual Project creation. New Projects arise only from enabled Source Collections on read-only Corpus Sources, and the web UI and APIs no longer create `source_kind=upload` documents or write user files into managed upload storage. ReasonKB remains an ingestion, indexing, and retrieval system for external sources rather than a document repository. Existing upload data belongs to the demo-only capability and is deliberately purged by the formal-version migration rather than preserved as a legacy source.

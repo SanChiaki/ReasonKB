@@ -4,20 +4,18 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
-import {
-  createProject,
-  getProjectById,
-  listProjects,
-  updateProjectName,
-} from "@/lib/repos/project-store";
-import {
-  createDocumentRecord,
-  listDocumentsByProject,
-  listDocumentIndexRuns,
-} from "@/lib/repos/document-store";
-import { createIndexJob, getJob } from "@/lib/repos/job-store";
+import { getProjectById, listProjects } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
+
+function makeTempDb() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reasonkb-project-store-"));
+  tempDirs.push(dir);
+  const dbPath = path.join(dir, "app.db");
+  migrateDatabase(dbPath);
+  return dbPath;
+}
 
 afterEach(() => {
   while (tempDirs.length > 0) {
@@ -25,245 +23,72 @@ afterEach(() => {
   }
 });
 
-describe("project and document stores", () => {
-  it("creates a project and enqueues an index job for an uploaded document", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
+describe("deployment-shared source projects", () => {
+  it("returns active source projects with source identity", () => {
+    const dbPath = makeTempDb();
     const project = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "Alpha",
+      ownerUserId: "deployment",
+      name: "Operations",
+      sourceKind: "seeyon",
+      sourceDisplayName: "OA Production",
     });
 
-    const document = createDocumentRecord(dbPath, {
-      ownerUserId: "user_demo",
-      projectId: project.id,
-      fileName: "alpha.pdf",
-      storagePath: "/tmp/alpha.pdf",
-      mimeType: "application/pdf",
-      fileSize: 128,
-    });
-
-    const job = createIndexJob(dbPath, document.id);
-
-    expect(listProjects(dbPath, "user_demo")).toHaveLength(1);
-    expect(document.status).toBe("uploaded");
-    expect(getJob(dbPath, job.id)?.status).toBe("queued");
+    expect(listProjects(dbPath)).toEqual([
+      expect.objectContaining({
+        id: project.id,
+        name: "Operations",
+        documentCount: 0,
+        source: {
+          id: project.sourceId,
+          displayName: "OA Production",
+          kind: "seeyon",
+        },
+      }),
+    ]);
+    expect(getProjectById(dbPath, project.id)?.collection.id).toBe(project.collectionId);
   });
 
-  it("returns directory source metadata, latest index metrics, and run history", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-metrics-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
-    const project = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "ProjectA",
-    });
-    const document = createDocumentRecord(dbPath, {
-      ownerUserId: "user_demo",
-      projectId: project.id,
-      fileName: "handover.md",
-      storagePath: "/data/projects/ProjectA/delivery/handover.md",
-      mimeType: "text/markdown",
-      fileSize: 2048,
-    });
-
+  it("does not expose pending, disabled, deselected, or retrieval-fenced projects", () => {
+    const dbPath = makeTempDb();
+    const pending = createProject(dbPath, { name: "Pending" });
+    const disabled = createProject(dbPath, { name: "Disabled" });
+    const deselected = createProject(dbPath, { name: "Deselected" });
+    const fenced = createProject(dbPath, { name: "Fenced" });
     const db = new Database(dbPath);
-    db.prepare(
-      `UPDATE documents
-          SET source_kind = 'directory',
-              source_root = '/data/projects',
-              source_relative_path = 'ProjectA/delivery/handover.md',
-              project_relative_path = 'delivery/handover.md',
-              content_hash = 'sha256:abc',
-              source_mtime = '2026-04-25T10:00:00Z',
-              source_size = 2048,
-              media_type = 'markdown',
-              import_status = 'imported',
-              last_index_duration_ms = 1530,
-              last_index_total_tokens = 4200,
-              last_index_llm_call_count = 6,
-              last_indexed_at = '2026-04-25T10:02:00Z'
-        WHERE id = ?`,
-    ).run(document.id);
-    db.prepare(
-      `INSERT INTO document_index_runs (
-        id, document_id, job_id, status, started_at, finished_at,
-        duration_ms, text_extraction_ms, pageindex_ms, vision_extraction_ms,
-        persist_ms, llm_call_count, prompt_tokens, completion_tokens,
-        total_tokens, token_source, models_json, error_message
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      "run_1",
-      document.id,
-      null,
-      "completed",
-      "2026-04-25T10:00:00Z",
-      "2026-04-25T10:02:00Z",
-      1530,
-      120,
-      1300,
-      0,
-      110,
-      6,
-      3900,
-      300,
-      4200,
-      "provider_usage",
-      JSON.stringify({ "gpt-4.1": 6 }),
-      null,
+    db.prepare("UPDATE projects SET lifecycle_state = 'pending' WHERE id = ?").run(pending.id);
+    db.prepare("UPDATE corpus_sources SET state = 'disabled' WHERE id = ?").run(disabled.sourceId);
+    db.prepare("UPDATE source_collections SET selected = 0 WHERE id = ?").run(
+      deselected.collectionId,
     );
+    db.prepare("UPDATE projects SET retrieval_eligible = 0 WHERE id = ?").run(fenced.id);
     db.close();
 
-    const [row] = listDocumentsByProject(dbPath, project.id);
-    const runs = listDocumentIndexRuns(dbPath, document.id);
-
-    expect(row).toMatchObject({
-      id: document.id,
-      fileName: "handover.md",
-      sourceRelativePath: "ProjectA/delivery/handover.md",
-      projectRelativePath: "delivery/handover.md",
-      mediaType: "markdown",
-      importStatus: "imported",
-      lastIndexDurationMs: 1530,
-      lastIndexTotalTokens: 4200,
-      lastIndexLlmCallCount: 6,
-      lastIndexedAt: "2026-04-25T10:02:00Z",
-    });
-    expect(runs).toEqual([
-      {
-        id: "run_1",
-        status: "completed",
-        startedAt: "2026-04-25T10:00:00Z",
-        finishedAt: "2026-04-25T10:02:00Z",
-        durationMs: 1530,
-        textExtractionMs: 120,
-        pageindexMs: 1300,
-        visionExtractionMs: 0,
-        persistMs: 110,
-        llmCallCount: 6,
-        promptTokens: 3900,
-        completionTokens: 300,
-        totalTokens: 4200,
-        tokenSource: "provider_usage",
-        models: { "gpt-4.1": 6 },
-        errorMessage: null,
-      },
-    ]);
+    expect(listProjects(dbPath)).toEqual([]);
+    expect(getProjectById(dbPath, fenced.id)).toBeNull();
   });
 
-  it("scopes project lookup to the owner when provided", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-owner-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
+  it("counts only active, current, retrieval-eligible documents", () => {
+    const dbPath = makeTempDb();
+    const project = createProject(dbPath, { name: "Indexed" });
+    const now = new Date().toISOString();
+    const db = new Database(dbPath);
+    db.prepare(
+      `INSERT INTO documents (
+         id, project_id, owner_user_id, file_name, storage_path, mime_type,
+         file_size, status, source_kind, media_type, import_status,
+         source_id, source_collection_id, lifecycle_state, retrieval_eligible,
+         created_at, updated_at
+       ) VALUES (?, ?, 'deployment', 'ready.pdf', '', 'application/pdf', 1,
+                 'ready', 'local', 'pdf', 'imported', ?, ?, 'active', 1, ?, ?)`,
+    ).run("doc_ready", project.id, project.sourceId, project.collectionId, now, now);
+    db.prepare(
+      `INSERT INTO document_indexes (
+         id, document_id, doc_name, doc_description, structure_json, pages_json,
+         index_version, indexed_at, is_current
+       ) VALUES ('idx_ready', 'doc_ready', 'ready', '', '[]', '[]', 'v1', ?, 1)`,
+    ).run(now);
+    db.close();
 
-    const ownProject = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "Alpha",
-    });
-    const otherProject = createProject(dbPath, {
-      ownerUserId: "user_other",
-      name: "Beta",
-    });
-
-    expect(getProjectById(dbPath, ownProject.id, "user_demo")?.id).toBe(ownProject.id);
-    expect(getProjectById(dbPath, otherProject.id, "user_demo")).toBeNull();
-  });
-
-  it("updates a project name for the owner and trims whitespace", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-rename-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
-    const project = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "Alpha",
-    });
-
-    const renamed = updateProjectName(dbPath, {
-      ownerUserId: "user_demo",
-      projectId: project.id,
-      name: "  Beta Launch  ",
-    });
-
-    expect(renamed?.name).toBe("Beta Launch");
-    expect(getProjectById(dbPath, project.id, "user_demo")?.name).toBe(
-      "Beta Launch",
-    );
-  });
-
-  it("returns null when renaming a project outside owner scope", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-rename-scope-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
-    const project = createProject(dbPath, {
-      ownerUserId: "user_other",
-      name: "Gamma",
-    });
-
-    const renamed = updateProjectName(dbPath, {
-      ownerUserId: "user_demo",
-      projectId: project.id,
-      name: "Delta",
-    });
-
-    expect(renamed).toBeNull();
-    expect(getProjectById(dbPath, project.id, "user_other")?.name).toBe("Gamma");
-  });
-
-  it("rejects invalid project names in the repo layer", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-invalid-name-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
-    const project = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "Alpha",
-    });
-
-    expect(() =>
-      createProject(dbPath, {
-        ownerUserId: "user_demo",
-        name: "   ",
-      }),
-    ).toThrow("Project name must be between 1 and 120 characters.");
-
-    expect(() =>
-      updateProjectName(dbPath, {
-        ownerUserId: "user_demo",
-        projectId: project.id,
-        name: "x".repeat(121),
-      }),
-    ).toThrow("Project name must be between 1 and 120 characters.");
-  });
-
-  it("does not update the timestamp when a normalized rename is unchanged", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-store-rename-noop-"));
-    tempDirs.push(dir);
-    const dbPath = path.join(dir, "app.db");
-    migrateDatabase(dbPath);
-
-    const project = createProject(dbPath, {
-      ownerUserId: "user_demo",
-      name: "Alpha",
-    });
-
-    const renamed = updateProjectName(dbPath, {
-      ownerUserId: "user_demo",
-      projectId: project.id,
-      name: "  Alpha  ",
-    });
-
-    expect(renamed?.name).toBe("Alpha");
-    expect(renamed?.updatedAt).toBe(project.updatedAt);
+    expect(listProjects(dbPath)[0].documentCount).toBe(1);
   });
 });

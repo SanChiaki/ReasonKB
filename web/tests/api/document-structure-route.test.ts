@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import { createDocumentRecord } from "@/lib/repos/document-store";
-import { createProject } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
 
@@ -62,6 +62,9 @@ describe("document structure route", () => {
       "v1",
       "2026-05-18T10:00:00.000Z",
     );
+    db.prepare(
+      "UPDATE documents SET status = 'ready', retrieval_eligible = 1 WHERE id = ?",
+    ).run(document.id);
     db.close();
 
     const { GET } = await import("@/app/api/documents/[documentId]/structure/route");

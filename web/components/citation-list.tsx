@@ -8,6 +8,8 @@ export type CitationItem = {
   projectName: string;
   documentId?: string;
   documentName: string;
+  sourceDisplayName?: string | null;
+  sourceKind?: string | null;
   pages: string;
   focusPage?: number;
   excerpt?: string;
@@ -28,7 +30,7 @@ export function CitationList({ citations }: { citations: CitationItem[] }) {
           className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-2"
         >
           <p className="text-xs text-[var(--pi-muted)]">
-            [{citation.projectName}] {citation.documentName} - {t("chat.pages")}{" "}
+            [{citation.sourceDisplayName ? `${citation.sourceDisplayName} / ` : ""}{citation.projectName}] {citation.documentName} - {t("chat.pages")}{" "}
             {citation.pages}
             {citation.focusPage
               ? ` · ${t("chat.focusPage")} ${citation.focusPage}`

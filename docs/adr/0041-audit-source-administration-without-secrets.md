@@ -1,0 +1,3 @@
+# Audit source administration without secrets
+
+ReasonKB keeps append-only audit events for source creation, non-secret edits, validation, enablement, disablement, deletion, credential rotation, collection registration and selection, manual synchronization, retry, and explicit purge. Events include time, outcome, sanitized errors, and non-sensitive before/after values; they never contain credential values or ciphertext, tokens, authorization headers, or raw remote error bodies. File-level synchronization belongs to Sync Run history rather than the administration audit. Events default to 180-day retention, and the actor is `deployment-admin` until a real user identity exists.

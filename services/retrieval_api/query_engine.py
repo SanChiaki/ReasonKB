@@ -30,12 +30,16 @@ def _result_event(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _document_summary(document: dict[str, Any]) -> dict[str, Any]:
-    return {
+    summary = {
         "documentId": document["id"],
         "documentName": document["file_name"],
         "projectName": document["project_name"],
         "sourceRelativePath": document.get("source_relative_path"),
     }
+    if document.get("source_display_name"):
+        summary["sourceDisplayName"] = document["source_display_name"]
+        summary["sourceKind"] = document.get("source_kind")
+    return summary
 
 
 @lru_cache(maxsize=1)
@@ -63,6 +67,9 @@ def build_citation(
         "documentName": document["file_name"],
         "pages": pages,
     }
+    if project.get("sourceDisplayName"):
+        citation["sourceDisplayName"] = project["sourceDisplayName"]
+        citation["sourceKind"] = project.get("sourceKind")
     if focus_page is not None:
         citation["focusPage"] = focus_page
     if excerpt:
@@ -381,6 +388,8 @@ def _build_document_evidence(
         focus_page, excerpt = _select_citation_anchor(query, evidence)
         context_block = {
             "project": document["project_name"],
+            "source": document.get("source_display_name"),
+            "sourceKind": document.get("source_kind"),
             "document": document["file_name"],
             "sourceRelativePath": document.get("source_relative_path"),
             "projectRelativePath": document.get("project_relative_path"),
@@ -390,7 +399,12 @@ def _build_document_evidence(
         citation = None
         if mode != "evidence":
             citation = build_citation(
-                project={"id": document["project_id"], "name": document["project_name"]},
+                project={
+                    "id": document["project_id"],
+                    "name": document["project_name"],
+                    "sourceDisplayName": document.get("source_display_name"),
+                    "sourceKind": document.get("source_kind"),
+                },
                 document={"id": document["id"], "file_name": document["file_name"]},
                 pages=pages,
                 focus_page=focus_page,
@@ -409,6 +423,9 @@ def _build_document_evidence(
             "content": _join_evidence_content(evidence),
             "visualAssets": document.get("visual_assets", []),
         }
+        if document.get("source_display_name"):
+            evidence_block["sourceDisplayName"] = document["source_display_name"]
+            evidence_block["sourceKind"] = document.get("source_kind")
         return {
             "document": document,
             "contextBlock": context_block,
@@ -455,13 +472,31 @@ def _load_ready_documents(
             f"""
             SELECT d.id, d.project_id, d.file_name, p.name AS project_name,
                    d.source_relative_path, d.project_relative_path,
+                   s.display_name AS source_display_name, s.kind AS source_kind,
                    di.doc_description, di.structure_json, di.pages_json,
                    di.evidence_kind, di.visual_assets_json
               FROM documents d
               JOIN projects p ON p.id = d.project_id
               JOIN document_indexes di ON di.document_id = d.id
+              LEFT JOIN corpus_sources s ON s.id = d.source_id
+              LEFT JOIN source_collections c ON c.id = d.source_collection_id
              WHERE d.status = 'ready'
                AND d.deleted_at IS NULL
+               AND d.lifecycle_state = 'active'
+               AND d.retrieval_eligible = 1
+               AND di.is_current = 1
+               AND p.deleted_at IS NULL
+               AND p.lifecycle_state = 'active'
+               AND p.retrieval_eligible = 1
+               AND (
+                 d.source_id IS NULL OR (
+                   s.deleted_at IS NULL AND s.state = 'active'
+                   AND c.deleted_at IS NULL AND c.selected = 1
+                   AND c.registration_state = 'active'
+                   AND c.validation_state = 'valid'
+                   AND c.lifecycle_state = 'active'
+                 )
+               )
                {project_filter}
             """,
             project_params,
@@ -481,6 +516,8 @@ def _load_ready_documents(
                 "id": row["id"],
                 "project_id": row["project_id"],
                 "project_name": row["project_name"],
+                "source_display_name": row["source_display_name"],
+                "source_kind": row["source_kind"],
                 "file_name": row["file_name"],
                 "source_relative_path": row["source_relative_path"],
                 "project_relative_path": row["project_relative_path"],
@@ -601,6 +638,8 @@ def _build_document_evidence_events(
         focus_page, excerpt = _select_citation_anchor(query, evidence)
         context_block = {
             "project": document["project_name"],
+            "source": document.get("source_display_name"),
+            "sourceKind": document.get("source_kind"),
             "document": document["file_name"],
             "sourceRelativePath": document.get("source_relative_path"),
             "projectRelativePath": document.get("project_relative_path"),
@@ -610,7 +649,12 @@ def _build_document_evidence_events(
         citation = None
         if mode != "evidence":
             citation = build_citation(
-                project={"id": document["project_id"], "name": document["project_name"]},
+                project={
+                    "id": document["project_id"],
+                    "name": document["project_name"],
+                    "sourceDisplayName": document.get("source_display_name"),
+                    "sourceKind": document.get("source_kind"),
+                },
                 document={"id": document["id"], "file_name": document["file_name"]},
                 pages=pages,
                 focus_page=focus_page,
@@ -629,6 +673,9 @@ def _build_document_evidence_events(
             "content": _join_evidence_content(evidence),
             "visualAssets": document.get("visual_assets", []),
         }
+        if document.get("source_display_name"):
+            evidence_block["sourceDisplayName"] = document["source_display_name"]
+            evidence_block["sourceKind"] = document.get("source_kind")
         yield _progress_event(
             "document_evidence_loaded",
             {

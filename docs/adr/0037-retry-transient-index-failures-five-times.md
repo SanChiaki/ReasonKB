@@ -1,0 +1,3 @@
+# Retry transient index failures five times
+
+Transient fetch and indexing failures use five jittered retries at approximately 1 minute, 5 minutes, 15 minutes, 1 hour, and 6 hours. Network failures, timeouts, rate limits, server errors, and temporary LLM errors are retryable; unsupported or oversized content, definitive request errors, missing or access-revoked items, and repeatably corrupt content are not. Exhaustion creates an Index-Failed Document that remains outside retrieval until an administrator resets retries or a new Source Revision supersedes it. Source-level rate limiting reduces only that source's concurrency, and persisted diagnostics are sanitized.

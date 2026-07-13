@@ -1,0 +1,3 @@
+# Fence work by source configuration revision
+
+Every saved change to connection settings or credentials advances a Source Configuration Revision, and every synchronization, fetch, and index job records the revision under which it starts. Once a newer revision exists, older work may finish its current external operation but cannot reconcile visibility, mark items missing, or publish indexes and instead becomes superseded. The new configuration is saved even when validation fails, but old credentials no longer drive background work; successful validation immediately schedules an authoritative synchronization, while failed validation makes the source Needs Attention.

@@ -8,6 +8,7 @@ const tempDirs: string[] = [];
 afterEach(() => {
   vi.resetModules();
   vi.unmock("@/lib/config");
+  vi.unmock("@/lib/security/admin-route-auth");
   while (tempDirs.length > 0) {
     fs.rmSync(tempDirs.pop()!, { recursive: true, force: true });
   }
@@ -26,6 +27,10 @@ function mockBrowseRoot() {
       hostBrowseRootContainerPath: browseRoot,
       hostBrowseRootHostPath: "/Users/oam",
     },
+  }));
+  vi.doMock("@/lib/security/admin-route-auth", () => ({
+    authorizeAdminRequest: () => ({ id: "test-admin" }),
+    unauthorizedAdminResponse: () => new Response(null, { status: 401 }),
   }));
   return browseRoot;
 }
@@ -99,6 +104,10 @@ describe("host directories route", () => {
   });
 
   it("returns unavailable when no host browse root is configured", async () => {
+    vi.doMock("@/lib/security/admin-route-auth", () => ({
+      authorizeAdminRequest: () => ({ id: "test-admin" }),
+      unauthorizedAdminResponse: () => new Response(null, { status: 401 }),
+    }));
     vi.doMock("@/lib/config", () => ({
       appConfig: {
         hostBrowseRootContainerPath: "",

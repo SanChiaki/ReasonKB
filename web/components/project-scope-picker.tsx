@@ -8,7 +8,12 @@ export function ProjectScopePicker({
   selectedProjectIds,
   onToggle,
 }: {
-  projects: Array<{ id: string; name: string }>;
+  projects: Array<{
+    id: string;
+    name: string;
+    sourceDisplayName?: string;
+    sourceKind?: "local" | "smb" | "seeyon";
+  }>;
   selectedProjectIds: string[];
   onToggle: (projectId: string) => void;
 }) {
@@ -41,7 +46,10 @@ export function ProjectScopePicker({
                 : "border-[var(--pi-border)] bg-white text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
             }`}
           >
-            {project.name}
+            <span>{project.name}</span>
+            {project.sourceDisplayName ? (
+              <span className="ml-1 text-[10px] opacity-70">· {project.sourceDisplayName}</span>
+            ) : null}
           </button>
         );
       })}

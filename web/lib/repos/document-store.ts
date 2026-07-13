@@ -7,6 +7,57 @@ function open(dbPath: string) {
   return db;
 }
 
+export function isDocumentAccessible(dbPath: string, documentId: string) {
+  const db = open(dbPath);
+  try {
+    return Boolean(
+      db
+        .prepare(
+          `SELECT 1
+             FROM documents d
+             JOIN projects p ON p.id = d.project_id
+             LEFT JOIN corpus_sources s ON s.id = d.source_id
+             LEFT JOIN source_collections c ON c.id = d.source_collection_id
+            WHERE d.id = ? AND d.deleted_at IS NULL
+              AND d.lifecycle_state = 'active'
+              AND p.deleted_at IS NULL AND p.lifecycle_state = 'active'
+              AND p.retrieval_eligible = 1
+              AND (
+                d.source_id IS NULL OR (
+                  s.deleted_at IS NULL AND s.state = 'active'
+                  AND c.deleted_at IS NULL AND c.selected = 1
+                  AND c.registration_state = 'active'
+                  AND c.validation_state = 'valid'
+                  AND c.lifecycle_state = 'active'
+                )
+              )`,
+        )
+        .get(documentId),
+    );
+  } finally {
+    db.close();
+  }
+}
+
+export function isDocumentRetrievable(dbPath: string, documentId: string) {
+  if (!isDocumentAccessible(dbPath, documentId)) return false;
+  const db = open(dbPath);
+  try {
+    return Boolean(
+      db
+        .prepare(
+          `SELECT 1 FROM documents d
+             JOIN document_indexes di ON di.document_id = d.id
+            WHERE d.id = ? AND d.status = 'ready'
+              AND d.retrieval_eligible = 1 AND di.is_current = 1`,
+        )
+        .get(documentId),
+    );
+  } finally {
+    db.close();
+  }
+}
+
 export function createDocumentRecord(
   dbPath: string,
   input: {
@@ -380,7 +431,7 @@ export function getDocumentDetail(dbPath: string, documentId: string) {
 export function getDocumentStructure(dbPath: string, documentId: string) {
   const db = open(dbPath);
   const row = db
-    .prepare(`SELECT structure_json FROM document_indexes WHERE document_id = ?`)
+    .prepare(`SELECT structure_json FROM document_indexes WHERE document_id = ? AND is_current = 1`)
     .get(documentId) as { structure_json: string } | undefined;
 
   db.close();
@@ -396,7 +447,7 @@ export function getDocumentIndexTree(
     .prepare(
       `SELECT structure_json, indexed_at
          FROM document_indexes
-        WHERE document_id = ?`,
+        WHERE document_id = ? AND is_current = 1`,
     )
     .get(documentId) as
     | {
@@ -424,7 +475,7 @@ export function getDocumentPages(
 ) {
   const db = open(dbPath);
   const row = db
-    .prepare(`SELECT pages_json FROM document_indexes WHERE document_id = ?`)
+    .prepare(`SELECT pages_json FROM document_indexes WHERE document_id = ? AND is_current = 1`)
     .get(documentId) as { pages_json: string } | undefined;
 
   db.close();

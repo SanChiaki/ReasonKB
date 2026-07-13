@@ -1,0 +1,3 @@
+# Save invalid source configuration as a draft
+
+Administrators may save incomplete or connection-failing Corpus Source configuration as a Draft Source with encrypted credentials and sanitized validation errors. Drafts run neither discovery nor synchronization and cannot enable collections or create Projects. Successful connection validation promotes the source to operational configuration with a default none-selection policy. Credential edits trigger immediate revalidation; failure degrades an existing source without deleting known content. Draft deletion has no content cascade because it has never produced Projects.

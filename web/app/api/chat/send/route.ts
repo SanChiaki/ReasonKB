@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   }
 
   const missingProjectIds = [...new Set(parsed.data.projectIds)].filter(
-    (projectId) => !getProjectById(appConfig.dbPath, projectId, demoUserId),
+    (projectId) => !getProjectById(appConfig.dbPath, projectId),
   );
   if (missingProjectIds.length > 0) {
     return NextResponse.json(

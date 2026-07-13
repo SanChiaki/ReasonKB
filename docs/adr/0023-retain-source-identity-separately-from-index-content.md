@@ -1,0 +1,3 @@
+# Retain source identity separately from index content
+
+ReasonKB retains Source Tombstones long-term so a reappearing Source Item ID recovers its prior Project and document identity even after imported content is cleaned up. Missing document indexes are retained for 30 days by default and then purged; the deployment default may be overridden per source. Inactive and access-revoked Projects are not purged automatically. A successfully refreshed document removes its superseded index immediately, and temporary downloads are always removed after use. Source deletion follows its separate recovery-period decision before permanently cascading through Projects, documents, indexes, synchronization history, and encrypted credentials.

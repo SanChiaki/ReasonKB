@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appConfig } from "@/lib/config";
-import { getDocumentPages, InvalidPagesFilterError } from "@/lib/repos/document-store";
+import {
+  getDocumentPages,
+  InvalidPagesFilterError,
+  isDocumentRetrievable,
+} from "@/lib/repos/document-store";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ documentId: string }> },
 ) {
   const { documentId } = await context.params;
+  if (!isDocumentRetrievable(appConfig.dbPath, documentId)) {
+    return NextResponse.json({ error: "Document pages not found" }, { status: 404 });
+  }
   const pages = request.nextUrl.searchParams.get("pages");
   try {
     return NextResponse.json({

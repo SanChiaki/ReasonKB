@@ -1,0 +1,3 @@
+# Connect once and enable source collections
+
+A Corpus Source represents one configured connection and may discover any number of Source Collections without duplicating its credentials or connection settings. Each enabled Source Collection becomes an isolated Project. Every newly configured source enables no collections by default: discovery is read-only, and ingestion starts only after the user explicitly selects collections or chooses the policy that enables all collections. Existing local and SMB projects are preserved as enabled during migration. This avoids unintentionally importing large directory trees or every library visible to a broadly authorized account.

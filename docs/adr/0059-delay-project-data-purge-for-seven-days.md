@@ -1,0 +1,3 @@
+# Delay project data purge for seven days
+
+Purging one Project normally places it in Pending Purge for seven days, excluded from synchronization and retrieval but recoverable with its existing documents and indexes. At expiry, background work removes indexes, converted artifacts, document metadata, and operational history while retaining the minimal Source Tombstone and sanitized audit record; failures remain non-retrievable and retry until cleanup completes. An administrator may request immediate purge only by confirming the Project name, applying the same protection already used for whole-source deletion.

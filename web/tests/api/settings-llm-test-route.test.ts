@@ -9,6 +9,7 @@ const tempDirs: string[] = [];
 afterEach(() => {
   vi.resetModules();
   vi.unmock("@/lib/config");
+  vi.unmock("@/lib/security/admin-route-auth");
   vi.restoreAllMocks();
   while (tempDirs.length > 0) {
     fs.rmSync(tempDirs.pop()!, { recursive: true, force: true });
@@ -25,6 +26,10 @@ function makeTempConfig() {
       dbPath,
       retrievalBaseUrl: "http://retrieval.example.test",
     },
+  }));
+  vi.doMock("@/lib/security/admin-route-auth", () => ({
+    authorizeAdminRequest: () => ({ id: "test-admin" }),
+    unauthorizedAdminResponse: () => new Response(null, { status: 401 }),
   }));
 }
 

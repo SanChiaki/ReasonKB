@@ -24,10 +24,11 @@ describe("migrateDatabase", () => {
     migrateDatabase(dbPath);
 
     const db = new Database(dbPath, { readonly: true });
-    const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-      .all()
-      .map((row: { name: string }) => row.name);
+    const tables = (
+      db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
+        name: string;
+      }>
+    ).map((row) => row.name);
 
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -86,14 +87,12 @@ describe("migrateDatabase", () => {
     migrateDatabase(dbPath);
 
     const db = new Database(dbPath, { readonly: true });
-    const documentColumns = db
-      .prepare("PRAGMA table_info(documents)")
-      .all()
-      .map((row: { name: string }) => row.name);
-    const indexColumns = db
-      .prepare("PRAGMA table_info(document_indexes)")
-      .all()
-      .map((row: { name: string }) => row.name);
+    const documentColumns = (
+      db.prepare("PRAGMA table_info(documents)").all() as Array<{ name: string }>
+    ).map((row) => row.name);
+    const indexColumns = (
+      db.prepare("PRAGMA table_info(document_indexes)").all() as Array<{ name: string }>
+    ).map((row) => row.name);
     const runTable = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
       .get("document_index_runs") as { name: string } | undefined;

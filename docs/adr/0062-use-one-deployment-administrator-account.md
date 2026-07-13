@@ -1,0 +1,3 @@
+# Use one deployment administrator account
+
+The initial formal release uses one deployment-level administrator account instead of introducing a general user and role system. Installation bootstraps an administrator password whose strong hash is stored in SQLite, and authenticated administration uses secure session cookies; all source configuration, synchronization, lifecycle, and purge operations require that session. Ordinary retrieval remains protected by the deployment or reverse-proxy boundary, and a future SSO adapter may replace administrator authentication without changing the shared Project or Source Administrator authorization model.

@@ -589,6 +589,47 @@ describe("Chat page components", () => {
     ).toBeVisible();
   });
 
+  it("uses document names instead of opaque source IDs in retrieval progress", () => {
+    const document = {
+      documentId: "doc_1",
+      documentName: "龙田设备档案模板.xlsx",
+      projectName: "单位文档",
+      sourceRelativePath: "5194972540313029554",
+    };
+
+    render(
+      <ChatMessageList
+        messages={[
+          {
+            id: "msg_progress",
+            role: "assistant",
+            content: "回答已生成。",
+            citations: [],
+            progressExpanded: true,
+            progress: {
+              documents: [document],
+              lines: [
+                { id: "started", stage: "document_evidence_started", data: { document } },
+                {
+                  id: "pages",
+                  stage: "document_pages_selected",
+                  data: { document, pages: "1-3" },
+                },
+                { id: "loaded", stage: "document_evidence_loaded", data: { document } },
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+
+    const progress = screen.getByTestId("chat-message-progress");
+    expect(progress).toHaveTextContent("Reading 龙田设备档案模板.xlsx.");
+    expect(progress).toHaveTextContent("Selected pages 1-3 in 龙田设备档案模板.xlsx.");
+    expect(progress).toHaveTextContent("Loaded evidence from 龙田设备档案模板.xlsx.");
+    expect(progress).not.toHaveTextContent("5194972540313029554");
+  });
+
   it("renders user messages as right-aligned bubbles", () => {
     render(
       <ChatMessageList
@@ -1028,6 +1069,6 @@ describe("Chat page components", () => {
     expect(screen.getByRole("heading", { name: /quarterly review/i })).toBeInTheDocument();
     expect(screen.queryByText(/model service is not configured/i)).not.toBeInTheDocument();
     expect(screen.getByText("Scope")).toBeInTheDocument();
-    expect(screen.getByText("Alpha", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getAllByText("Alpha", { selector: "span" })).toHaveLength(2);
   });
 });

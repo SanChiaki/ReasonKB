@@ -19,6 +19,7 @@ afterEach(() => {
   vi.unmock("@/lib/repos/conversation-store");
   vi.unmock("@/lib/repos/system-settings-store");
   vi.unmock("@/components/app-shell");
+  vi.unmock("@/lib/security/admin-page-auth");
   routerMocks.refresh.mockClear();
 });
 
@@ -55,6 +56,9 @@ describe("SettingsPage", () => {
     }));
     vi.doMock("@/components/app-shell", () => ({
       AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    }));
+    vi.doMock("@/lib/security/admin-page-auth", () => ({
+      requireAdminPage: async () => undefined,
     }));
 
     const module = await import("@/app/settings/page");

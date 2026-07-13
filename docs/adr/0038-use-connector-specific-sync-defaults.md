@@ -1,0 +1,3 @@
+# Use connector-specific sync defaults
+
+Local sources default to a 30-second schedule with a 5-second minimum, SMB sources to 5 minutes with a 30-second minimum, and Seeyon sources to 10 minutes with a 60-second minimum. Administrators may configure each source or choose manual-only synchronization. New and materially edited sources validate or synchronize immediately, scheduled times include jitter, failures enter source-local backoff, and success restores the normal policy. Discoverable sources refresh collections on their scheduled source operation so the continuous all-collections policy can enable new collections.

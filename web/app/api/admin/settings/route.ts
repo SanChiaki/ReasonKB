@@ -10,6 +10,10 @@ import {
   updateSystemSettings,
 } from "@/lib/repos/system-settings-store";
 import { updateEnvFileValue } from "@/lib/server-env-file";
+import {
+  authorizeAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/security/admin-route-auth";
 
 function isAbsoluteHostPath(value: string) {
   return (
@@ -80,13 +84,19 @@ const defaults = {
   projectsRootHostPath: appConfig.currentProjectsRootHostPath,
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!authorizeAdminRequest(request, appConfig.dbPath)) {
+    return unauthorizedAdminResponse();
+  }
   return NextResponse.json({
     settings: getSystemSettings(appConfig.dbPath, defaults),
   });
 }
 
 export async function PATCH(request: Request) {
+  if (!authorizeAdminRequest(request, appConfig.dbPath, { requireCsrf: true })) {
+    return unauthorizedAdminResponse();
+  }
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(

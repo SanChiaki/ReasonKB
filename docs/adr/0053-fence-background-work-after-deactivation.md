@@ -1,0 +1,3 @@
+# Fence background work after deactivation
+
+Disabling or deleting a Corpus Source, or deselecting a Source Collection, changes administration state and retrieval eligibility immediately and cancels related queued synchronization, fetch, and index work. Running work may finish its external operation but must recheck source, collection, and Project eligibility before reconciliation or index publication; if eligibility changed, it becomes superseded and discards its results. Reactivation schedules new work rather than publishing artifacts produced under the previous active state, preventing late workers from restoring content that an administrator has already removed from retrieval.

@@ -1,0 +1,3 @@
+# Make all collections a continuous policy
+
+Choosing all Source Collections is a durable policy rather than a one-time bulk selection. While the policy is active, every currently known collection and every collection discovered or registered later is automatically enabled and becomes an isolated Project. This matches the operational meaning of following an entire source and prevents newly added collections from being silently omitted. For connectors without collection discovery, specifically Seeyon, the policy is presented as "all registered libraries" and cannot include source-side libraries until an administrator registers them in ReasonKB.

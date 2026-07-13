@@ -1,41 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("creates a project and selects it in chat scope", async ({ page }) => {
-  // Uses a relative navigation on purpose so we can rely on Playwright's baseURL.
+test("exposes synchronized Projects without demo write controls", async ({ page }) => {
   await page.goto("/projects");
-
+  await expect(page.getByRole("heading", { name: /^(Projects|项目)$/ })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Projects", exact: true }),
-  ).toBeVisible();
+    page.getByRole("button", { name: /new project|create project|新建项目|创建项目/i }),
+  ).toHaveCount(0);
 
-  const projectLinks = page.getByRole("link", { name: /^Open / });
-  const beforeCount = await projectLinks.count();
-  const beforeAriaLabels = await projectLinks.evaluateAll((elements) =>
-    elements.map((element) => element.getAttribute("aria-label")),
-  );
-
-  await page.getByRole("button", { name: "New Project" }).click();
-
-  await expect(projectLinks).toHaveCount(beforeCount + 1);
-
-  const afterAriaLabels = await projectLinks.evaluateAll((elements) =>
-    elements.map((element) => element.getAttribute("aria-label")),
-  );
-
-  const beforeSet = new Set(beforeAriaLabels.filter(Boolean) as string[]);
-  const createdAriaLabel = afterAriaLabels.find(
-    (value): value is string => Boolean(value) && !beforeSet.has(value),
-  );
-  expect(createdAriaLabel).toBeTruthy();
-  const projectName = createdAriaLabel!.replace(/^Open\s+/, "");
-
-  await page.goto("/chat");
-  await expect(page.getByRole("heading", { name: "New Chat" })).toBeVisible();
-
-  const projectScopeButton = page.getByRole("button", { name: projectName });
-  await expect(projectScopeButton).toBeVisible();
-  await expect(projectScopeButton).toHaveAttribute("aria-pressed", "false");
-
-  await projectScopeButton.click();
-  await expect(projectScopeButton).toHaveAttribute("aria-pressed", "true");
+  const projectLinks = page.locator('a[href^="/projects/"]');
+  if ((await projectLinks.count()) > 0) {
+    await projectLinks.first().click();
+    await expect(page.getByRole("button", { name: /upload|rename|上传|重命名/i })).toHaveCount(0);
+  }
 });

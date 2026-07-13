@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { appConfig } from "@/lib/config";
+import {
+  authorizeAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/security/admin-route-auth";
 
 type DirectoryEntry = {
   name: string;
@@ -41,6 +45,9 @@ function isInsideRoot(rootPath: string, targetPath: string) {
 }
 
 export async function GET(request: Request) {
+  if (!authorizeAdminRequest(request, appConfig.dbPath)) {
+    return unauthorizedAdminResponse();
+  }
   const rootContainerPath = appConfig.hostBrowseRootContainerPath;
   const rootHostPath = appConfig.hostBrowseRootHostPath;
   if (!rootContainerPath || !rootHostPath) {

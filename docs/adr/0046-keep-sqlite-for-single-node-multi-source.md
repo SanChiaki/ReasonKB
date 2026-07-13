@@ -1,0 +1,3 @@
+# Keep SQLite for single-node multi-source
+
+The first multi-source release retains SQLite in WAL mode and the single-node ReasonKB deployment model for the accepted 100-source, 1,000-Project, 100,000-document envelope. Remote I/O never holds database transactions; metadata uses indexed, bounded batch upserts and set-based reconciliation, scheduler write concurrency is controlled, and job claims use atomic state transitions with a busy timeout. Multiple ReasonKB replicas may not share the SQLite file. Repository boundaries must keep a later PostgreSQL migration possible if capacity testing or deployment requirements invalidate the single-node constraint.

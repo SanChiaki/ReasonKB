@@ -1,0 +1,3 @@
+# Stream discovery through persistent sync runs
+
+Each source scan is represented by a persistent Sync Run. Connectors emit bounded pages or streams of metadata that are upserted immediately and tagged with the current run, rather than materializing a complete source listing in memory. Only successful completion authorizes the system to mark previously known, unseen items as missing; failed or interrupted runs never do. Connectors may persist a stable cursor for resume, as Seeyon pagination can, while connectors without a trustworthy cursor restart their scan. Correctness does not depend on resume support.

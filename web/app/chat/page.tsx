@@ -60,6 +60,9 @@ function toCitation(value: unknown): CitationItem | null {
     projectName: candidate.projectName,
     documentId: typeof candidate.documentId === "string" ? candidate.documentId : undefined,
     documentName: candidate.documentName,
+    sourceDisplayName:
+      typeof candidate.sourceDisplayName === "string" ? candidate.sourceDisplayName : null,
+    sourceKind: typeof candidate.sourceKind === "string" ? candidate.sourceKind : null,
     pages: candidate.pages,
     focusPage:
       typeof candidate.focusPage === "number" && Number.isInteger(candidate.focusPage)
@@ -94,6 +97,9 @@ function toEvidence(value: unknown): RetrievalEvidence | null {
     projectName: candidate.projectName,
     documentId: typeof candidate.documentId === "string" ? candidate.documentId : undefined,
     documentName: candidate.documentName,
+    sourceDisplayName:
+      typeof candidate.sourceDisplayName === "string" ? candidate.sourceDisplayName : null,
+    sourceKind: typeof candidate.sourceKind === "string" ? candidate.sourceKind : null,
     sourceRelativePath:
       typeof candidate.sourceRelativePath === "string" ? candidate.sourceRelativePath : null,
     projectRelativePath:
@@ -160,9 +166,11 @@ export default async function ChatPage({
   const conversationId = rawConversationId?.trim() ? rawConversationId.trim() : undefined;
 
   const conversations = listConversations(appConfig.dbPath, demoUserId);
-  const availableProjects = listProjects(appConfig.dbPath, demoUserId).map((project) => ({
+  const availableProjects = listProjects(appConfig.dbPath).map((project) => ({
     id: project.id,
     name: project.name,
+    sourceDisplayName: project.source?.displayName,
+    sourceKind: project.source?.kind,
   }));
   const settings = getSystemSettings(appConfig.dbPath, settingsDefaults);
   const conversation = conversationId

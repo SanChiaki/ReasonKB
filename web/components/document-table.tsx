@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, FolderTree, RefreshCcw, X } from "lucide-react";
 import { useI18n, type Locale, type TranslationKey } from "@/lib/i18n";
+import { readAdminCsrfToken } from "@/components/admin-shell";
 
 export type DocumentTableRow = {
   id: string;
@@ -111,18 +112,22 @@ export function DocumentTable({
   const trimmedSearchQuery = searchQuery?.trim() ?? "";
   const [pendingReindexId, setPendingReindexId] = useState<string | null>(null);
   const [reindexError, setReindexError] = useState<string | null>(null);
+  const [reindexNotice, setReindexNotice] = useState<string | null>(null);
   const [treeState, setTreeState] = useState<TreeState>({ status: "idle" });
 
   async function handleReindex(document: DocumentTableRow) {
     setPendingReindexId(document.id);
     setReindexError(null);
+    setReindexNotice(null);
     try {
       const response = await fetch(`/api/documents/${document.id}/reindex`, {
         method: "POST",
+        headers: { "x-reasonkb-csrf": readAdminCsrfToken() },
       });
       if (!response.ok) {
         throw new Error(t("documents.failedReindex"));
       }
+      setReindexNotice(t("documents.reindexQueued", { name: document.fileName }));
       onReindexQueued?.();
       router.refresh();
     } catch (error) {
@@ -163,6 +168,11 @@ export function DocumentTable({
             {reindexError}
           </div>
         ) : null}
+        {reindexNotice ? (
+          <div className="border-b border-emerald-200 bg-emerald-50 px-5 py-3 text-sm text-emerald-800" role="status">
+            {reindexNotice}
+          </div>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-left text-sm">
             <thead>
@@ -172,7 +182,7 @@ export function DocumentTable({
                 <th className="px-5 py-4 font-medium">{t("documents.pageCount")}</th>
                 <th className="px-5 py-4 font-medium">{t("documents.indexingStatus")}</th>
                 <th className="px-5 py-4 font-medium">{t("documents.parseMetrics")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.uploadTime")}</th>
+                <th className="px-5 py-4 font-medium">{t("documents.sourceUpdate")}</th>
                 <th className="px-5 py-4 font-medium">{t("documents.actions")}</th>
               </tr>
             </thead>
