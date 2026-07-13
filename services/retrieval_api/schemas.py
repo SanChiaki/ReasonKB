@@ -12,6 +12,8 @@ class Citation(BaseModel):
     projectName: str
     documentId: str
     documentName: str
+    sourceDisplayName: str | None = None
+    sourceKind: str | None = None
     pages: str
     focusPage: int | None = None
     excerpt: str | None = None
@@ -27,6 +29,8 @@ class EvidenceItem(BaseModel):
     projectName: str
     documentId: str
     documentName: str
+    sourceDisplayName: str | None = None
+    sourceKind: str | None = None
     sourceRelativePath: str | None = None
     projectRelativePath: str | None = None
     pages: str

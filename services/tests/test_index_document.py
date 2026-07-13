@@ -1,13 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import json
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from services.common.sqlite_store import open_db
 from services.index_worker.index_document import process_document_job
-from services.index_worker.remote_fetch import RemoteFetchError, prepared_index_file
+from services.index_worker.remote_fetch import (
+    RemoteFetchError,
+    _source_cache_file_name,
+    prepared_index_file,
+)
 from services.index_worker.worker import (
     INDEX_JOB_TIMEOUT_SECONDS,
     INDEX_WORKER_CONCURRENCY,
@@ -382,6 +388,91 @@ def test_process_document_job_fails_smb_download_without_leaking_password(tmp_pa
     assert "password" not in run_error.lower()
 
 
+def test_process_document_job_preserves_llm_error_after_source_download(tmp_path, monkeypatch):
+    db_path = _seed_single_document_job_db(tmp_path)
+    now = "2026-04-19T00:00:00Z"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """INSERT INTO corpus_sources
+           (id, kind, display_name, state, scope_json, config_json, config_revision,
+            selection_policy, schedule_mode, max_document_size_bytes, health_state,
+            created_at, updated_at)
+           VALUES ('src_1', 'local', 'Source', 'active', '{}', '{}', 1,
+                   'all', 'scheduled', 104857600, 'normal', ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """INSERT INTO source_collections
+           (id, source_id, identity_key, external_id, display_name, origin,
+            registration_state, validation_state, lifecycle_state, selected,
+            created_at, updated_at)
+           VALUES ('collection_1', 'src_1', 'local:root', 'root', 'Root', 'discovered',
+                   'active', 'valid', 'active', 1, ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """INSERT INTO source_items
+           (id, source_id, collection_id, external_id, item_type, name, relative_path,
+            source_revision, fetch_locator, lifecycle_state, metadata_json, document_id,
+            created_at, updated_at)
+           VALUES ('item_1', 'src_1', 'collection_1', 'remote-alpha', 'document',
+                   'alpha.pdf', 'alpha.pdf', 'r1', 'alpha.pdf', 'active', '{}',
+                   'doc_1', ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """UPDATE projects SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   lifecycle_state = 'active' WHERE id = 'proj_1'"""
+    )
+    conn.execute(
+        """UPDATE documents SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   source_item_id = 'item_1', source_revision = 'r1',
+                   expected_source_revision = 'r1', expected_source_config_revision = 1,
+                   lifecycle_state = 'active' WHERE id = 'doc_1'"""
+    )
+    conn.execute(
+        """UPDATE jobs SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   expected_source_revision = 'r1', expected_source_config_revision = 1
+             WHERE id = 'job_1'"""
+    )
+    conn.commit()
+    conn.close()
+
+    cache_root = tmp_path / "remote-cache"
+    monkeypatch.setattr("services.index_worker.remote_fetch.REMOTE_CACHE_ROOT", cache_root)
+
+    class FakeConnector:
+        def fetch_item(self, metadata, destination, expected_revision, max_size_bytes):
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(b"downloaded pdf")
+
+    monkeypatch.setattr(
+        "services.index_worker.remote_fetch.build_connector",
+        lambda source, local_root, credentials: FakeConnector(),
+    )
+
+    def fail_pageindex(file_path, document=None):
+        assert Path(file_path).read_bytes() == b"downloaded pdf"
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+
+    monkeypatch.setattr(
+        "services.index_worker.index_document.build_pageindex_payload",
+        fail_pageindex,
+    )
+
+    with pytest.raises(RuntimeError, match="^OPENAI_API_KEY is not configured$"):
+        process_document_job(str(db_path), "job_1")
+
+    conn = sqlite3.connect(db_path)
+    run = conn.execute(
+        "SELECT status, error_message FROM document_index_runs WHERE document_id = 'doc_1'"
+    ).fetchone()
+    conn.close()
+
+    assert run == ("failed", "OPENAI_API_KEY is not configured")
+    assert not (cache_root / "doc_1").exists()
+
+
 def test_prepared_index_file_rejects_smb_source_root_mismatch_without_fetching(tmp_path, monkeypatch):
     fetch_calls = []
 
@@ -412,6 +503,16 @@ def test_prepared_index_file_rejects_smb_source_root_mismatch_without_fetching(t
             raise AssertionError("source root mismatch should fail before yielding")
 
     assert fetch_calls == []
+
+
+def test_source_cache_file_name_preserves_original_extension_for_opaque_source_id():
+    assert _source_cache_file_name(
+        {
+            "file_name": "doc_mine_type.xlsx",
+            "project_relative_path": "Documents/doc_mine_type.xlsx",
+            "source_relative_path": "5594372999647937129",
+        }
+    ) == "doc_mine_type.xlsx"
 
 
 def test_process_document_job_indexes_office_document_via_converted_pdf(tmp_path, monkeypatch):
@@ -818,7 +919,7 @@ def test_stop_active_jobs_terminates_running_children():
     assert events == ["terminate", ("join", 5)]
 
 
-def test_fail_orphaned_running_jobs_records_restart_reason(tmp_path):
+def test_fail_orphaned_running_jobs_schedules_retry(tmp_path):
     db_path = _seed_single_document_job_db(tmp_path)
     conn = sqlite3.connect(db_path)
     conn.execute(
@@ -835,15 +936,15 @@ def test_fail_orphaned_running_jobs_records_restart_reason(tmp_path):
     assert fail_orphaned_running_jobs(str(db_path)) == 1
 
     conn = sqlite3.connect(db_path)
-    job = conn.execute("SELECT status, error_message FROM jobs WHERE id = 'job_1'").fetchone()
+    job = conn.execute("SELECT status, error_message, available_at FROM jobs WHERE id = 'job_1'").fetchone()
     document = conn.execute("SELECT status, error_message FROM documents WHERE id = 'doc_1'").fetchone()
     run = conn.execute("SELECT status, error_message FROM document_index_runs WHERE id = 'run_1'").fetchone()
     conn.close()
 
-    assert job[0] == "failed"
+    assert job[0] == "queued"
     assert "left running by a previous worker process" in job[1]
-    assert document[0] == "failed"
-    assert document[1] == job[1]
+    assert job[2] is not None
+    assert document == ("uploaded", None)
     assert run == ("failed", job[1])
 
 
@@ -889,7 +990,8 @@ def test_run_forever_reloads_runtime_concurrency(monkeypatch):
         lambda db_path, default: next(concurrency_values),
     )
 
-    def fake_start_queued_jobs(db_path, active_jobs, concurrency):
+    def fake_start_queued_jobs(db_path, active_jobs, concurrency, token_cache=None):
+        assert token_cache is not None
         observed_concurrency.append(concurrency)
         return 0
 
@@ -911,7 +1013,7 @@ def test_run_forever_reloads_runtime_concurrency(monkeypatch):
     assert observed_concurrency == [1, 3]
 
 
-def test_fail_document_job_records_failed_run_reason(tmp_path):
+def test_fail_document_job_schedules_transient_retry_and_records_attempt_reason(tmp_path):
     db_path = _seed_single_document_job_db(tmp_path)
     conn = sqlite3.connect(db_path)
     conn.execute(
@@ -929,7 +1031,7 @@ def test_fail_document_job_records_failed_run_reason(tmp_path):
 
     conn = sqlite3.connect(db_path)
     job = conn.execute(
-        "SELECT status, error_message, finished_at FROM jobs WHERE id = 'job_1'"
+        "SELECT status, error_message, finished_at, available_at FROM jobs WHERE id = 'job_1'"
     ).fetchone()
     document = conn.execute(
         "SELECT status, error_message FROM documents WHERE id = 'doc_1'"
@@ -944,14 +1046,189 @@ def test_fail_document_job_records_failed_run_reason(tmp_path):
     conn.close()
 
     expected_error = "Document index job job_1 timed out after 1800 seconds"
-    assert job[0] == "failed"
+    assert job[0] == "queued"
     assert job[1] == expected_error
-    assert job[2] is not None
-    assert document == ("failed", expected_error)
+    assert job[2] is None
+    assert job[3] is not None
+    assert document == ("uploaded", None)
     assert run[0] == "failed"
     assert run[1] is not None
     assert run[2] >= 0
     assert run[3] == expected_error
+
+
+def test_fail_document_job_stops_after_max_attempts(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET attempt_count = max_attempts WHERE id = 'job_1'")
+    conn.commit()
+    conn.close()
+
+    fail_document_job(str(db_path), "job_1", "ConnectionError: upstream unavailable")
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute("SELECT status, finished_at FROM jobs WHERE id = 'job_1'").fetchone()
+    document = conn.execute("SELECT status, error_message FROM documents WHERE id = 'doc_1'").fetchone()
+    conn.close()
+    assert job[0] == "failed"
+    assert job[1] is not None
+    assert document == ("failed", "ConnectionError: upstream unavailable")
+
+
+def test_fail_document_job_marks_definitive_item_denial_access_revoked(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    now = "2026-04-19T00:00:00Z"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """INSERT INTO corpus_sources
+           (id, kind, display_name, state, scope_json, config_json, config_revision,
+            selection_policy, schedule_mode, max_document_size_bytes, health_state,
+            created_at, updated_at)
+           VALUES ('src_1', 'seeyon', 'Seeyon', 'active', '{}', '{}', 1,
+                   'all', 'scheduled', 104857600, 'normal', ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """INSERT INTO source_collections
+           (id, source_id, identity_key, external_id, root_external_id, display_name,
+            origin, registration_state, validation_state, lifecycle_state, selected,
+            created_at, updated_at)
+           VALUES ('collection_1', 'src_1', 'seeyon:1:2', '1', '2', 'Library',
+                   'registered', 'active', 'valid', 'active', 1, ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """UPDATE projects SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   lifecycle_state = 'active', retrieval_eligible = 1 WHERE id = 'proj_1'"""
+    )
+    conn.execute(
+        """INSERT INTO source_items
+           (id, source_id, collection_id, external_id, item_type, name, relative_path,
+            source_revision, lifecycle_state, metadata_json, document_id, created_at, updated_at)
+           VALUES ('item_1', 'src_1', 'collection_1', '5594372999647937129',
+                   'document', 'denied.xlsx', 'denied.xlsx', 'seeyon:99:100',
+                   'active', '{}', 'doc_1', ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """UPDATE documents SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   source_item_id = 'item_1', source_item_external_id = '5594372999647937129',
+                   source_revision = 'seeyon:99:100', expected_source_revision = 'seeyon:99:100',
+                   expected_source_config_revision = 1, lifecycle_state = 'active',
+                   retrieval_eligible = 1, status = 'ready' WHERE id = 'doc_1'"""
+    )
+    conn.execute(
+        """UPDATE jobs SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   expected_source_revision = 'seeyon:99:100',
+                   expected_source_config_revision = 1, attempt_count = 1 WHERE id = 'job_1'"""
+    )
+    conn.execute(
+        """INSERT INTO document_indexes
+           (id, document_id, doc_name, doc_description, structure_json, pages_json,
+            index_version, indexed_at, source_revision, is_current)
+           VALUES ('index_1', 'doc_1', 'denied.xlsx', 'Denied', '[]', '[]',
+                   'v1', ?, 'seeyon:99:100', 1)""",
+        (now,),
+    )
+    conn.commit()
+    conn.close()
+
+    fail_document_job(
+        str(db_path),
+        "job_1",
+        "SourceAccessDenied: Seeyon source item access denied",
+    )
+
+    conn = sqlite3.connect(db_path)
+    assert conn.execute(
+        "SELECT status, attempt_count FROM jobs WHERE id = 'job_1'"
+    ).fetchone() == ("failed", 1)
+    assert conn.execute(
+        "SELECT status, lifecycle_state, retrieval_eligible FROM documents WHERE id = 'doc_1'"
+    ).fetchone() == ("failed", "access_revoked", 0)
+    assert conn.execute(
+        "SELECT lifecycle_state FROM source_items WHERE id = 'item_1'"
+    ).fetchone() == ("access_revoked",)
+    assert conn.execute(
+        "SELECT is_current FROM document_indexes WHERE id = 'index_1'"
+    ).fetchone() == (0,)
+    assert conn.execute(
+        "SELECT health_state, consecutive_failure_count FROM corpus_sources WHERE id = 'src_1'"
+    ).fetchone() == ("needs_attention", 1)
+    conn.close()
+
+
+def test_claim_next_job_rotates_across_sources_at_same_priority(tmp_path):
+    db_path = _seed_queued_document_jobs_db(tmp_path, 4)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET source_id = 'src_a' WHERE id IN ('job_1', 'job_2', 'job_3')")
+    conn.execute("UPDATE jobs SET source_id = 'src_b' WHERE id = 'job_4'")
+    conn.commit()
+    conn.close()
+
+    assert claim_next_job(str(db_path)) == "job_1"
+    assert claim_next_job(str(db_path)) == "job_4"
+    assert claim_next_job(str(db_path)) is None
+
+
+def test_claim_next_job_limits_each_source_to_one_running_job(tmp_path):
+    db_path = _seed_queued_document_jobs_db(tmp_path, 3)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET source_id = 'src_a'")
+    conn.commit()
+    conn.close()
+
+    assert claim_next_job(str(db_path)) == "job_1"
+    assert claim_next_job(str(db_path)) is None
+
+
+def test_stale_failed_job_is_superseded_without_mutating_new_document_revision(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    now = "2026-04-19T00:00:00Z"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """INSERT INTO corpus_sources
+           (id, kind, display_name, state, scope_json, config_json, config_revision,
+            selection_policy, schedule_mode, max_document_size_bytes, health_state,
+            created_at, updated_at)
+           VALUES ('src_1', 'local', 'Source', 'active', '{}', '{}', 2,
+                   'all', 'scheduled', 104857600, 'normal', ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """INSERT INTO source_collections
+           (id, source_id, identity_key, external_id, display_name, origin,
+            registration_state, validation_state, lifecycle_state, selected,
+            created_at, updated_at)
+           VALUES ('collection_1', 'src_1', 'local:root', 'root', 'Root', 'discovered',
+                   'active', 'valid', 'active', 1, ?, ?)""",
+        (now, now),
+    )
+    conn.execute(
+        """UPDATE projects SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   lifecycle_state = 'active' WHERE id = 'proj_1'"""
+    )
+    conn.execute(
+        """UPDATE documents SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   source_revision = 'r2', expected_source_revision = 'r2',
+                   lifecycle_state = 'active', status = 'uploaded' WHERE id = 'doc_1'"""
+    )
+    conn.execute(
+        """UPDATE jobs SET source_id = 'src_1', source_collection_id = 'collection_1',
+                   expected_source_revision = 'r1', expected_source_config_revision = 1,
+                   attempt_count = 1 WHERE id = 'job_1'"""
+    )
+    conn.commit()
+    conn.close()
+
+    fail_document_job(str(db_path), "job_1", "TimeoutError: old attempt")
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute("SELECT status FROM jobs WHERE id = 'job_1'").fetchone()
+    document = conn.execute("SELECT status, expected_source_revision FROM documents WHERE id = 'doc_1'").fetchone()
+    conn.close()
+    assert job == ("superseded",)
+    assert document == ("uploaded", "r2")
 
 
 def test_sweep_stale_running_runs_records_failed_job_reason(tmp_path):
@@ -1017,3 +1294,164 @@ def test_open_db_rolls_back_on_exception(tmp_path):
     count = conn.execute("SELECT COUNT(*) FROM projects WHERE id = 'proj_x'").fetchone()[0]
     conn.close()
     assert count == 0
+
+
+def test_index_publication_rolls_back_when_document_update_fails(tmp_path, monkeypatch):
+    db_path = _seed_single_document_job_db(tmp_path)
+    monkeypatch.setattr(
+        "services.index_worker.index_document.build_pageindex_payload",
+        lambda file_path: {
+            "doc_name": "alpha.pdf",
+            "doc_description": "Alpha",
+            "structure": [],
+            "pages": [{"page": 1, "content": "alpha"}],
+            "page_count": 1,
+        },
+    )
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TRIGGER inject_document_update_failure
+        BEFORE UPDATE OF status ON documents
+        WHEN NEW.status = 'ready'
+        BEGIN
+          SELECT RAISE(ABORT, 'injected persistence crash');
+        END
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="injected persistence crash"):
+        process_document_job(str(db_path), "job_1")
+
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT COUNT(*) FROM document_indexes").fetchone() == (0,)
+    assert conn.execute("SELECT status FROM documents WHERE id = 'doc_1'").fetchone() == (
+        "indexing",
+    )
+    assert conn.execute("SELECT status FROM jobs WHERE id = 'job_1'").fetchone() == (
+        "running",
+    )
+    assert conn.execute("SELECT status FROM document_index_runs").fetchone() == ("failed",)
+    conn.close()
+
+
+def test_index_publication_is_superseded_when_source_is_disabled_during_build(
+    tmp_path, monkeypatch
+):
+    db_path = _seed_single_document_job_db(tmp_path)
+    now = "2026-04-19T00:00:00Z"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO corpus_sources (
+          id, kind, display_name, state, scope_json, config_json,
+          config_revision, selection_policy, schedule_mode,
+          max_document_size_bytes, health_state, created_at, updated_at
+        ) VALUES ('src_1', 'local', 'Source', 'active', '{}', '{}', 1,
+                  'all', 'scheduled', 104857600, 'normal', ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, display_name, origin,
+          registration_state, validation_state, lifecycle_state, selected,
+          created_at, updated_at
+        ) VALUES ('collection_1', 'src_1', 'local:root', 'root', 'Root',
+                  'discovered', 'active', 'valid', 'active', 1, ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        UPDATE projects SET source_id = 'src_1', source_collection_id = 'collection_1'
+         WHERE id = 'proj_1'
+        """
+    )
+    conn.execute(
+        """
+        UPDATE documents
+           SET source_id = 'src_1', source_collection_id = 'collection_1',
+               source_revision = 'r1', expected_source_revision = 'r1',
+               expected_source_config_revision = 1, lifecycle_state = 'active',
+               retrieval_eligible = 0
+         WHERE id = 'doc_1'
+        """
+    )
+    conn.execute(
+        """
+        UPDATE jobs
+           SET source_id = 'src_1', source_collection_id = 'collection_1',
+               expected_source_revision = 'r1', expected_source_config_revision = 1
+         WHERE id = 'job_1'
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    def build_then_disable(file_path):
+        connection = sqlite3.connect(db_path)
+        connection.execute("UPDATE corpus_sources SET state = 'disabled' WHERE id = 'src_1'")
+        connection.commit()
+        connection.close()
+        return {
+            "doc_name": "alpha.pdf",
+            "doc_description": "Alpha",
+            "structure": [],
+            "pages": [{"page": 1, "content": "alpha"}],
+            "page_count": 1,
+        }
+
+    monkeypatch.setattr(
+        "services.index_worker.index_document.build_pageindex_payload", build_then_disable
+    )
+
+    @contextmanager
+    def prepared(document, db_path):
+        yield SimpleNamespace(local_path=Path(document["storage_path"]), content_hash=None)
+
+    monkeypatch.setattr(
+        "services.index_worker.index_document.prepared_index_file", prepared
+    )
+
+    process_document_job(str(db_path), "job_1")
+
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT COUNT(*) FROM document_indexes").fetchone() == (0,)
+    assert conn.execute("SELECT status FROM jobs WHERE id = 'job_1'").fetchone() == (
+        "superseded",
+    )
+    assert conn.execute("SELECT retrieval_eligible FROM documents WHERE id = 'doc_1'").fetchone() == (
+        0,
+    )
+    conn.close()
+
+
+@pytest.mark.parametrize(
+    "error_message",
+    [
+        "OSError: [Errno 28] No space left on device",
+        "Seeyon request failed with HTTP 429",
+        "RuntimeError: office conversion failed",
+    ],
+)
+def test_operational_capacity_failures_are_retried(tmp_path, error_message):
+    db_path = _seed_single_document_job_db(tmp_path)
+
+    fail_document_job(str(db_path), "job_1", error_message)
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute(
+        "SELECT status, available_at, error_message FROM jobs WHERE id = 'job_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, retrieval_eligible FROM documents WHERE id = 'doc_1'"
+    ).fetchone()
+    conn.close()
+    assert job[0] == "queued"
+    assert job[1] is not None
+    assert job[2] == error_message
+    assert document == ("uploaded", 1)

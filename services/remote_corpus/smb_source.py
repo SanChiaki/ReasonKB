@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from services.directory_watcher.sync import IGNORED_NAMES, SUPPORTED_MEDIA_BY_EXTENSION
+from services.common.source_formats import IGNORED_NAMES, SUPPORTED_MEDIA_BY_EXTENSION
 from services.remote_corpus.models import RemoteCorpusFile, SmbConfig
 from services.remote_corpus.smb_paths import build_smb_source_root, build_smb_url
 

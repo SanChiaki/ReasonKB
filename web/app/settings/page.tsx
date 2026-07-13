@@ -4,6 +4,7 @@ import { appConfig } from "@/lib/config";
 import { LocalizedText } from "@/lib/i18n";
 import { listConversations } from "@/lib/repos/conversation-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
+import { requireAdminPage } from "@/lib/security/admin-page-auth";
 
 const demoUserId = "user_demo";
 
@@ -26,6 +27,7 @@ const defaults = {
 };
 
 export default async function SettingsPage() {
+  await requireAdminPage();
   const conversations = listConversations(appConfig.dbPath, demoUserId);
   const settings = getSystemSettings(appConfig.dbPath, defaults);
 

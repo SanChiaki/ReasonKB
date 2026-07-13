@@ -1,0 +1,3 @@
+# Validate manually registered Seeyon libraries before enabling
+
+A Seeyon Collection Registration requires a local display name, `docLibId`, and root `doc_resources` ID. The pair of document library ID and root ID is the stable Source Collection identity and traversal entry point, while editing the display name does not change identity; duplicate pairs are rejected within one Seeyon source. ReasonKB validates the root with a one-item call to the supported document-list REST API; an empty successful result is valid. Failed registrations may remain as drafts with their error details but cannot be enabled or create Projects until validation succeeds.

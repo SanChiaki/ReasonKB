@@ -4,7 +4,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
-import { createProject } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 import {
   createConversation,
   replaceConversationProjects,
@@ -44,8 +44,8 @@ describe("conversation store", () => {
 
     const detail = getConversationDetail(dbPath, conversation.id);
 
-    expect(detail.projectIds).toEqual([project.id]);
-    expect(detail.messages).toHaveLength(1);
+    expect(detail!.projectIds).toEqual([project.id]);
+    expect(detail!.messages).toHaveLength(1);
   });
 
   it("dedupes repeated project ids when replacing conversation scope", () => {
@@ -63,7 +63,7 @@ describe("conversation store", () => {
     replaceConversationProjects(dbPath, conversation.id, [project.id, project.id]);
 
     const detail = getConversationDetail(dbPath, conversation.id);
-    expect(detail.projectIds).toEqual([project.id]);
+    expect(detail!.projectIds).toEqual([project.id]);
   });
 
   it("scopes conversation lookup to the owner when provided", () => {
@@ -104,7 +104,7 @@ describe("conversation store", () => {
 
     const detail = getConversationDetail(dbPath, conversation.id);
 
-    expect(detail.messages).toHaveLength(1);
-    expect(detail.messages[0]?.citations).toEqual([]);
+    expect(detail!.messages).toHaveLength(1);
+    expect(detail!.messages[0]?.citations).toEqual([]);
   });
 });

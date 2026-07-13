@@ -20,6 +20,11 @@ export type ProjectCardItem = {
   name: string;
   documentCount: number;
   updatedAt: string;
+  source: {
+    id: string;
+    displayName: string;
+    kind: "local" | "smb" | "seeyon";
+  };
 };
 
 export function ProjectCard({ project }: { project: ProjectCardItem }) {
@@ -37,10 +42,13 @@ export function ProjectCard({ project }: { project: ProjectCardItem }) {
           <h3 className="text-lg font-semibold leading-tight text-[var(--pi-ink)] transition group-hover:text-[var(--pi-brand)]">
             {project.name}
           </h3>
-          <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--pi-muted)]">
-            {t("projects.folder")}
+          <span className="rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-3 py-1 text-xs font-medium uppercase text-[var(--pi-muted)]">
+            {project.source.kind}
           </span>
         </div>
+        <p className="mt-2 truncate text-xs text-[var(--pi-muted)]">
+          {project.source.displayName}
+        </p>
         <p className="mt-7 text-sm font-medium text-[var(--pi-ink)]">
           {t("projects.docs", { count: project.documentCount })}
         </p>

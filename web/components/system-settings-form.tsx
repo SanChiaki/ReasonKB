@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Folder, FolderOpen, FlaskConical } from "lucide-react";
 import { LanguageSwitcher, useI18n } from "@/lib/i18n";
+import { readAdminCsrfToken } from "@/components/admin-shell";
 import {
   splitLlmModel,
   type LlmInterfaceFormat,
@@ -297,7 +298,10 @@ export function SystemSettingsForm({
     try {
       const response = await fetch("/api/admin/settings", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-reasonkb-csrf": readAdminCsrfToken(),
+        },
         body: JSON.stringify({
           indexWorkerConcurrency: parsedConcurrency,
           retrievalDocumentLimit: parsedRetrievalDocumentLimit,
@@ -344,7 +348,10 @@ export function SystemSettingsForm({
       };
       const response = await fetch("/api/admin/settings/llm-test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-reasonkb-csrf": readAdminCsrfToken(),
+        },
         body: JSON.stringify(payload),
       });
       const result = (await response.json().catch(() => null)) as
@@ -393,7 +400,10 @@ export function SystemSettingsForm({
     try {
       const response = await fetch("/api/admin/settings", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-reasonkb-csrf": readAdminCsrfToken(),
+        },
         body: JSON.stringify({
           projectsRootHostPath: normalizedProjectsRootHostPath,
         }),

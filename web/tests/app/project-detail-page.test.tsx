@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import { createDocumentRecord } from "@/lib/repos/document-store";
-import { createProject } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
 const mocks = vi.hoisted(() => ({
@@ -93,7 +93,7 @@ describe("ProjectDetailPage", () => {
     ).resolves.toBeTruthy();
   });
 
-  it("renders the rename affordance when the project exists", async () => {
+  it("renders source identity without rename or upload affordances", async () => {
     const { dbPath } = makeTempDb();
     const project = createProject(dbPath, {
       ownerUserId: "user_demo",
@@ -118,7 +118,9 @@ describe("ProjectDetailPage", () => {
 
     render(view);
 
-    expect(screen.getByRole("button", { name: /rename/i })).toBeInTheDocument();
+    expect(screen.getByText("Alpha source")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /rename/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /upload/i })).not.toBeInTheDocument();
   });
 
   it("renders a search no-match state instead of the empty-document copy", async () => {

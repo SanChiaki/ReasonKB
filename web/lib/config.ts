@@ -29,6 +29,30 @@ export const appConfig = {
   varRoot,
   dbPath: process.env.APP_DB_PATH ?? path.join(varRoot, "app.db"),
   uploadRoot: process.env.APP_UPLOAD_ROOT ?? path.join(varRoot, "uploads"),
+  projectsRoot:
+    process.env.PROJECTS_ROOT ?? path.join(repoRoot, ".reasonkb", "projects"),
+  adminPasswordFile:
+    process.env.REASONKB_ADMIN_PASSWORD_FILE ??
+    "/run/secrets/reasonkb_admin_password",
+  masterKeyPath:
+    process.env.REASONKB_MASTER_KEY_FILE ??
+    "/run/secrets/reasonkb_master_key",
+  legacySmbUsernameFile:
+    process.env.REASONKB_LEGACY_SMB_USERNAME_FILE ??
+    "/run/reasonkb-legacy-secrets/smb_username",
+  legacySmbPasswordFile:
+    process.env.REASONKB_LEGACY_SMB_PASSWORD_FILE ??
+    "/run/reasonkb-legacy-secrets/smb_password",
+  legacySmbDomain: process.env.REASONKB_SMB_DOMAIN?.trim() ?? "",
+  legacySmbPort: Number.parseInt(process.env.REASONKB_SMB_PORT ?? "445", 10),
+  legacySmbAuthProtocol:
+    process.env.REASONKB_SMB_AUTH_PROTOCOL?.trim().toLowerCase() === "negotiate"
+      ? ("negotiate" as const)
+      : ("ntlm" as const),
+  localSourceAccessRoot:
+    process.env.REASONKB_LOCAL_SOURCE_ACCESS_ROOT ??
+    process.env.PROJECTS_ROOT ??
+    path.join(repoRoot, ".reasonkb", "projects"),
   retrievalBaseUrl:
     process.env.RETRIEVAL_API_BASE_URL ?? "http://127.0.0.1:8001",
   currentProjectsRootHostPath:

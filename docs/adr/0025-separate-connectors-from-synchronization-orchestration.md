@@ -1,0 +1,3 @@
+# Separate connectors from synchronization orchestration
+
+Local, SMB, and Seeyon integrations implement one connector boundary for connection validation, collection discovery or registration validation, bounded collection scanning, and revision-specific document fetching. Connectors normalize source-native identifiers, metadata, and cursors but do not write SQLite, create Projects, infer missing state, or enqueue index jobs. A connector-agnostic synchronization engine owns Sync Runs, selection policies, lifecycle reconciliation, revision comparison, persistence, retention, and indexing orchestration. Adding another source type registers a connector instead of adding source-specific branches to the state machine.

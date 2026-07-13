@@ -246,10 +246,21 @@ def process_document_job(db_path: str, job_id: str):
                    d.file_name, d.media_type, d.source_kind, d.source_root,
                    d.source_relative_path,
                    d.project_relative_path, d.content_hash, d.source_mtime,
-                   d.source_size, p.name AS project_name
+                   d.source_size, d.source_id, d.source_collection_id,
+                   d.source_item_id, d.source_revision, d.expected_source_revision,
+                   d.expected_source_config_revision, d.lifecycle_state,
+                   j.expected_source_revision AS job_expected_source_revision,
+                   j.expected_source_config_revision AS job_expected_source_config_revision,
+                   s.config_revision AS current_source_config_revision,
+                   s.state AS source_state, c.selected AS collection_selected,
+                   c.lifecycle_state AS collection_lifecycle_state,
+                   p.lifecycle_state AS project_lifecycle_state,
+                   p.name AS project_name
             FROM jobs j
             JOIN documents d ON d.id = j.document_id
             JOIN projects p ON p.id = d.project_id
+            LEFT JOIN corpus_sources s ON s.id = d.source_id
+            LEFT JOIN source_collections c ON c.id = d.source_collection_id
             WHERE j.id = ?
               AND j.type = 'document_index'
               AND j.status = 'running'
@@ -261,6 +272,9 @@ def process_document_job(db_path: str, job_id: str):
             raise ValueError(f"Job {job_id} not found")
 
     document = dict(row)
+    if _document_job_is_superseded(document):
+        _mark_job_superseded(db_path, job_id, document["document_id"])
+        return
     run_id = f"run_{uuid.uuid4()}"
     started_at = datetime.now(timezone.utc).isoformat()
     started_perf = perf_counter()
@@ -277,7 +291,7 @@ def process_document_job(db_path: str, job_id: str):
     metrics = None
     try:
         with index_run_metrics() as metrics:
-            with prepared_index_file(document) as prepared_file:
+            with prepared_index_file(document, db_path) as prepared_file:
                 document_for_payload = {
                     **document,
                     "storage_path": str(prepared_file.local_path),
@@ -334,6 +348,45 @@ def _invoke_payload_builder(document: dict) -> IndexedDocumentPayload:
     return build_pageindex_payload(document["storage_path"])
 
 
+def _document_job_is_superseded(document: dict) -> bool:
+    if not document.get("source_id"):
+        return False
+    return bool(
+        document.get("job_expected_source_revision") != document.get("expected_source_revision")
+        or document.get("job_expected_source_config_revision")
+        != document.get("current_source_config_revision")
+        or document.get("source_state") != "active"
+        or not document.get("collection_selected")
+        or document.get("collection_lifecycle_state") in {"inactive", "missing", "pending_purge"}
+        or document.get("project_lifecycle_state") not in {"pending", "active"}
+        or document.get("lifecycle_state") != "active"
+    )
+
+
+def _mark_job_superseded(db_path: str, job_id: str, document_id: str) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    with open_db(db_path) as conn:
+        conn.execute(
+            """
+            UPDATE jobs SET status = 'superseded', superseded_at = ?,
+                   updated_at = ?, finished_at = ? WHERE id = ?
+            """,
+            (now, now, now, job_id),
+        )
+        active_job = conn.execute(
+            """
+            SELECT 1 FROM jobs WHERE document_id = ? AND status IN ('queued', 'running')
+              AND id <> ? LIMIT 1
+            """,
+            (document_id, job_id),
+        ).fetchone()
+        if not active_job:
+            conn.execute(
+                "UPDATE documents SET status = 'uploaded', updated_at = ? WHERE id = ? AND status = 'indexing'",
+                (now, document_id),
+            )
+
+
 def _empty_metrics_snapshot() -> dict:
     return {
         "text_extraction_ms": 0,
@@ -359,75 +412,123 @@ def _persist_completed_document(
     duration_ms: int,
     finished_at: str,
 ) -> None:
+    superseded = False
     with open_db(db_path) as conn:
-        conn.execute(
-            """
-            INSERT INTO document_indexes (
-              id, document_id, doc_name, doc_description, structure_json,
-              pages_json, evidence_kind, visual_assets_json, source_metadata_json,
-              index_version, indexed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(document_id) DO UPDATE SET
-              doc_name = excluded.doc_name,
-              doc_description = excluded.doc_description,
-              structure_json = excluded.structure_json,
-              pages_json = excluded.pages_json,
-              evidence_kind = excluded.evidence_kind,
-              visual_assets_json = excluded.visual_assets_json,
-              source_metadata_json = excluded.source_metadata_json,
-              index_version = excluded.index_version,
-              indexed_at = excluded.indexed_at
-            """,
-            (
-                f"idx_{document['document_id']}",
-                document["document_id"],
-                payload["doc_name"],
-                payload["doc_description"],
-                json.dumps(payload["structure"], ensure_ascii=False),
-                json.dumps(payload["pages"], ensure_ascii=False),
-                payload.get("evidence_kind", "pdf_text"),
-                json.dumps(payload.get("visual_assets", []), ensure_ascii=False),
-                json.dumps(payload.get("source_metadata", {}), ensure_ascii=False),
-                "v1",
-                finished_at,
-            ),
-        )
+        if document.get("source_id"):
+            current = conn.execute(
+                """
+                SELECT d.expected_source_revision, d.lifecycle_state,
+                       s.config_revision AS current_source_config_revision,
+                       s.state AS source_state, c.selected AS collection_selected,
+                       c.lifecycle_state AS collection_lifecycle_state,
+                       p.lifecycle_state AS project_lifecycle_state
+                  FROM documents d
+                  JOIN corpus_sources s ON s.id = d.source_id
+                  JOIN source_collections c ON c.id = d.source_collection_id
+                  JOIN projects p ON p.id = d.project_id
+                 WHERE d.id = ?
+                """,
+                (document["document_id"],),
+            ).fetchone()
+            if current is None or _document_job_is_superseded(
+                {
+                    **document,
+                    **dict(current or {}),
+                }
+            ):
+                conn.execute(
+                    """
+                    UPDATE jobs SET status = 'superseded', superseded_at = ?,
+                           updated_at = ?, finished_at = ? WHERE id = ?
+                    """,
+                    (finished_at, finished_at, finished_at, job_id),
+                )
+                superseded = True
+        if superseded:
+            pass
+        else:
+            conn.execute(
+                """
+                INSERT INTO document_indexes (
+                  id, document_id, doc_name, doc_description, structure_json,
+                  pages_json, evidence_kind, visual_assets_json, source_metadata_json,
+                  index_version, indexed_at, source_revision, is_current, retired_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL)
+                ON CONFLICT(document_id) DO UPDATE SET
+                  doc_name = excluded.doc_name,
+                  doc_description = excluded.doc_description,
+                  structure_json = excluded.structure_json,
+                  pages_json = excluded.pages_json,
+                  evidence_kind = excluded.evidence_kind,
+                  visual_assets_json = excluded.visual_assets_json,
+                  source_metadata_json = excluded.source_metadata_json,
+                  index_version = excluded.index_version,
+                  indexed_at = excluded.indexed_at,
+                  source_revision = excluded.source_revision,
+                  is_current = 1,
+                  retired_at = NULL
+                """,
+                (
+                    f"idx_{document['document_id']}",
+                    document["document_id"],
+                    payload["doc_name"],
+                    payload["doc_description"],
+                    json.dumps(payload["structure"], ensure_ascii=False),
+                    json.dumps(payload["pages"], ensure_ascii=False),
+                    payload.get("evidence_kind", "pdf_text"),
+                    json.dumps(payload.get("visual_assets", []), ensure_ascii=False),
+                    json.dumps(payload.get("source_metadata", {}), ensure_ascii=False),
+                    "v1",
+                    finished_at,
+                    document.get("job_expected_source_revision")
+                    or document.get("source_revision"),
+                ),
+            )
 
-        conn.execute(
-            """
-            UPDATE documents
-               SET status = ?, page_count = ?, error_message = NULL,
-                   import_status = ?,
-                   content_hash = COALESCE(?, content_hash),
-                   last_index_duration_ms = ?,
-                   last_index_total_tokens = ?,
-                   last_index_llm_call_count = ?,
-                   last_indexed_at = ?,
-                   updated_at = ?
-             WHERE id = ?
-            """,
-            (
-                "ready",
-                payload["page_count"],
-                "imported",
-                document.get("content_hash"),
-                duration_ms,
-                snapshot["total_tokens"],
-                snapshot["llm_call_count"],
-                finished_at,
-                finished_at,
-                document["document_id"],
-            ),
-        )
-        conn.execute(
-            """
-            UPDATE jobs
-               SET status = ?, progress = ?, updated_at = ?, finished_at = ?, error_message = NULL
-             WHERE id = ?
-            """,
-            ("completed", 100, finished_at, finished_at, job_id),
-        )
-    _finish_run(db_path, run_id, "completed", snapshot, duration_ms, finished_at, None)
+            conn.execute(
+                """
+                UPDATE documents
+                   SET status = ?, page_count = ?, error_message = NULL,
+                       import_status = ?,
+                       content_hash = COALESCE(?, content_hash),
+                       retrieval_eligible = 1,
+                       last_index_duration_ms = ?,
+                       last_index_total_tokens = ?,
+                       last_index_llm_call_count = ?,
+                       last_indexed_at = ?,
+                       updated_at = ?
+                 WHERE id = ?
+                """,
+                (
+                    "ready",
+                    payload["page_count"],
+                    "imported",
+                    document.get("content_hash"),
+                    duration_ms,
+                    snapshot["total_tokens"],
+                    snapshot["llm_call_count"],
+                    finished_at,
+                    finished_at,
+                    document["document_id"],
+                ),
+            )
+            conn.execute(
+                """
+                UPDATE jobs
+                   SET status = ?, progress = ?, updated_at = ?, finished_at = ?, error_message = NULL
+                 WHERE id = ?
+                """,
+                ("completed", 100, finished_at, finished_at, job_id),
+            )
+    _finish_run(
+        db_path,
+        run_id,
+        "superseded" if superseded else "completed",
+        snapshot,
+        duration_ms,
+        finished_at,
+        None,
+    )
 
 
 def _persist_skipped_document(

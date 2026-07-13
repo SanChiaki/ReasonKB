@@ -9,7 +9,7 @@ import {
   getDocumentIndexTree,
   listDocumentsByProject,
 } from "@/lib/repos/document-store";
-import { createProject } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
 

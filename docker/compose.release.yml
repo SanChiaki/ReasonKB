@@ -28,11 +28,19 @@ services:
       REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
       REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
       REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
+      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
+      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
+      REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
+      REASONKB_ADMIN_PASSWORD_FILE: /run/secrets/reasonkb_admin_password
+      REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
     volumes:
       - ${REASONKB_VAR_ROOT:-./var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
       - ${REASONKB_HOST_BROWSE_ROOT:-${HOME:-.}}:/host-browse:ro
       - ${REASONKB_ENV_FILE:-./.env}:/app/runtime.env
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/admin_password:/run/secrets/reasonkb_admin_password:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}:/run/reasonkb-legacy-secrets:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -52,12 +60,10 @@ services:
       APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
       APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
       APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
-      PROJECTS_ROOT: /data/projects
       VISION_MODEL: ${VISION_MODEL:-}
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
     volumes:
       - ${REASONKB_VAR_ROOT:-./var}:/app/var
-      - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
     healthcheck:
       test:
         [
@@ -90,55 +96,54 @@ services:
       INDEX_DEBUG_METRICS: ${INDEX_DEBUG_METRICS:-false}
       INDEX_JOB_TIMEOUT_SECONDS: ${INDEX_JOB_TIMEOUT_SECONDS:-1800}
       INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-1}
-      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
-      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
-      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
-      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
-      REASONKB_SMB_USERNAME_FILE: ${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}
-      REASONKB_SMB_PASSWORD_FILE: ${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}
-      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
-      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
-      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
       REASONKB_REMOTE_CACHE_ROOT: ${REASONKB_REMOTE_CACHE_ROOT:-/app/var/remote-cache}
+      REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
+      REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
+      REASONKB_WORKER_HEARTBEAT_FILE: /tmp/reasonkb-index-worker.heartbeat
     volumes:
       - ${REASONKB_VAR_ROOT:-./var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
-      - ${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
       gotenberg:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-m", "services.common.worker_health", "/tmp/reasonkb-index-worker.heartbeat", "120"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
 
-  directory-watcher:
+  source-worker:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
     pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
-    command: ["sh", "./docker/entrypoints/directory-watcher.sh"]
+    command: ["sh", "./docker/entrypoints/source-worker.sh"]
     environment:
       APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
       APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
       APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
       APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
       PROJECTS_ROOT: /data/projects
-      DIRECTORY_SCAN_INTERVAL_SECONDS: ${DIRECTORY_SCAN_INTERVAL_SECONDS:-5}
-      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
-      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
-      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
-      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
-      REASONKB_SMB_USERNAME_FILE: ${REASONKB_SMB_USERNAME_FILE:-/app/secrets/smb_username}
-      REASONKB_SMB_PASSWORD_FILE: ${REASONKB_SMB_PASSWORD_FILE:-/app/secrets/smb_password}
-      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
-      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
-      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
-      REASONKB_REMOTE_CACHE_ROOT: ${REASONKB_REMOTE_CACHE_ROOT:-/app/var/remote-cache}
+      SOURCE_WORKER_POLL_SECONDS: ${SOURCE_WORKER_POLL_SECONDS:-1}
+      REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
+      REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
+      REASONKB_WORKER_HEARTBEAT_FILE: /tmp/reasonkb-source-worker.heartbeat
     volumes:
       - ${REASONKB_VAR_ROOT:-./var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-./projects}:/data/projects:ro
-      - ${REASONKB_SECRETS_ROOT:-./secrets}:/app/secrets:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "services.common.worker_health", "/tmp/reasonkb-source-worker.heartbeat", "120"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
 
   gotenberg:
     image: ${GOTENBERG_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8}

@@ -1,0 +1,3 @@
+# Make source collections the authoritative sync boundary
+
+Each enabled Source Collection has independent Sync Runs and is the authoritative boundary for document reconciliation and Missing decisions. A scheduled Corpus Source operation fans out bounded collection runs, while source health is only an aggregate view of discovery and collection outcomes. Discoverable connectors use a separate Source Discovery Run to refresh collection presence. Failure of one collection never prevents successful collections from completing or reconciling their documents; manually registered Seeyon libraries normally skip source discovery entirely.

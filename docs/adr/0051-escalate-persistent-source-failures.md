@@ -1,0 +1,3 @@
+# Escalate persistent source failures
+
+The first failed synchronization immediately makes source health degraded while normal retry policy continues; three consecutive failures escalate it to Needs Attention. Configuration validation failures, invalid credentials, and definitive authorization failures such as an explicit 403 escalate immediately because retrying unchanged input cannot resolve them. A later complete successful synchronization restores normal health and resets the consecutive failure count, keeping transient failures visible without making every short outage demand administrator action.

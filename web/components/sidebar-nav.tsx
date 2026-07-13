@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
+import { Database, Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
 import { useI18n } from "@/lib/i18n";
 
@@ -91,6 +91,19 @@ export function SidebarNav({
           >
             <Folder aria-hidden="true" size={18} strokeWidth={2} />
             {t("nav.projects")}
+          </Link>
+          <Link
+            href="/admin/sources"
+            onClick={onCloseMobile}
+            aria-current={isActivePath("/admin/sources") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+              isActivePath("/admin/sources")
+                ? "bg-[var(--pi-brand-soft)] font-medium text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
+          >
+            <Database aria-hidden="true" size={18} strokeWidth={2} />
+            {t("nav.sources")}
           </Link>
           <Link
             href="/settings"

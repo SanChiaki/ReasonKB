@@ -1,0 +1,3 @@
+# Suspend retrieval when the source principal changes
+
+Changing only a secret while the Seeyon login name and REST username remain unchanged is credential rotation: existing indexes remain retrievable while validation runs, although failed validation stops synchronization and makes the source Needs Attention. Changing either identity field changes the Source Principal, so existing Projects leave retrieval immediately and return only after successful validation and an authoritative synchronization reconciles the new visibility. Ambiguous edits are treated as principal changes, preferring temporary unavailability over exposing content authorized only for the previous identity.

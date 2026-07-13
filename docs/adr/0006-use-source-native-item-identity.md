@@ -1,0 +1,3 @@
+# Use source-native item identity
+
+ReasonKB identifies an imported item by its Corpus Source and connector-provided Source Item ID, keeping identity separate from its current name, location, and download locator. Seeyon documents use `fr_id`; their `file_id` is only the current download locator and may change with a revision. Connectors without a trustworthy stable identifier, initially local directories and SMB shares, use the source-relative path, so a rename becomes a missing old item and a new item. ReasonKB will not infer identity from matching content hashes because that can merge distinct copies.

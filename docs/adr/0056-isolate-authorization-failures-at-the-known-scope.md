@@ -1,0 +1,3 @@
+# Isolate authorization failures at the known scope
+
+An explicit authorization denial is applied at the smallest scope the connector can establish: denial at a collection root makes its Project Access Revoked, while denial for one document makes only that Source Item Access Revoked and excludes it from retrieval. Failure to enumerate a folder leaves that subtree unchanged and makes the Sync Run incomplete, as do pagination, traversal, and transport failures, so unseen items cannot be inferred missing. Later restored access reuses the retained source-native item and Project identities instead of importing replacements.

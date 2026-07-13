@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { ProjectRenameControl } from "@/components/project-rename-control";
 import { DocumentTable } from "@/components/document-table";
-import { DocumentUploadModal } from "@/components/document-upload-modal";
 import { appConfig } from "@/lib/config";
 import { LocalizedSearchInput, LocalizedText } from "@/lib/i18n";
 import { listConversations } from "@/lib/repos/conversation-store";
@@ -23,7 +21,7 @@ export default async function ProjectDetailPage({
   const rawQuery = (search.q ?? "").trim();
   const query = rawQuery.toLowerCase();
   const conversations = listConversations(appConfig.dbPath, demoUserId);
-  const project = getProjectById(appConfig.dbPath, projectId, demoUserId);
+  const project = getProjectById(appConfig.dbPath, projectId);
 
   if (!project) {
     notFound();
@@ -56,9 +54,9 @@ export default async function ProjectDetailPage({
                 <LocalizedText id="projectDetail.description" />
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <ProjectRenameControl projectId={projectId} initialName={project.name} />
-              <DocumentUploadModal projectId={projectId} />
+            <div className="text-right text-xs text-[var(--pi-muted)]">
+              <p className="font-medium text-[var(--pi-ink)]">{project.source.displayName}</p>
+              <p className="mt-1 uppercase">{project.source.kind}</p>
             </div>
           </div>
           <form className="mt-6">

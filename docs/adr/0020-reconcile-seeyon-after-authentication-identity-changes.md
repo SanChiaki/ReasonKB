@@ -1,0 +1,3 @@
+# Reconcile Seeyon after authentication identity changes
+
+Changing a Seeyon source's `loginName`, REST user, or REST password updates the existing Corpus Source rather than creating a new one. The internal source ID, registered libraries, Projects, and document identities remain stable. A credential or Source Principal revision invalidates cached tokens and triggers an immediate authoritative synchronization; subsequent visibility and document state are reconciled to what the newly authenticated principal can access. This deliberately permits one source's accessible corpus to change when administrators change its remote identity.

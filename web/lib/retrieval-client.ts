@@ -5,6 +5,8 @@ export type RetrievalCitation = {
   projectName: string;
   documentId: string;
   documentName: string;
+  sourceDisplayName?: string | null;
+  sourceKind?: string | null;
   pages: string;
   focusPage?: number;
   excerpt?: string;
@@ -15,6 +17,8 @@ export type RetrievalEvidence = {
   projectName: string;
   documentId?: string;
   documentName: string;
+  sourceDisplayName?: string | null;
+  sourceKind?: string | null;
   sourceRelativePath?: string | null;
   projectRelativePath?: string | null;
   pages: string;
@@ -50,6 +54,8 @@ export type RetrievalProgressDocument = {
   documentId?: string;
   documentName?: string;
   projectName?: string;
+  sourceDisplayName?: string | null;
+  sourceKind?: string | null;
   sourceRelativePath?: string | null;
 };
 

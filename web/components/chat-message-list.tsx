@@ -89,7 +89,7 @@ function documentLabel(
   if (!document) {
     return fallback;
   }
-  return document.sourceRelativePath ?? document.documentName ?? fallback;
+  return document.documentName ?? document.sourceRelativePath ?? fallback;
 }
 
 function progressLineLabel(

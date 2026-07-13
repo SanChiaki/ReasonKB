@@ -1,893 +1,250 @@
-# ReasonKB 部署指南
+# ReasonKB 正式版部署指南
 
-本文面向需要把 ReasonKB 跑起来的用户，覆盖 Windows Server、Windows 10/11、Linux、macOS。ReasonKB 推荐使用 release Docker Compose 部署，因为完整运行路径包含 Web 界面、检索 API、索引 Worker、目录监听器、Gotenberg Office 转 PDF 服务和 SQLite 运行数据。
+ReasonKB 正式版同时支持不限数量的本地目录、SMB 共享和致远 V8.1SP2 文档库。安装过程只配置容器运行边界、管理员账号和可选 LLM 默认值；业务数据源在启动后通过管理页配置，保存后无需重启容器。
 
-本文不把 Docker Desktop 作为推荐路径。Windows Server 按 WSL Ubuntu + Docker Engine 部署。
+## 1. 运行要求
 
-推荐路径：
+- Docker Engine 和 Docker Compose v2
+- 建议至少 4 核 CPU、8 GiB 内存
+- SQLite、索引和转换产物所需的持久化磁盘
+- 到 LLM、SMB、致远和 Gotenberg 的网络连通性
+- 一个只读挂载到容器的本地数据源访问根目录
 
-- Windows Server：WSL Ubuntu + Docker Engine，项目语料放在 Windows 磁盘目录，例如 `D:\ReasonKB\projects`。
-- Windows 10/11：WSL Ubuntu + Docker Engine，项目语料可放在 Windows 磁盘目录。
-- Linux：原生 Docker Engine + Docker Compose plugin。
-- macOS：Colima + Docker CLI / Compose plugin。
+默认端口：
 
-主要访问地址：
+| 服务 | 地址 |
+|---|---|
+| Web | `http://localhost:43170` |
+| Retrieval API | `http://localhost:43171` |
+| Gotenberg | `http://localhost:43172` |
 
-- Web 界面：`http://localhost:43170`
+生产环境应通过防火墙或反向代理限制管理页面和内部服务端口。
 
-本机调试地址：
+## 2. 一键安装
 
-- 检索 API：`http://localhost:43171`
-- Gotenberg：`http://localhost:43172`
-
-局域网或生产使用时，通常只开放 Web 端口 `43170`。
-
-下面各系统的 TLDR 都假设 Docker 和 Docker Compose v2 已经安装好。`docker/install.sh` 会交互式引导配置项目语料目录、设置页可浏览目录、LLM API Key、Base URL、对话模型和检索模型，然后拉取 release Compose 并启动服务。也可以提前用环境变量传入这些值，脚本会直接采用。运行后仍可在设置页修改 LLM 配置，设置页保存的运行时配置优先于 `.env` 默认值。
-
-## 一、部署原则
-
-### 1. Windows Server 的推荐结构
-
-Windows Server 上推荐把“程序运行状态”和“项目语料”分开：
-
-```text
-WSL Ubuntu:
-  ~/.reasonkb/
-    compose.yml
-    .env
-    var/
-
-Windows 磁盘:
-  D:\ReasonKB\projects\
-    ProjectA\
-      report.pdf
-    ProjectB\
-      handover.docx
+```bash
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
 ```
 
-这样做的好处是：
-
-- Windows 管理员可以继续用 Windows 文件共享、备份、杀毒和权限策略管理原始项目文件。
-- ReasonKB 容器通过 WSL 的 `/mnt/d/ReasonKB/projects` 路径只读挂载语料目录。
-- SQLite、上传缓存、转换结果等运行数据保留在 WSL 的 `~/.reasonkb/var`，避免和原始项目文件混在一起。
-
-Windows Server 正式部署时，建议先创建 Windows 磁盘语料目录，再安装 ReasonKB。不要沿用默认的 `~/.reasonkb/projects` 作为长期项目语料目录，除非只是临时试用。
-
-不要把 ReasonKB 当作 Windows containers 服务部署。当前 release Compose 使用 Linux 容器镜像。
-
-### 2. 项目语料目录规则
-
-ReasonKB 的目录监听器会把项目语料根目录下的第一层文件夹识别为项目。
-
-推荐：
-
-```text
-D:\ReasonKB\projects\
-  ProjectA\
-    report.md
-    specs\scope.docx
-  ProjectB\
-    handover.pdf
-```
-
-不推荐：
-
-```text
-D:\ReasonKB\projects\
-  report.pdf
-```
-
-也不建议直接把整个磁盘根目录（例如 `D:\`）设为项目语料根目录。请使用专用目录，例如 `D:\ReasonKB\projects`，并只把需要索引的项目文件放进去。
-
-支持的常见文件类型包括 PDF、Markdown、文本、Word、Excel、PowerPoint 和图片。Office 文件会通过 Gotenberg 自动转换后再索引。
-
-### 3. 部署目录和备份
-
-一键安装脚本默认把部署文件和运行数据放在当前用户的 `~/.reasonkb` 下：
+默认安装目录为 `~/.reasonkb`：
 
 ```text
 ~/.reasonkb/
   compose.yml
   .env
-  var/
-  projects/
+  projects/              本地数据源只读访问根目录
+  var/                   SQLite、索引临时数据、转换产物
+  secrets/
+    master.key
+    admin_password
 ```
 
-其中：
+首次安装会输出一次管理员初始密码。之后可从宿主机的 `~/.reasonkb/secrets/admin_password` 查看；不要把它写入镜像或提交到版本库。
 
-- `compose.yml` 是 release 版 Docker Compose 文件。
-- `.env` 保存端口、项目目录、LLM 默认配置等。
-- `var/` 保存 SQLite 数据库、上传文件、Office 转换结果等运行状态。
-- `projects/` 是默认项目语料目录；Windows Server 推荐改成 Windows 磁盘路径。
+## 3. 密钥位置与备份
 
-不建议把 `var/` 放到 Windows 磁盘挂载路径下。SQLite 和运行缓存留在 WSL/Linux 文件系统里更适合作为服务运行状态；Windows 磁盘目录只承载项目语料。
-
-备份时至少备份：
-
-- `~/.reasonkb/.env`
-- `~/.reasonkb/var`
-- 实际项目语料目录，例如 `D:\ReasonKB\projects`
-
-## 二、Windows Server 部署
-
-Windows Server 是本文的主路径。推荐使用 Windows Server 2022 或 Windows Server 2025，因为 Microsoft 已支持用 `wsl --install` 安装 WSL。Windows Server 2019 或更早版本限制较多，建议改用 Linux 服务器或升级系统。
-
-### TLDR：交互式配置 LLM 和 Windows 磁盘语料目录
-
-前提：已完成 WSL Ubuntu、systemd 和 Docker Engine 安装。然后在 Ubuntu / WSL 中执行：
-
-```sh
-mkdir -p /mnt/d/ReasonKB/projects
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | \
-  REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects \
-  REASONKB_HOST_BROWSE_ROOT=/mnt/d \
-  sh
-```
-
-脚本会继续询问 LLM API Key、Base URL、对话模型和检索模型。
-
-把项目文件放入 `D:\ReasonKB\projects\<项目名>\` 后，访问 `http://localhost:43170`。
-
-### 1. 准备 Windows 项目语料目录
-
-在 Windows Server 管理员 PowerShell 中执行：
-
-```powershell
-New-Item -ItemType Directory -Force D:\ReasonKB\projects | Out-Null
-```
-
-如果服务器没有 D 盘，可以换成其他数据盘。后文中的 `/mnt/d/ReasonKB/projects` 也要同步改成对应路径，例如 E 盘对应 `/mnt/e/ReasonKB/projects`。
-
-把项目文件按第一层项目目录放进去：
+`master.key` 的权威副本在宿主机：
 
 ```text
-D:\ReasonKB\projects\
-  ProjectA\
-    report.pdf
-    specs\scope.docx
-  ProjectB\
-    handover.md
+~/.reasonkb/secrets/master.key
 ```
 
-后续在 WSL 里，这个目录对应：
+Docker 仅把它只读挂载为：
 
 ```text
-/mnt/d/ReasonKB/projects
+/run/secrets/reasonkb_master_key
 ```
 
-### 2. 安装 WSL Ubuntu
+因此密钥不会随着容器删除而丢失。必须把 `master.key` 与 `var/app.db` 一起备份；丢失密钥后，SQLite 中已加密的 SMB 和致远凭据无法恢复。建议权限：
 
-在 Windows Server 管理员 PowerShell 中执行：
-
-```powershell
-wsl --install -d Ubuntu
+```bash
+chmod 700 ~/.reasonkb/secrets
+chmod 600 ~/.reasonkb/secrets/master.key ~/.reasonkb/secrets/admin_password
 ```
 
-按提示重启后，打开 Ubuntu，完成 Linux 用户名和密码初始化。
+Web、source worker 和 index worker 在启动前会验证 master key。文件不是普通文件、内容不是 32 字节密钥，或对 group/other 开放权限时，容器会拒绝启动；不要用放宽权限的方式绕过密钥挂载问题。
 
-确认 WSL 状态：
+恢复时应先恢复数据库和同一把 master key，再启动新容器。
 
-```powershell
-wsl --status
-wsl -l -v
-```
+## 4. 本地数据源访问边界
 
-后续 Linux 命令都在 Ubuntu / WSL 终端中执行。
-
-### 3. 启用 systemd
-
-在 Ubuntu / WSL 中执行：
-
-```sh
-cat <<'EOF' | sudo tee /etc/wsl.conf
-[boot]
-systemd=true
-EOF
-```
-
-回到 Windows Server 管理员 PowerShell：
-
-```powershell
-wsl --shutdown
-```
-
-然后重新打开 Ubuntu。
-
-### 4. 安装 Docker Engine
-
-在 Ubuntu / WSL 中执行：
-
-```sh
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-. /etc/os-release
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"
-```
-
-关闭并重新打开 Ubuntu，让 `docker` 用户组生效。然后验证：
-
-```sh
-docker --version
-docker compose version
-docker info
-```
-
-### 5. 安装 ReasonKB，并直接使用 Windows 磁盘语料目录
-
-在 Ubuntu / WSL 中执行：
-
-```sh
-mkdir -p /mnt/d/ReasonKB/projects
-export REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects
-export REASONKB_HOST_BROWSE_ROOT=/mnt/d
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
-
-这样安装脚本会把以下配置写入 `~/.reasonkb/.env`：
+`.env` 中的 `REASONKB_PROJECTS_ROOT` 是宿主机路径，Compose 将其只读挂载到容器的 `/data/projects`。
 
 ```env
-REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects
-REASONKB_HOST_BROWSE_ROOT=/mnt/d
+REASONKB_PROJECTS_ROOT=/srv/reasonkb/source-data
+REASONKB_HOST_BROWSE_ROOT=/srv/reasonkb
 ```
 
-含义：
-
-- `REASONKB_PROJECTS_ROOT` 是实际挂载进 ReasonKB 的项目语料根目录。
-- `REASONKB_HOST_BROWSE_ROOT` 是设置页文件夹选择器能浏览的宿主机范围。设为 `/mnt/d` 后，设置页可以浏览 D 盘下的目录。
-
-安装完成后，在 Windows Server 本机浏览器打开：
+管理员创建 Local 数据源时填写容器路径，例如：
 
 ```text
-http://localhost:43170
+/data/projects
+/data/projects/engineering
+/data/projects/operations/manuals
 ```
 
-如果服务器没有图形桌面，按下一节开放 Web 端口后，从局域网内的电脑访问。
+Local source 的根路径必须位于 `/data/projects` 内。新增或编辑这个边界内的数据源立即生效；更换宿主机 bind mount 边界本身属于部署变更，需要重新创建容器。
 
-### 6. 服务器重启后恢复服务
+Linux 示例：
 
-Windows Server 重启后，先打开 Ubuntu / WSL，确认 Docker 正常，再启动 ReasonKB：
-
-```sh
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml up -d
+```bash
+mkdir -p /srv/reasonkb/source-data
+REASONKB_PROJECTS_ROOT=/srv/reasonkb/source-data \
+  sh docker/install.sh
 ```
 
-也可以从 Windows Server PowerShell 执行：
+macOS 可使用 OrbStack 或其他 Docker Engine，将实际目录传给 `REASONKB_PROJECTS_ROOT`。
 
-```powershell
-wsl -d Ubuntu -- bash -lc "cd ~/.reasonkb && docker compose --env-file ./.env -f compose.yml up -d"
-```
+Windows Server 使用 Docker 能直接访问的 Windows 绝对路径，并确认 Compose 所在运行时具有只读权限。不要把未验证的 WSL 路径当作 Windows Docker 主机路径。
 
-如果需要无人值守启动，可以用 Windows 任务计划程序创建开机或登录任务，任务动作使用上面的 `wsl -d Ubuntu -- bash -lc ...` 命令，并以安装 ReasonKB 的 Windows 用户身份运行。
-
-### 7. 允许局域网访问
-
-如果只在 Windows Server 本机使用，一般访问 `http://localhost:43170` 即可。如果局域网其他机器也要访问，需要把 Windows Server 的端口转发到 WSL IP。
-
-在 Windows Server 管理员 PowerShell 中执行：
-
-```powershell
-$WslIp = (wsl hostname -I).Trim().Split(" ")[0]
-netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=43170 2>$null
-netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=43170 connectaddress=$WslIp connectport=43170
-New-NetFirewallRule -DisplayName "ReasonKB Web 43170" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 43170
-```
-
-然后在局域网其他机器访问：
-
-```text
-http://<Windows-Server-IP>:43170
-```
-
-WSL IP 可能会在服务器重启或 `wsl --shutdown` 后变化。如果局域网访问突然失效，重新执行上面的 `portproxy` 命令。
-
-检索 API `43171` 和 Gotenberg `43172` 通常只用于调试，不建议对外暴露。
-
-### 8. 后续更换项目目录
-
-如果要把语料目录从 `D:\ReasonKB\projects` 改到 `E:\ReasonKB\projects`，在 Ubuntu / WSL 中编辑：
-
-```sh
-nano ~/.reasonkb/.env
-```
-
-修改为：
-
-```env
-REASONKB_PROJECTS_ROOT=/mnt/e/ReasonKB/projects
-REASONKB_HOST_BROWSE_ROOT=/mnt/e
-```
-
-然后重建容器：
-
-```sh
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
-```
-
-## 三、Windows 10/11 部署
-
-Windows 10/11 也使用 WSL Ubuntu + Docker Engine。步骤与 Windows Server 基本一致，但通常不需要 `netsh portproxy`。
-
-### TLDR：交互式配置 LLM 和 Windows 磁盘语料目录
-
-前提：已完成 WSL Ubuntu、systemd 和 Docker Engine 安装。然后在 Ubuntu / WSL 中执行：
-
-```sh
-mkdir -p /mnt/d/ReasonKB/projects
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | \
-  REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects \
-  REASONKB_HOST_BROWSE_ROOT=/mnt/d \
-  sh
-```
-
-脚本会继续询问 LLM API Key、Base URL、对话模型和检索模型。
-
-把项目文件放入 `D:\ReasonKB\projects\<项目名>\` 后，访问 `http://localhost:43170`。
-
-简化流程：
-
-1. 管理员 PowerShell 执行 `wsl --install -d Ubuntu`。
-2. 打开 Ubuntu，按 Windows Server 章节启用 systemd 并安装 Docker Engine。
-3. 在 Windows 磁盘创建语料目录，例如 `D:\ReasonKB\projects`。
-4. 在 Ubuntu / WSL 中执行：
-
-```sh
-mkdir -p /mnt/d/ReasonKB/projects
-export REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects
-export REASONKB_HOST_BROWSE_ROOT=/mnt/d
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
-
-然后在 Windows 浏览器打开：
-
-```text
-http://localhost:43170
-```
-
-## 四、Linux 部署
-
-Linux 推荐直接安装 Docker Engine 和 Docker Compose plugin。
-
-### TLDR：交互式配置 LLM 和语料目录
-
-前提：已完成 Docker Engine 和 Docker Compose plugin 安装。然后执行：
-
-```sh
-mkdir -p "$HOME/ReasonKB/projects"
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | \
-  REASONKB_PROJECTS_ROOT="$HOME/ReasonKB/projects" \
-  REASONKB_HOST_BROWSE_ROOT="$HOME/ReasonKB" \
-  sh
-```
-
-脚本会继续询问 LLM API Key、Base URL、对话模型和检索模型。
-
-把项目文件放入 `~/ReasonKB/projects/<项目名>/` 后，访问 `http://localhost:43170`。
-
-### 1. 安装 Docker Engine
-
-Ubuntu / Debian 用户可以按 Docker 官方仓库方式安装。以 Ubuntu 为例：
-
-```sh
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-. /etc/os-release
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"
-```
-
-退出当前登录会话并重新登录，然后验证：
-
-```sh
-docker --version
-docker compose version
-docker info
-```
-
-不要直接用 `sudo sh` 运行 ReasonKB 一键安装脚本，否则部署目录会落到 root 用户的家目录下，后续维护不方便。
-
-### 2. 安装 ReasonKB
-
-如果使用默认语料目录 `~/.reasonkb/projects`：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
-
-如果使用自定义语料目录：
-
-```sh
-mkdir -p /data/reasonkb/projects
-export REASONKB_PROJECTS_ROOT=/data/reasonkb/projects
-export REASONKB_HOST_BROWSE_ROOT=/data
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
+## 5. 管理员登录
 
 打开：
 
 ```text
-http://localhost:43170
+http://localhost:43170/admin/login
 ```
 
-## 五、macOS 部署
+使用部署管理员密码登录。所有数据源、目录选择、手工同步、停用、恢复和清除操作都要求管理员会话和 CSRF 校验。普通检索用户不能调用这些管理 API。
 
-macOS 推荐使用 Colima + Docker CLI，与 Windows Server 和 Linux 的部署方式保持一致。
+## 6. 添加数据源
 
-### TLDR：交互式配置 LLM 和语料目录
-
-前提：已完成 Colima、Docker CLI 和 Compose plugin 安装，并已启动 Colima。然后执行：
-
-```sh
-mkdir -p "$HOME/Documents/ReasonKBProjects"
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | \
-  REASONKB_PROJECTS_ROOT="$HOME/Documents/ReasonKBProjects" \
-  REASONKB_HOST_BROWSE_ROOT="$HOME/Documents" \
-  sh
-```
-
-脚本会继续询问 LLM API Key、Base URL、对话模型和检索模型。
-
-把项目文件放入 `~/Documents/ReasonKBProjects/<项目名>/` 后，访问 `http://localhost:43170`。
-
-### 1. 安装 Colima、Docker CLI 和 Compose plugin
-
-先安装 Homebrew，然后执行：
-
-```sh
-brew install colima docker docker-compose
-```
-
-如果 `docker compose version` 不可用，创建 Docker CLI plugin 软链接：
-
-```sh
-mkdir -p ~/.docker/cli-plugins
-ln -sf "$(brew --prefix)/opt/docker-compose/bin/docker-compose" ~/.docker/cli-plugins/docker-compose
-```
-
-### 2. 启动 Colima
-
-ReasonKB 当前 release Compose 默认使用 `linux/amd64` 镜像平台。Intel Mac 可以直接启动：
-
-```sh
-colima start --cpu 4 --memory 8 --disk 60
-docker context use colima
-```
-
-Apple Silicon Mac 如遇到镜像平台不匹配，使用 x86_64 Colima 实例：
-
-```sh
-colima stop
-colima start --arch x86_64 --cpu 4 --memory 8 --disk 60
-docker context use colima
-```
-
-验证：
-
-```sh
-docker --version
-docker compose version
-docker info
-```
-
-### 3. 安装 ReasonKB
-
-如果使用默认语料目录：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
-
-如果使用自定义语料目录：
-
-```sh
-mkdir -p /Users/you/Documents/ReasonKBProjects
-export REASONKB_PROJECTS_ROOT=/Users/you/Documents/ReasonKBProjects
-export REASONKB_HOST_BROWSE_ROOT=/Users/you/Documents
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
-
-打开：
-
-```text
-http://localhost:43170
-```
-
-如果项目目录不在用户家目录下，Colima 可能需要额外配置挂载。优先把项目语料放在 `/Users/<you>/...` 下。
-
-## 六、首次使用
-
-### 1. 放入项目文档
-
-把文件放到项目目录的第一层项目文件夹中，例如：
-
-```text
-D:\ReasonKB\projects\
-  DemoProject\
-    README.md
-    proposal.docx
-    report.pdf
-```
-
-目录监听器默认每 5 秒扫描一次。新文件会自动出现在 Web 界面中，并进入索引队列。
-
-### 2. 配置 LLM
-
-打开：
-
-```text
-http://localhost:43170/settings
-```
+### 6.1 Local
 
 填写：
 
-- API Key
-- Base URL
-- 对话模型
-- 检索模型
-- 索引并发数
-- 检索文档数量
+- 显示名称
+- `/data/projects` 下的根路径
+- 定时或手工同步
+- 同步间隔
+- 单文件大小上限
 
-运行时在设置页保存的配置会写入 SQLite，并优先于 `.env` 中的默认值。
+Local connector 不跟随符号链接。根目录直接文件形成 Root Collection，一级目录形成独立 Collection。
 
-也可以在 `~/.reasonkb/.env` 中写入默认值：
+### 6.2 SMB
 
-```env
-PAGEINDEX_LLM_API_KEY=your_key
-PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
-PAGEINDEX_LLM_MODEL=openai/deepseek-v4-flash
-PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/deepseek-v4-flash
-```
+填写：
 
-修改 `.env` 后需要重建容器：
+- host、port、share、base path
+- `ntlm` 或 `negotiate`
+- domain、username、password
+- 同步计划和文件大小上限
 
-```sh
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
-```
+SMB 不需要在容器内挂载共享，也不需要 `privileged` 或 `SYS_ADMIN`。凭据使用 master key 以 AES-256-GCM 加密保存在 SQLite 中。索引 worker 每次只下载当前 revision，处理结束后删除临时文件。
 
-## 七、SMB / Windows 共享语料部署
+### 6.3 致远 V8.1SP2
 
-如果项目文件已经放在 Windows Server 文件共享上，ReasonKB 可以直接把 SMB / Windows 共享作为语料源。这个模式适合 release Docker Compose 部署：容器不挂载 SMB 文件系统，ReasonKB 在应用层用 SMB client 访问共享。
+填写：
 
-### 1. 使用安装脚本
+- 致远 endpoint，例如 `http://host:port/seeyon`
+- `loginName`
+- REST username 和 password
 
-运行 release 安装脚本：
+连接验证成功后，逐个登记需要接入的文档库：
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
-```
+- 文档库显示名称
+- 文档库 ID (`docLibId`)
+- 根目录 ID (`rootArchiveId`)
 
-脚本询问语料源时选择 `smb`，然后输入共享路径、用户名、密码和可选域。共享路径可以写成：
+ReasonKB 不自动枚举致远全部文档库。每个新登记默认未选中；当 source 策略为 `All` 时，登记并验证成功的新文档库会自动纳入。
+
+致远文档同步使用：
 
 ```text
-//server/share/path
-\\server\share\path
+稳定身份：fr_id
+版本指纹：file_id + fr_size
+当前版本下载：file_id
 ```
 
-安装脚本会把 SMB 配置写入 `$REASONKB_HOME/.env`，默认是 `~/.reasonkb/.env`；用户名和密码会分别写入 `$REASONKB_HOME/secrets/smb_username` 和 `$REASONKB_HOME/secrets/smb_password`。
+`fr_create_time` 不用于判断更新。
 
-### 2. 手动配置 release Compose
+## 7. 目录选择策略
 
-也可以手动编辑部署目录中的 `.env`：
+每个 source 支持：
 
-```env
-REASONKB_CORPUS_SOURCE=smb
-REASONKB_SMB_HOST=server
-REASONKB_SMB_SHARE=share
-REASONKB_SMB_BASE_PATH=path
-REASONKB_SMB_USERNAME_FILE=./secrets/smb_username
-REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password
-REASONKB_SMB_DOMAIN=
-REASONKB_SMB_PORT=445
-REASONKB_SMB_AUTH_PROTOCOL=ntlm
-REASONKB_SECRETS_ROOT=./secrets
+| 策略 | 行为 |
+|---|---|
+| `None` | 不选择任何 Collection，不创建可检索 Project |
+| `Explicit` | 只启用明确勾选的 Collection |
+| `All` | 启用当前和以后发现或登记的所有有效 Collection |
+
+Source Collection 与 Project 一一对应。不同 source 的 Project 始终隔离，即使显示名称相同。
+
+## 8. 热更新行为
+
+下面操作写入 SQLite 后由 source worker 自动拾取，无需重启：
+
+- 新建 source
+- 修改显示名称、同步计划、登录身份或密码
+- 登记或注销致远文档库
+- `None / Explicit / All` 切换
+- 手工同步
+- 停用、启用、恢复和待清除
+
+手工同步会同时请求一次 Collection 发现，因此 manual-only 的 Local/SMB source 在首次验证后也能发现目录；发现结束后不会留下周期调度时间。
+
+Source endpoint、SMB scope 或 Local 根路径定义 source 身份边界，不能原地修改；需要创建新的 source。`loginName`、username 和 password 可在原 source 上更新。身份变化会先停止旧可见性的检索，直到验证和权威同步完成。
+
+## 9. 数据保留
+
+- Source 删除后默认进入 7 天 Pending Purge，可恢复。
+- 立即清除需要输入 source 显示名称确认，source worker 最多约 5 秒检查一次到期清除请求。
+- Missing 文档立即退出检索，旧索引保留 30 天。
+- 管理审计默认保留 180 天。
+- 临时下载始终在任务结束时删除；异常残留由维护任务清理。
+
+source worker 与 index worker 都提供基于工作循环心跳的 Docker healthcheck。source worker 重启时会把遗留的 Running Sync Run/Discovery Run 标记失败、丢弃未提交观测并释放队列；index worker 会恢复遗留索引任务和运行记录。
+
+ReasonKB 的删除只影响自身 SQLite、索引和转换产物，不会删除 Local、SMB 或致远中的源文件。
+
+## 10. 升级迁移
+
+升级前备份：
+
+```bash
+cp ~/.reasonkb/var/app.db ~/.reasonkb/var/app.db.backup
+cp ~/.reasonkb/secrets/master.key ~/.reasonkb/secrets/master.key.backup
 ```
 
-`REASONKB_SMB_BASE_PATH` 是共享内的子目录；如果要索引整个 share 根目录，可以留空。`REASONKB_SMB_DOMAIN` 没有域时也可以留空。
+正式版迁移会：
 
-创建 secret 文件：
+- 保留 legacy Local/SMB 的 Project ID、document ID、索引、任务和会话引用
+- 把旧 SMB secret files 导入加密 source credentials
+- 删除 demo 手工上传的 Project、文档、索引、任务和托管文件
+- 对多 scope 或无法识别的空 Project 停止迁移并报错
 
-```sh
+迁移成功后 SQLite 是运行时 source 配置的唯一权威数据源。
+
+## 11. 运维命令
+
+```bash
 cd ~/.reasonkb
-mkdir -p secrets
-printf '%s\n' 'your-username' > secrets/smb_username
-printf '%s\n' 'your-password' > secrets/smb_password
-chmod 600 secrets/smb_username secrets/smb_password
-```
 
-release Compose 会把 `${REASONKB_SECRETS_ROOT:-./secrets}` 只读挂载到容器内 `/app/secrets`。Compose 默认会把容器内 secret 路径设为 `/app/secrets/smb_username` 和 `/app/secrets/smb_password`；安装脚本写入的 `./secrets/...` 路径适用于 release 部署目录中的 `.env`。
-
-修改后重建容器：
-
-```sh
-docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
-```
-
-### 3. 安全边界
-
-SMB 凭据放在 `$REASONKB_HOME/secrets`，容器只读挂载到 `/app/secrets`。不要把密码直接写进 `.env`，因为 `.env` 更容易被日志、排障命令或配置同步流程带出去。
-
-ReasonKB 默认不需要 `CAP_SYS_ADMIN`、`SYS_ADMIN`、`privileged`，也不需要在容器内执行 `mount.cifs`。如果你选择先在宿主机挂载 SMB，再把挂载点 bind mount 进容器，那是另一个部署方案；当前 SMB remote corpus 实现默认不走这条路。
-
-Settings UI 管理 SMB credential 属于遗留任务 / 后续计划。本版本如需换账号或密码，请修改 `$REASONKB_HOME/secrets/smb_username` 和 `$REASONKB_HOME/secrets/smb_password`，然后重建相关容器。
-
-### 4. 更新机制
-
-在 SMB 模式下，`directory-watcher` 扫描远端 metadata，例如 mtime 和 size；文件新增、删除或 mtime/size 变化时，会更新数据库并产生重新索引任务。`index-worker` 真正索引某个文档时才从 SMB 读取该文件，临时放入 remote cache/temp，索引结束后清理。
-
-因此 ReasonKB 不会把整个 SMB 共享长期同步到本地，也不会依赖容器级 SMB mount。运行状态、SQLite、转换结果和临时缓存仍保留在 `$REASONKB_HOME/var` 对应的 Docker volume/bind mount 中。
-
-## 八、常用运维命令
-
-以下命令都在部署目录执行：
-
-```sh
-cd ~/.reasonkb
-```
-
-查看服务状态：
-
-```sh
 docker compose --env-file ./.env -f compose.yml ps
-```
-
-查看日志：
-
-```sh
-docker compose --env-file ./.env -f compose.yml logs -f
-```
-
-只看某个服务：
-
-```sh
 docker compose --env-file ./.env -f compose.yml logs -f web
+docker compose --env-file ./.env -f compose.yml logs -f source-worker
+docker compose --env-file ./.env -f compose.yml logs -f index-worker
 docker compose --env-file ./.env -f compose.yml logs -f retrieval-api
-docker compose --env-file ./.env -f compose.yml logs -f index-worker
-docker compose --env-file ./.env -f compose.yml logs -f directory-watcher
-docker compose --env-file ./.env -f compose.yml logs -f gotenberg
 ```
 
-停止服务：
+检查配置：
 
-```sh
-docker compose --env-file ./.env -f compose.yml down
+```bash
+docker compose --env-file ./.env -f compose.yml config --quiet
 ```
 
-启动服务：
+管理员页面展示 source 健康状态、连续失败次数、最近成功、同步历史、检索覆盖率、source item 目录和审计记录。
 
-```sh
-docker compose --env-file ./.env -f compose.yml up -d
+## 12. 完整验证
+
+发布前至少执行：
+
+```bash
+./.venv/bin/python -m pytest -q services/tests
+pnpm -C web test
+pnpm -C web exec tsc --noEmit
+docker compose -f docker/compose.yml config --quiet
+docker compose -f docker/compose.release.yml config --quiet
 ```
 
-升级到最新镜像：
-
-```sh
-docker compose --env-file ./.env -f compose.yml pull
-docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
-```
-
-备份：
-
-```sh
-docker compose --env-file ./.env -f compose.yml down
-cd ~
-tar -czf reasonkb-backup.tar.gz .reasonkb
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml up -d
-```
-
-Windows Server 本地语料模式还要另外备份实际语料目录，例如 `D:\ReasonKB\projects`。SMB 语料模式下，另外备份 SMB 共享本身和 `$REASONKB_HOME/secrets`。
-
-## 九、常见问题
-
-### 1. 打不开 `http://localhost:43170`
-
-先看容器状态：
-
-```sh
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml ps
-```
-
-再看 Web 日志：
-
-```sh
-docker compose --env-file ./.env -f compose.yml logs web
-```
-
-如果端口被占用，修改 `~/.reasonkb/.env`：
-
-```env
-WEB_PORT=43180
-```
-
-然后重建容器，访问 `http://localhost:43180`。
-
-### 2. Windows Server 局域网访问不到
-
-重新获取 WSL IP 并刷新端口转发：
-
-```powershell
-$WslIp = (wsl hostname -I).Trim().Split(" ")[0]
-netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=43170 2>$null
-netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=43170 connectaddress=$WslIp connectport=43170
-```
-
-确认 Windows 防火墙允许 `43170` 入站。
-
-### 3. 文档放进目录后没有出现
-
-确认文件在项目文件夹下面：
-
-```text
-D:\ReasonKB\projects\
-  ProjectA\
-    file.pdf
-```
-
-不要直接放在语料根目录：
-
-```text
-D:\ReasonKB\projects\
-  file.pdf
-```
-
-然后查看目录监听器日志：
-
-```sh
-docker compose --env-file ./.env -f compose.yml logs -f directory-watcher
-```
-
-### 4. Office 文件无法索引
-
-确认 Gotenberg 正在运行：
-
-```sh
-docker compose --env-file ./.env -f compose.yml ps gotenberg
-```
-
-再看索引 Worker 日志：
-
-```sh
-docker compose --env-file ./.env -f compose.yml logs -f index-worker
-```
-
-### 5. 设置页不能选择目标文件夹
-
-文件夹选择器只能浏览 `REASONKB_HOST_BROWSE_ROOT` 范围内的目录。Windows Server 推荐：
-
-```env
-REASONKB_HOST_BROWSE_ROOT=/mnt/d
-```
-
-修改后重建容器。
-
-### 6. 镜像拉取慢或失败
-
-ReasonKB 默认使用 Alibaba Cloud ACR 镜像：
-
-```text
-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest
-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8
-```
-
-确认网络能访问该镜像仓库后重试：
-
-```sh
-docker compose --env-file ./.env -f compose.yml pull
-```
-
-### 7. `curl: (35) SSL routines::unexpected eof while reading`
-
-这个错误通常是当前机器访问 `raw.githubusercontent.com` 时网络、代理或 TLS 连接被中断导致的。
-
-如果是在下载安装脚本时报错：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh -o install.sh
-```
-
-可以直接重试，或改用 `wget`：
-
-```sh
-wget -O install.sh https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh
-sh install.sh
-```
-
-如果是在运行 `./install.sh` 时下载 `compose.release.yml` 报错，安装脚本会自动重试，并在 `curl` 失败后尝试 `wget`。如果当前网络仍然无法访问 GitHub raw 文件，可以使用镜像地址：
-
-```sh
-REASONKB_COMPOSE_URL=https://your-mirror.example/compose.release.yml ./install.sh
-```
-
-也可以手动把 `docker/compose.release.yml` 下载到：
-
-```text
-~/.reasonkb/compose.yml
-```
-
-然后重新运行：
-
-```sh
-./install.sh
-```
-
-Windows Server / WSL 场景下，如果项目语料目录在 Windows D 盘，重试时仍建议保留这些配置：
-
-```sh
-REASONKB_PROJECTS_ROOT=/mnt/d/ReasonKB/projects \
-REASONKB_HOST_BROWSE_ROOT=/mnt/d \
-./install.sh
-```
-
-### 8. 完全卸载
-
-先停止并删除容器：
-
-```sh
-cd ~/.reasonkb
-docker compose --env-file ./.env -f compose.yml down
-```
-
-确认不再需要数据后，删除部署目录：
-
-```sh
-rm -rf ~/.reasonkb
-```
-
-Windows Server 上如果不再需要项目语料，再删除 `D:\ReasonKB\projects`。
-
-## 十、从源码运行或开发
-
-如果要改代码，使用本地开发模式，而不是 release 部署模式。
-
-Python 服务：
-
-```sh
-python3 -m venv .venv
-./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install -r services/requirements.txt
-./.venv/bin/uvicorn services.retrieval_api.app:app --reload --port 8001
-```
-
-Web 服务：
-
-```sh
-pnpm -C web install
-pnpm -C web db:migrate
-pnpm -C web dev
-```
-
-索引 Worker：
-
-```sh
-./.venv/bin/python -m services.index_worker.worker
-```
-
-源码开发时如需 Office 转 PDF，可以单独用 Docker 启动 Gotenberg，或使用完整 Docker Compose 做最终集成验证。
-
-## 十一、参考
-
-- Microsoft WSL on Windows Server: https://learn.microsoft.com/en-us/windows/wsl/install-on-server
-- Microsoft WSL systemd: https://learn.microsoft.com/en-us/windows/wsl/systemd
-- Docker Engine on Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+然后重建完整 Compose，验证管理员登录、三类 source、运行时配置热生效、Office 转换、索引、检索和桌面/移动端布局。

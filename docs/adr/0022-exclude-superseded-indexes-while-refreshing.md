@@ -1,0 +1,3 @@
+# Exclude superseded indexes while refreshing
+
+When a document's Source Revision changes, the document becomes refreshing and its previous index leaves retrieval immediately. ReasonKB retains that index for diagnosis and retry but does not serve content known to be superseded or withdrawn. A successful new index atomically replaces the previous revision and restores retrieval; download or indexing failure keeps the document excluded. Missing and access-revoked content likewise cannot fall back to an older index. This chooses freshness and permission safety over temporary retrieval availability.

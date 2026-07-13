@@ -11,33 +11,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from services.common.settings import DB_PATH, PROJECTS_ROOT
+from services.common.source_formats import IGNORED_NAMES, SUPPORTED_MEDIA_BY_EXTENSION
 from services.common.sqlite_store import open_db
 
 DEMO_USER_ID = "user_demo"
-
-SUPPORTED_MEDIA_BY_EXTENSION = {
-    ".pdf": "pdf",
-    ".doc": "office",
-    ".docx": "office",
-    ".xls": "office",
-    ".xlsx": "office",
-    ".xlsm": "office",
-    ".ppt": "office",
-    ".pptx": "office",
-    ".md": "markdown",
-    ".markdown": "markdown",
-    ".txt": "text",
-    ".text": "text",
-    ".png": "image",
-    ".jpg": "image",
-    ".jpeg": "image",
-    ".webp": "image",
-    ".tif": "image",
-    ".tiff": "image",
-}
-
-IGNORED_NAMES = {".DS_Store", "Thumbs.db"}
-
 
 @dataclass
 class SourceFile:

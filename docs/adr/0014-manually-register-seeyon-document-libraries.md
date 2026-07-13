@@ -1,0 +1,3 @@
+# Manually register Seeyon document libraries
+
+The Seeyon connector will not require a Seeyon server extension, call unsupported browser Ajax endpoints, or read the Seeyon database. Administrators register each Seeyon Source Collection by providing its document library ID and root `doc_resources` ID under a connection-level Corpus Source. Registered libraries remain disabled by default and are validated through the supported document-list REST API before ingestion. The continuous all-collections policy means all registered libraries, including libraries registered later; it cannot detect or ingest an unregistered source-side library. This trades automatic library discovery for deployability in environments where Seeyon cannot be extended.

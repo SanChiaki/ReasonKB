@@ -1,0 +1,3 @@
+# Activate projects before all indexing finishes
+
+A Project becomes active after its first authoritative metadata Sync Run succeeds, without waiting for every discovered document to finish PageIndex processing. Retrieval uses only documents whose current Source Revision is indexed successfully; queued, indexing, refreshing, failed, missing, and access-revoked documents remain excluded. Project and conversation interfaces expose Retrieval Coverage counts and indicate ongoing indexing so users understand that results are partial. This allows large collections to become useful incrementally instead of remaining unavailable for hours or days.

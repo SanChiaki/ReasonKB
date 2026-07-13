@@ -9,6 +9,7 @@ const tempDirs: string[] = [];
 afterEach(() => {
   vi.resetModules();
   vi.unmock("@/lib/config");
+  vi.unmock("@/lib/security/admin-route-auth");
   while (tempDirs.length > 0) {
     fs.rmSync(tempDirs.pop()!, { recursive: true, force: true });
   }
@@ -28,6 +29,10 @@ function makeTempDb() {
         "docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans",
     },
   }));
+  vi.doMock("@/lib/security/admin-route-auth", () => ({
+    authorizeAdminRequest: () => ({ id: "test-admin" }),
+    unauthorizedAdminResponse: () => new Response(null, { status: 401 }),
+  }));
   return { dbPath, dir };
 }
 
@@ -36,7 +41,7 @@ describe("system settings route", () => {
     makeTempDb();
 
     const { GET } = await import("@/app/api/admin/settings/route");
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/admin/settings"));
     const json = await response.json();
 
     expect(response.status).toBe(200);

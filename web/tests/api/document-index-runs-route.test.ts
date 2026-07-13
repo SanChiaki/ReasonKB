@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import { createDocumentRecord } from "@/lib/repos/document-store";
-import { createProject } from "@/lib/repos/project-store";
+import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
 

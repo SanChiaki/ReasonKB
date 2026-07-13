@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { appConfig } from "@/lib/config";
+import { schemaMigrations } from "@/lib/db/migrations";
+import { bootstrapAdminPassword } from "@/lib/repos/admin-auth-store";
+import {
+  purgeQueuedManagedFiles,
+  type LegacyCorpusMigrationOptions,
+} from "@/lib/db/legacy-corpus-migration";
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, "schema.sql");
@@ -14,25 +20,59 @@ type SqliteDatabase = {
   };
 };
 
-export function migrateDatabase(dbPath: string) {
+export function migrateDatabase(
+  dbPath: string,
+  options: LegacyCorpusMigrationOptions = {},
+) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const schemaSql = fs.readFileSync(schemaPath, "utf8");
   const db = new Database(dbPath);
+  db.pragma("busy_timeout = 5000");
+  db.pragma("foreign_keys = ON");
   try {
-    db.exec(schemaSql);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("no such column")
-    ) {
-      ensureLegacyColumns(db);
+    try {
       db.exec(schemaSql);
-    } else {
-      throw error;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("no such column")
+      ) {
+        ensureLegacyColumns(db);
+        db.exec(schemaSql);
+      } else {
+        throw error;
+      }
     }
+    ensureLegacyColumns(db);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        applied_at TEXT NOT NULL
+      )
+    `);
+
+    const applyMigration = db.transaction(
+      (migration: (typeof schemaMigrations)[number]) => {
+        migration.up(db, options);
+        db.prepare(
+          `INSERT INTO schema_migrations (version, name, applied_at)
+           VALUES (?, ?, ?)`,
+        ).run(migration.version, migration.name, new Date().toISOString());
+      },
+    );
+    for (const migration of schemaMigrations) {
+      const applied = db
+        .prepare("SELECT 1 FROM schema_migrations WHERE version = ?")
+        .get(migration.version);
+      if (!applied) {
+        applyMigration(migration);
+      }
+    }
+    purgeQueuedManagedFiles(db, options.uploadRoot);
+  } finally {
+    db.close();
   }
-  ensureLegacyColumns(db);
-  db.close();
 }
 
 function ensureColumn(
@@ -88,6 +128,20 @@ function isMainModule() {
 
 if (isMainModule()) {
   fs.mkdirSync(path.dirname(appConfig.dbPath), { recursive: true });
-  migrateDatabase(appConfig.dbPath);
+  migrateDatabase(appConfig.dbPath, {
+    legacyLocalRoot: appConfig.projectsRoot,
+    legacySmbRoot: appConfig.smbCorpusTarget,
+    uploadRoot: appConfig.uploadRoot,
+    masterKeyPath: appConfig.masterKeyPath,
+    legacySmbUsernameFile: appConfig.legacySmbUsernameFile,
+    legacySmbPasswordFile: appConfig.legacySmbPasswordFile,
+    legacySmbDomain: appConfig.legacySmbDomain,
+    legacySmbPort: appConfig.legacySmbPort,
+    legacySmbAuthProtocol: appConfig.legacySmbAuthProtocol,
+  });
+  if (appConfig.adminPasswordFile && fs.existsSync(appConfig.adminPasswordFile)) {
+    const password = fs.readFileSync(appConfig.adminPasswordFile, "utf8").trimEnd();
+    bootstrapAdminPassword(appConfig.dbPath, password);
+  }
   console.log(`migrated ${appConfig.dbPath}`);
 }

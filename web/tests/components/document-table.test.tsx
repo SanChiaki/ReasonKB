@@ -105,10 +105,12 @@ describe("DocumentTable", () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/documents/doc_failed/reindex", {
         method: "POST",
+        headers: { "x-reasonkb-csrf": "" },
       });
     });
     expect(onReindexQueued).toHaveBeenCalledTimes(1);
     expect(routerMocks.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Reindex queued for broken.docx.")).toBeInTheDocument();
   });
 
   it("opens a stored PageIndex tree for a single document", async () => {

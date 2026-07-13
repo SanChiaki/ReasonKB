@@ -1,0 +1,3 @@
+# Run source sync and indexing in separate workers
+
+The existing directory watcher becomes a connector-agnostic source worker that dynamically schedules validation, Source Discovery Runs, Collection Sync Runs, metadata reconciliation, lifecycle changes, and index-job creation. The index worker fairly claims revision-specific jobs, fetches source content, converts and indexes it, atomically publishes results, and removes temporary files. Web owns runtime administration and credential encryption but performs no long-running source work. Retrieval reads only active, current indexed data and receives neither source mounts nor Source Credentials. Remote I/O never occurs inside SQLite transactions.

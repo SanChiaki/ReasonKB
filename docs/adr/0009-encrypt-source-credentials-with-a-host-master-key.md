@@ -1,0 +1,3 @@
+# Encrypt source credentials with a host master key
+
+ReasonKB stores Source Credentials as authenticated ciphertext in SQLite and keeps the encryption master key only in the host file `~/.reasonkb/secrets/master.key`, created with mode `600` and mounted read-only at `/run/secrets/reasonkb_master_key` in services that encrypt or decrypt credentials. The key is never stored in the image, database, logs, or environment value. Short-lived credentials such as Seeyon tokens remain in memory and are renewed as needed. Backups must include both the database and master key; losing the key requires administrators to re-enter source credentials.

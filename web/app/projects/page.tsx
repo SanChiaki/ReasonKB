@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/app-shell";
-import { ProjectCreateForm } from "@/components/project-create-form";
 import { ProjectGrid } from "@/components/project-grid";
 import { appConfig } from "@/lib/config";
 import { LocalizedSearchInput, LocalizedText } from "@/lib/i18n";
@@ -17,7 +16,7 @@ export default async function ProjectsPage({
   const rawQuery = (params.q ?? "").trim();
   const query = rawQuery.toLowerCase();
   const conversations = listConversations(appConfig.dbPath, demoUserId);
-  const projects = listProjects(appConfig.dbPath, demoUserId);
+  const projects = listProjects(appConfig.dbPath);
   const visibleProjects = query
     ? projects.filter((project) => project.name.toLowerCase().includes(query))
     : projects;
@@ -38,7 +37,6 @@ export default async function ProjectsPage({
                 <LocalizedText id="projects.description" />
               </p>
             </div>
-            <ProjectCreateForm />
           </div>
           <form className="mt-5">
             <LocalizedSearchInput

@@ -1,0 +1,3 @@
+# Do not deduplicate indexes across source items
+
+ReasonKB keeps document identity, indexing, citations, and lifecycle independent for every Source Item, even when multiple items have identical content hashes. Content hashes support change detection and transfer integrity but do not merge documents or reuse PageIndex output across Projects or Corpus Sources. This preserves source-specific paths, metadata, permissions, and deletion behavior and prevents one source's state from affecting another. A future content-addressed optimization may cache reusable work only if it preserves these independent identities and contextual indexes.

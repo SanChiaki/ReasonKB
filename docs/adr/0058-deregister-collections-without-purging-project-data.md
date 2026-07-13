@@ -1,0 +1,3 @@
+# Deregister collections without purging project data
+
+An enabled manually registered collection must first be deselected before it can be deregistered, immediately removing its Project from synchronization and retrieval. Deregistration removes it from active collection administration but retains collection identity, Project, documents, and indexes; registering the same identity restores those records, and the current selection policy determines whether it is enabled automatically. Permanent project-data removal remains a separate explicitly confirmed purge action, preventing a configuration cleanup from silently becoming destructive data deletion.

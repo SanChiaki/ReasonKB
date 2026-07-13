@@ -1,167 +1,138 @@
 # ReasonKB
 
-ReasonKB is a local project-centric knowledge chat service built around the latest upstream PageIndex core.
+ReasonKB is a deployment-shared knowledge retrieval service built on the upstream PageIndex core. It ingests read-only external content, indexes it, and exposes isolated Project scopes for chat and evidence retrieval.
 
-The upstream PageIndex source is vendored under `vendor/pageindex` so it can be updated as a separate boundary. ReasonKB behavior lives outside the vendored tree.
+The formal product supports any number of Local directory, SMB share, and Seeyon V8.1SP2 sources at the same time. Manual Project creation and file upload are intentionally not supported.
+
+## Source Model
+
+- A Corpus Source is one connection and immutable content scope.
+- A Source Collection becomes one deployment-shared Project when selected.
+- New sources default to `None`, with zero selected collections.
+- `All` continuously includes collections discovered or registered later.
+- Source configuration, credentials, collection selection, and manual sync take effect without restarting containers.
+- Connectors only list and read source content. ReasonKB never writes, moves, deletes, or changes permissions in a source system.
+
+Local and SMB collections are discovered from the root and its top-level directories. Seeyon libraries are registered explicitly with a document library ID and root archive ID.
 
 ## Repository Layout
 
 ```text
-vendor/pageindex/       Latest VectifyAI/PageIndex source snapshot
-services/               FastAPI retrieval API, index worker, directory watcher
-web/                    Next.js project/document/chat UI
-docker/                 Container entrypoints
-patches/pageindex/      Audit notes for required upstream patches
+vendor/pageindex/       Vendored VectifyAI/PageIndex source
+services/retrieval_api Retrieval and evidence API
+services/source_worker Runtime source discovery and synchronization
+services/index_worker/ Revision-safe fetch, conversion, and indexing
+web/                    Next.js user and administrator UI
+docker/                 Compose files, entrypoints, and installer
+docs/                   Architecture decisions and deployment guidance
 ```
 
-Do not edit `vendor/pageindex/pageindex` for ReasonKB behavior. Put runtime integration in `services/common/pageindex_runtime.py`, env mapping in `services/common/llm_environment.py`, import-path setup in `services/common/pageindex_vendor.py`, and ReasonKB defaults in `services/common/pageindex_config.yaml`.
+Keep ReasonKB behavior outside `vendor/pageindex/pageindex`. Runtime integration belongs under `services/` and `web/`.
 
 ## Local Development
 
-Install Python dependencies:
+Install dependencies and migrate SQLite:
 
 ```bash
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -r services/requirements.txt
-```
-
-Install web dependencies and migrate the SQLite schema:
-
-```bash
 pnpm -C web install
 pnpm -C web db:migrate
 ```
 
-Run these services in separate terminals:
+Run the services in separate terminals:
 
 ```bash
 pnpm -C web dev
 ./.venv/bin/uvicorn services.retrieval_api.app:app --reload --port 8001
+./.venv/bin/python -m services.source_worker.worker
 ./.venv/bin/python -m services.index_worker.worker
 ```
 
-Open `http://localhost:3000/projects`, create a project, upload PDF/Markdown/text/Office files, then use `http://localhost:3000/chat`.
+The source worker reads source changes from SQLite continuously, so API and UI changes can be developed natively without rebuilding a worker image. Run Gotenberg in Docker when Office conversion is required.
 
 ## Docker
 
-For a Windows Server-first deployment guide covering Windows, Linux, and macOS without relying on Docker Desktop, see
-[`docs/deployment.md`](docs/deployment.md).
-
-Run the full stack with a mounted project corpus:
+Start the full development stack:
 
 ```bash
-REASONKB_PROJECTS_ROOT=/absolute/path/to/projects docker compose -f docker/compose.yml up --build
+REASONKB_PROJECTS_ROOT=/absolute/read-only/source-boundary \
+docker compose -f docker/compose.yml up --build
 ```
 
-The retrieval API and index worker load deployment defaults from the repository
-root `.env` file. Keep `PAGEINDEX_LLM_API_KEY` and `PAGEINDEX_LLM_BASE_URL`
-there, or point `REASONKB_ENV_FILE` at another service env file.
-
-For worktree-based development, keep runtime data outside individual worktrees:
-
-```bash
-REASONKB_VAR_ROOT=/absolute/path/to/reasonkb/var
-REASONKB_PROJECTS_ROOT=/absolute/path/to/reasonkb/projects
-REASONKB_HOST_BROWSE_ROOT=/absolute/path/to/selectable/parent
-```
-
-`REASONKB_PROJECTS_ROOT` is the host path mounted into containers as
-`/data/projects`. The settings page can prepare a new host path by updating the
-Docker env file, but Docker bind mounts only change after recreating the
-containers. For release installs, run this from `~/.reasonkb`:
-
-The settings page folder picker does not use a browser upload control because
-Docker needs a host absolute path. Instead, the web container receives
-`REASONKB_HOST_BROWSE_ROOT` as a read-only mount at `/host-browse`; the picker
-can browse and choose folders only inside that mounted host directory. Set
-`REASONKB_HOST_BROWSE_ROOT` to the host parent directory that should be
-selectable.
-
-```bash
-docker compose --env-file ./.env -f compose.yml up -d --force-recreate --remove-orphans
-```
-
-After the restarted web container reports the requested host path, the settings
-page marks the switch complete. For repository-local compose runs, use
-`-f docker/compose.yml` from the repository root instead.
-
-Default host ports:
+Default ports:
 
 - Web: `http://localhost:43170`
 - Retrieval API: `http://localhost:43171`
-- Gotenberg Office conversion: `http://localhost:43172`
+- Gotenberg: `http://localhost:43172`
 
-The mounted corpus should use first-level directories as projects:
+`REASONKB_PROJECTS_ROOT` is mounted read-only at `/data/projects`. Every runtime Local source path must be `/data/projects` or a descendant. Changing this deployment access boundary changes a Docker bind mount and requires container recreation; adding or editing sources inside the boundary does not.
 
-```text
-/absolute/path/to/projects/
-  ProjectA/
-    delivery/report.md
-    office/scope.docx
-  ProjectB/
-    handover/report.pdf
-```
+The retrieval API receives only the SQLite/runtime volume. It receives neither source mounts nor source credential keys.
 
-### SMB / Windows Share Corpus
+## Administrator Bootstrap
 
-ReasonKB can also use an SMB / Windows share as the project corpus without
-mounting that share in the container. The app uses an SMB client library, so the
-Docker services do not need `SYS_ADMIN`, `CAP_SYS_ADMIN`, `privileged`, or a
-container-level SMB mount.
-
-There are two setup paths:
-
-1. Run `docker/install.sh` and choose `smb` when prompted for the corpus source.
-   Enter a share path such as `//server/share/path` or
-   `\\server\share\path`, then enter the SMB username, password, and optional
-   domain.
-2. Configure the release `.env` manually:
-
-```env
-REASONKB_CORPUS_SOURCE=smb
-REASONKB_SMB_HOST=server
-REASONKB_SMB_SHARE=share
-REASONKB_SMB_BASE_PATH=path
-REASONKB_SMB_USERNAME_FILE=./secrets/smb_username
-REASONKB_SMB_PASSWORD_FILE=./secrets/smb_password
-REASONKB_SMB_DOMAIN=
-REASONKB_SMB_PORT=445
-REASONKB_SMB_AUTH_PROTOCOL=ntlm
-REASONKB_SECRETS_ROOT=./secrets
-```
-
-Create `./secrets/smb_username` and `./secrets/smb_password` with one line each:
-the username in the first file and the password in the second. Do not put the
-SMB password directly in `.env`.
-
-In SMB mode the directory watcher stores remote metadata such as mtime and size
-and queues indexing work. It does not keep a long-lived local sync of the share.
-The index worker reads each file from SMB on demand into the remote cache/temp
-area while indexing, then cleans up that temporary copy. Settings UI management
-for SMB credentials is a legacy follow-up task; update the secret files manually
-for this release.
-
-### One-command ACR deployment
-
-ReasonKB publishes China-mainland-friendly release images to Alibaba Cloud ACR:
+The installer creates one deployment administrator and two host-side secret files:
 
 ```text
-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest
-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:gotenberg-8
+~/.reasonkb/secrets/master.key
+~/.reasonkb/secrets/admin_password
 ```
 
-Users can start the release stack with:
+The files stay on the host with mode `0600`; the directory uses mode `0700`. Docker mounts them read-only into the privileged services as:
+
+```text
+/run/secrets/reasonkb_master_key
+/run/secrets/reasonkb_admin_password
+```
+
+The master key is not stored only inside a disposable container. Back it up with the ReasonKB SQLite database. Losing it makes encrypted SMB and Seeyon credentials unrecoverable.
+
+Open `http://localhost:43170/admin/login`, sign in with the initial administrator password, then use `Data sources`.
+
+## Configuring Sources
+
+### Local
+
+Enter a display name and a container path under `/data/projects`. The source worker discovers a Root Collection for direct files and collections for top-level directories.
+
+### SMB
+
+Enter host, port, share, base path, authentication protocol, domain, username, and password. Credentials are encrypted with AES-256-GCM in SQLite and bound to the source ID. The index worker downloads only the revision currently being indexed and removes the temporary copy afterward.
+
+### Seeyon V8.1SP2
+
+Enter the Seeyon endpoint, `loginName`, REST username, and REST password. After validation, register each desired library with:
+
+- display name
+- document library ID (`docLibId`)
+- root archive ID (`rootArchiveId`)
+
+ReasonKB uses `fr_id` as stable document identity and `file_id + fr_size` as the revision fingerprint. It downloads the current `file_id` only when the revision changes.
+
+For every source, validate the connection, choose `None`, `Explicit`, or `All`, and run an optional manual sync. Changes are persisted in SQLite and picked up without restarting the stack.
+
+## Lifecycle and Safety
+
+- Failed or partial scans never infer missing content.
+- A complete authoritative scan is required before an absent item becomes Missing.
+- Source principal changes fence retrieval until validation and reconciliation finish.
+- Transient index failures use five persisted retries at approximately 1 minute, 5 minutes, 15 minutes, 1 hour, and 6 hours.
+- Source deletion has a seven-day recoverable Pending Purge period unless immediate purge is explicitly confirmed.
+- Missing indexes are retained for 30 days; administrator audit events are retained for 180 days.
+
+Legacy Local and SMB deployments are migrated in place. Existing Project/document IDs, indexes, jobs, and conversation links are preserved. Legacy SMB secret files are imported into encrypted source credentials. Demo upload records and managed upload files are deliberately removed.
+
+## One-command Release Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh | sh
 ```
 
-The installer stores `compose.yml`, `.env`, runtime data, and the mounted
-project corpus under `~/.reasonkb`. Put project folders under
-`~/.reasonkb/projects`, then open `http://localhost:43170`.
+The installer stores Compose, `.env`, runtime data, secrets, and the Local source access root under `~/.reasonkb` by default. It configures only the deployment access boundary and optional LLM defaults; business sources are added after startup in the administrator UI.
 
-Publish the application image and the Gotenberg mirror to ACR with:
+Release images are published to Alibaba Cloud ACR with:
 
 ```bash
 docker login crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com
@@ -170,48 +141,32 @@ docker login crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com
 
 ## Configuration
 
-ReasonKB exposes deployment-facing LLM variables without requiring external `OPENAI_*` names:
+LLM defaults can be supplied through `.env` and later changed by the administrator:
 
-```bash
+```env
 PAGEINDEX_LLM_API_KEY=your_key
 PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
+PAGEINDEX_LLM_MODEL=openai/model-name
+PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/model-name
 ```
 
-Image evidence extraction is disabled by default. Enable it with:
+Image evidence extraction is disabled by default:
 
-```bash
+```env
 VISION_EXTRACTION_ENABLED=true
 VISION_MODEL=gpt-4.1
 ```
 
-Office files are converted to evidence PDFs through Gotenberg before indexing. Runtime state is stored in ignored `./.reasonkb/var` unless the host mount is overridden with `REASONKB_VAR_ROOT`. Container-internal paths can still be changed with `APP_VAR_ROOT`, `APP_DB_PATH`, `APP_UPLOAD_ROOT`, or `APP_CONVERTED_ROOT`.
+Office files are converted through Gotenberg. Runtime settings are stored in SQLite and take precedence over startup defaults.
 
-System settings can be changed at `http://localhost:43170/settings`. Runtime settings are stored in SQLite and take precedence over `.env` defaults. `INDEX_WORKER_CONCURRENCY` remains the startup default for document indexing concurrency when no runtime value has been saved yet. Retrieval document limit is also managed there and is read by the retrieval API on each query.
-
-The projects root control is Docker-aware: it records the requested host path,
-updates `REASONKB_PROJECTS_ROOT` in the mounted env file when available, shows a
-restart-required confirmation, and keeps a progress state until Docker is
-recreated with the new bind mount. The folder picker maps the read-only
-`REASONKB_HOST_BROWSE_ROOT` mount back to host paths, so users choose a folder
-instead of typing the path manually.
-
-## Tests
+## Verification
 
 ```bash
-./.venv/bin/python -m pytest services/tests -q
+./.venv/bin/python -m pytest -q services/tests
 pnpm -C web test
-pnpm -C web e2e
+pnpm -C web exec tsc --noEmit
+docker compose -f docker/compose.yml config --quiet
+docker compose -f docker/compose.release.yml config --quiet
 ```
 
-## Updating Upstream PageIndex
-
-The clean update path is to refresh only the vendor snapshot and keep ReasonKB code outside it:
-
-```bash
-git fetch upstream main
-rm -rf vendor/pageindex
-mkdir -p vendor/pageindex
-git archive upstream/main | tar -x -C vendor/pageindex
-```
-
-Then check `patches/pageindex/`, run the Python and web tests, and commit only the vendor refresh plus any required ReasonKB integration changes.
+Before release, rebuild the full Compose stack and validate administrator login, Local/SMB/Seeyon source changes, synchronization, indexing, retrieval, and desktop/mobile layouts.

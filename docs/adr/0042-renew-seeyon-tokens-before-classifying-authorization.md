@@ -1,0 +1,3 @@
+# Renew Seeyon tokens before classifying authorization
+
+Seeyon tokens are cached only in memory per Corpus Source and never persisted in logs, SQLite, jobs, or audit events. The first business-request HTTP 401 invalidates the cached token, performs a single-flight reauthentication with the current REST credentials and Source Principal, and retries the request once. Successful retry continues normally; failed authentication or repeated 401 degrades the source without reconciling visibility. Only an explicit denial after valid authentication, such as HTTP 403, creates Access Revoked state. Any source configuration revision invalidates its cached token immediately.

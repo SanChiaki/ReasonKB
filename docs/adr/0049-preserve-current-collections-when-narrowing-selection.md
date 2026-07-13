@@ -1,0 +1,3 @@
+# Preserve current collections when narrowing selection
+
+Collection Selection Policy has three states: None, Explicit, and All. Changing All to Explicit snapshots every currently known Source Collection into the explicit set, so narrowing the future auto-enablement rule does not unexpectedly deactivate existing Projects; changing Explicit to All enables all current and future collections, changing any policy to None deactivates all Projects while retaining their data, and changing None to Explicit begins with an empty set. For Seeyon, All covers only currently and subsequently registered document libraries because ReasonKB cannot discover unregistered libraries.

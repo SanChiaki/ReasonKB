@@ -1,144 +1,109 @@
-import crypto from "node:crypto";
 import Database from "better-sqlite3";
 
 function open(dbPath: string) {
   const db = new Database(dbPath);
   db.pragma("foreign_keys = ON");
+  db.pragma("busy_timeout = 5000");
   return db;
 }
 
-function normalizeProjectName(name: string) {
-  const trimmedName = name.trim();
-  if (trimmedName.length === 0 || trimmedName.length > 120) {
-    throw new Error("Project name must be between 1 and 120 characters.");
-  }
-  return trimmedName;
-}
+const activeProjectWhere = `
+  p.deleted_at IS NULL
+  AND p.source_id IS NOT NULL
+  AND p.source_collection_id IS NOT NULL
+  AND p.lifecycle_state = 'active'
+  AND p.retrieval_eligible = 1
+  AND s.deleted_at IS NULL
+  AND s.state = 'active'
+  AND c.deleted_at IS NULL
+  AND c.registration_state = 'active'
+  AND c.validation_state = 'valid'
+  AND c.lifecycle_state = 'active'
+  AND c.selected = 1
+`;
 
-export function createProject(
-  dbPath: string,
-  input: { ownerUserId: string; name: string },
-) {
-  const normalizedName = normalizeProjectName(input.name);
-  const db = open(dbPath);
-  const now = new Date().toISOString();
-  const row = {
-    id: `proj_${crypto.randomUUID()}`,
-    owner_user_id: input.ownerUserId,
-    name: normalizedName,
-    created_at: now,
-    updated_at: now,
-  };
+type ProjectRow = {
+  id: string;
+  name: string;
+  updated_at: string;
+  document_count: number;
+  source_id: string;
+  source_display_name: string;
+  source_kind: "local" | "smb" | "seeyon";
+  collection_id: string;
+  collection_external_id: string;
+  collection_root_external_id: string | null;
+};
 
-  db.prepare(
-    `INSERT INTO projects (id, owner_user_id, name, created_at, updated_at)
-     VALUES (@id, @owner_user_id, @name, @created_at, @updated_at)`,
-  ).run(row);
-
-  db.close();
+function projectView(row: ProjectRow) {
   return {
-    id: row.id,
-    name: row.name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-export function listProjects(dbPath: string, ownerUserId: string) {
-  const db = open(dbPath);
-  const rows = db
-    .prepare(
-      `SELECT p.id, p.name, p.updated_at,
-              COUNT(d.id) AS document_count
-       FROM projects p
-       LEFT JOIN documents d
-         ON d.project_id = p.id
-        AND d.deleted_at IS NULL
-       WHERE p.owner_user_id = ?
-         AND p.deleted_at IS NULL
-       GROUP BY p.id
-       ORDER BY p.updated_at DESC`,
-    )
-    .all(ownerUserId) as Array<{
-    id: string;
-    name: string;
-    updated_at: string;
-    document_count: number;
-  }>;
-
-  db.close();
-  return rows.map((row) => ({
     id: row.id,
     name: row.name,
     documentCount: row.document_count,
     updatedAt: row.updated_at,
-  }));
+    source: {
+      id: row.source_id,
+      displayName: row.source_display_name,
+      kind: row.source_kind,
+    },
+    collection: {
+      id: row.collection_id,
+      externalId: row.collection_external_id,
+      rootExternalId: row.collection_root_external_id,
+    },
+  };
 }
 
-export function getProjectById(
-  dbPath: string,
-  projectId: string,
-  ownerUserId?: string,
-) {
-  const db = open(dbPath);
-  const ownerFilter = ownerUserId ? "AND p.owner_user_id = ?" : "";
-  const row = db
-    .prepare(
-      `SELECT p.id, p.name, p.updated_at,
-              COUNT(d.id) AS document_count
-         FROM projects p
-         LEFT JOIN documents d
-           ON d.project_id = p.id
-          AND d.deleted_at IS NULL
-        WHERE p.id = ?
-          ${ownerFilter}
-          AND p.deleted_at IS NULL
-        GROUP BY p.id`,
-    )
-    .get(...(ownerUserId ? [projectId, ownerUserId] : [projectId])) as
-    | { id: string; name: string; updated_at: string; document_count: number }
-    | undefined;
+const projectSelect = `
+  SELECT p.id, p.name, p.updated_at,
+         s.id AS source_id, s.display_name AS source_display_name,
+         s.kind AS source_kind, c.id AS collection_id,
+         c.external_id AS collection_external_id,
+         c.root_external_id AS collection_root_external_id,
+         COUNT(DISTINCT di.document_id) AS document_count
+    FROM projects p
+    JOIN corpus_sources s ON s.id = p.source_id
+    JOIN source_collections c ON c.id = p.source_collection_id
+    LEFT JOIN documents d
+      ON d.project_id = p.id
+     AND d.deleted_at IS NULL
+     AND d.lifecycle_state = 'active'
+     AND d.retrieval_eligible = 1
+     AND d.status = 'ready'
+    LEFT JOIN document_indexes di
+      ON di.document_id = d.id
+     AND di.is_current = 1
+`;
 
-  db.close();
-  return row
-    ? {
-        id: row.id,
-        name: row.name,
-        documentCount: row.document_count,
-        updatedAt: row.updated_at,
-      }
-    : null;
+export function listProjects(dbPath: string) {
+  const db = open(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        `${projectSelect}
+         WHERE ${activeProjectWhere}
+         GROUP BY p.id
+         ORDER BY p.updated_at DESC, p.name COLLATE NOCASE`,
+      )
+      .all() as ProjectRow[];
+    return rows.map(projectView);
+  } finally {
+    db.close();
+  }
 }
 
-export function updateProjectName(
-  dbPath: string,
-  input: { ownerUserId: string; projectId: string; name: string },
-) {
-  const normalizedName = normalizeProjectName(input.name);
-  const currentProject = getProjectById(dbPath, input.projectId, input.ownerUserId);
-  if (!currentProject) {
-    return null;
-  }
-  if (currentProject.name === normalizedName) {
-    return currentProject;
-  }
-
+export function getProjectById(dbPath: string, projectId: string) {
   const db = open(dbPath);
-  const now = new Date().toISOString();
-  const result = db
-    .prepare(
-      `UPDATE projects
-          SET name = ?, updated_at = ?
-        WHERE id = ?
-          AND owner_user_id = ?
-          AND deleted_at IS NULL`,
-    )
-    .run(normalizedName, now, input.projectId, input.ownerUserId);
-
-  db.close();
-  if (result.changes === 0) {
-    return null;
+  try {
+    const row = db
+      .prepare(
+        `${projectSelect}
+         WHERE p.id = ? AND ${activeProjectWhere}
+         GROUP BY p.id`,
+      )
+      .get(projectId) as ProjectRow | undefined;
+    return row ? projectView(row) : null;
+  } finally {
+    db.close();
   }
-
-  return getProjectById(dbPath, input.projectId, input.ownerUserId);
 }

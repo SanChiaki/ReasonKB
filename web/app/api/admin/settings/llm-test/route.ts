@@ -5,6 +5,10 @@ import {
   buildLlmModel,
   type LlmInterfaceFormat,
 } from "@/lib/llm-model-format";
+import {
+  authorizeAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/security/admin-route-auth";
 
 const schema = z.object({
   apiKey: z.string().trim().optional(),
@@ -34,6 +38,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!authorizeAdminRequest(request, appConfig.dbPath, { requireCsrf: true })) {
+    return unauthorizedAdminResponse();
+  }
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(
