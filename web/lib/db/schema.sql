@@ -336,6 +336,19 @@ CREATE TABLE IF NOT EXISTS managed_file_purge_queue (
   error_summary TEXT
 );
 
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  prefix TEXT NOT NULL UNIQUE,
+  key_hash TEXT NOT NULL UNIQUE,
+  scopes_json TEXT NOT NULL,
+  project_ids_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  revoked_at TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_projects_owner_updated
   ON projects(owner_user_id, updated_at DESC);
 
@@ -405,3 +418,5 @@ CREATE INDEX IF NOT EXISTS idx_jobs_claim
   WHERE status = 'queued';
 CREATE INDEX IF NOT EXISTS idx_jobs_document_revision_state
   ON jobs(document_id, expected_source_revision, status);
+CREATE INDEX IF NOT EXISTS idx_api_keys_owner_created
+  ON api_keys(owner_user_id, created_at DESC);
