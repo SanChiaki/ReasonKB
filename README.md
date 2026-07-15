@@ -179,6 +179,30 @@ VISION_MODEL=gpt-4.1
 
 Office files are converted through Gotenberg. Runtime settings are stored in SQLite and take precedence over startup defaults.
 
+## Agent / CLI / MCP Access
+
+ReasonKB includes API-key protected agent routes under `/api/agent/*`, a Node
+CLI, and a stdio MCP server. Use these when an external coding agent needs to
+query indexed documents without writing chat history.
+
+Recommended local setup:
+
+```bash
+REASONKB_API_KEY_PEPPER=long-random-local-secret
+REASONKB_ADMIN_PASSWORD=your-administrator-password
+node tools/reasonkb-cli.mjs create-key --name codex
+```
+
+Then configure the agent environment with:
+
+```bash
+REASONKB_URL=http://localhost:43170
+REASONKB_API_KEY=rkb_live_...
+```
+
+See [`docs/agent-access.md`](docs/agent-access.md) for the full CLI and MCP
+configuration.
+
 ## Verification
 
 ```bash
