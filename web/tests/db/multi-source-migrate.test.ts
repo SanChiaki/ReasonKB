@@ -11,6 +11,10 @@ import { decryptSourceCredentials } from "@/lib/security/source-credentials";
 const tempDirs: string[] = [];
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.resolve(testDir, "../../lib/db/schema.sql");
+const preMultiSourceSchemaPath = path.resolve(
+  testDir,
+  "../fixtures/pre-multi-source-schema.sql",
+);
 type TestDatabase = InstanceType<typeof Database>;
 
 afterEach(() => {
@@ -25,6 +29,15 @@ function tempDatabase(prefix: string) {
   const dbPath = path.join(dir, "app.db");
   const db = new Database(dbPath);
   db.exec(fs.readFileSync(schemaPath, "utf8"));
+  return { dir, dbPath, db };
+}
+
+function preMultiSourceDatabase(prefix: string) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  const dbPath = path.join(dir, "app.db");
+  const db = new Database(dbPath);
+  db.exec(fs.readFileSync(preMultiSourceSchemaPath, "utf8"));
   return { dir, dbPath, db };
 }
 
@@ -70,6 +83,72 @@ function insertDocument(
 }
 
 describe("multi-source schema migration", () => {
+  it("upgrades the pre-multi-source schema before creating new indexes", () => {
+    const { dbPath, db } = preMultiSourceDatabase("reasonkb-pre-multi-source-");
+    insertProject(db, "proj_legacy", "Legacy");
+    insertProject(db, "proj_empty_demo", "Empty demo Project");
+    insertDocument(db, {
+      id: "doc_legacy",
+      projectId: "proj_legacy",
+      sourceKind: "directory",
+      sourceRoot: "/data/projects",
+      relativePath: "Legacy/report.md",
+      storagePath: "/data/projects/Legacy/report.md",
+    });
+    db.prepare(
+      `INSERT INTO conversations (id, owner_user_id, title, created_at, updated_at)
+       VALUES ('conv_empty_demo', 'user_demo', 'Old demo chat',
+               '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO conversation_projects (conversation_id, project_id, created_at)
+       VALUES ('conv_empty_demo', 'proj_empty_demo', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.close();
+
+    migrateDatabase(dbPath, { legacyLocalRoot: "/data/projects" });
+
+    const migrated = new Database(dbPath, { readonly: true });
+    expect(
+      migrated.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),
+    ).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
+    expect(
+      migrated
+        .prepare(
+          `SELECT id, source_id, source_collection_id
+             FROM projects WHERE id = 'proj_legacy'`,
+        )
+        .get(),
+    ).toEqual({
+      id: "proj_legacy",
+      source_id: expect.any(String),
+      source_collection_id: expect.any(String),
+    });
+    expect(
+      migrated
+        .prepare(
+          `SELECT id, source_item_id, source_item_external_id
+             FROM documents WHERE id = 'doc_legacy'`,
+        )
+        .get(),
+    ).toEqual({
+      id: "doc_legacy",
+      source_item_id: expect.any(String),
+      source_item_external_id: "Legacy/report.md",
+    });
+    expect(migrated.prepare("SELECT id FROM projects ORDER BY id").all()).toEqual([
+      { id: "proj_legacy" },
+    ]);
+    expect(
+      migrated
+        .prepare(
+          "SELECT 1 FROM conversation_projects WHERE project_id = 'proj_empty_demo'",
+        )
+        .get(),
+    ).toBeUndefined();
+    migrated.close();
+  });
+
   it("creates versioned multi-source foundation tables and compatibility columns", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reasonkb-foundation-"));
     tempDirs.push(dir);

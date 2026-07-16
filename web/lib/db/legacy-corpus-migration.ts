@@ -131,26 +131,7 @@ function importLegacySmbCredentials(
   ).run(sourceId, encrypted, now, now);
 }
 
-function validateLegacyProjects(db: MigrationDatabase) {
-  const ambiguous = db
-    .prepare(
-      `SELECT p.id, p.name
-         FROM projects p
-        WHERE p.deleted_at IS NULL
-          AND NOT EXISTS (
-            SELECT 1
-              FROM documents d
-             WHERE d.project_id = p.id
-          )`,
-    )
-    .all() as Array<{ id: string; name: string }>;
-  if (ambiguous.length > 0) {
-    const labels = ambiguous.map((project) => `${project.name} (${project.id})`).join(", ");
-    throw new Error(
-      `Cannot determine whether empty legacy Projects are source-backed or manual: ${labels}`,
-    );
-  }
-
+function validateLegacyDocuments(db: MigrationDatabase) {
   const documents = db
     .prepare(
       `SELECT id, project_id, source_relative_path
@@ -179,41 +160,47 @@ function queueAndDeleteDemoUploads(db: MigrationDatabase, now: string) {
         WHERE source_kind = 'upload'`,
     )
     .all() as Array<{ id: string; project_id: string; storage_path: string }>;
-  if (uploadDocuments.length === 0) {
-    return;
+  if (uploadDocuments.length > 0) {
+    const documentIds = uploadDocuments.map((document) => document.id);
+    const placeholders = documentIds.map(() => "?").join(", ");
+
+    for (const document of uploadDocuments) {
+      if (document.storage_path) {
+        db.prepare(
+          `INSERT INTO managed_file_purge_queue (path, reason, created_at)
+           VALUES (?, 'removed-demo-upload', ?)
+           ON CONFLICT(path) DO NOTHING`,
+        ).run(document.storage_path, now);
+      }
+    }
+
+    db.prepare(`DELETE FROM document_index_runs WHERE document_id IN (${placeholders})`).run(
+      ...documentIds,
+    );
+    db.prepare(`DELETE FROM document_indexes WHERE document_id IN (${placeholders})`).run(
+      ...documentIds,
+    );
+    db.prepare(`DELETE FROM jobs WHERE document_id IN (${placeholders})`).run(...documentIds);
+    db.prepare(`DELETE FROM documents WHERE id IN (${placeholders})`).run(...documentIds);
   }
 
-  const documentIds = uploadDocuments.map((document) => document.id);
-  const projectIds = [...new Set(uploadDocuments.map((document) => document.project_id))];
-  const placeholders = documentIds.map(() => "?").join(", ");
-
-  for (const document of uploadDocuments) {
-    if (document.storage_path) {
-      db.prepare(
-        `INSERT INTO managed_file_purge_queue (path, reason, created_at)
-         VALUES (?, 'removed-demo-upload', ?)
-         ON CONFLICT(path) DO NOTHING`,
-      ).run(document.storage_path, now);
-    }
-  }
-
-  db.prepare(`DELETE FROM document_index_runs WHERE document_id IN (${placeholders})`).run(
-    ...documentIds,
-  );
-  db.prepare(`DELETE FROM document_indexes WHERE document_id IN (${placeholders})`).run(
-    ...documentIds,
-  );
-  db.prepare(`DELETE FROM jobs WHERE document_id IN (${placeholders})`).run(...documentIds);
-  db.prepare(`DELETE FROM documents WHERE id IN (${placeholders})`).run(...documentIds);
-
-  for (const projectId of projectIds) {
-    const remaining = db
-      .prepare("SELECT 1 FROM documents WHERE project_id = ? LIMIT 1")
-      .get(projectId);
-    if (!remaining) {
-      db.prepare("DELETE FROM conversation_projects WHERE project_id = ?").run(projectId);
-      db.prepare("DELETE FROM projects WHERE id = ?").run(projectId);
-    }
+  const emptyProjectIds = (
+    db
+      .prepare(
+        `SELECT p.id
+           FROM projects p
+          WHERE NOT EXISTS (
+            SELECT 1 FROM documents d WHERE d.project_id = p.id
+          )`,
+      )
+      .all() as Array<{ id: string }>
+  ).map((project) => project.id);
+  if (emptyProjectIds.length > 0) {
+    const placeholders = emptyProjectIds.map(() => "?").join(", ");
+    db.prepare(`DELETE FROM conversation_projects WHERE project_id IN (${placeholders})`).run(
+      ...emptyProjectIds,
+    );
+    db.prepare(`DELETE FROM projects WHERE id IN (${placeholders})`).run(...emptyProjectIds);
   }
 }
 
@@ -221,7 +208,7 @@ export function migrateLegacyCorpus(
   db: MigrationDatabase,
   options: LegacyCorpusMigrationOptions,
 ) {
-  validateLegacyProjects(db);
+  validateLegacyDocuments(db);
   const now = new Date().toISOString();
   queueAndDeleteDemoUploads(db, now);
 

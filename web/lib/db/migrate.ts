@@ -3,7 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 import { appConfig } from "@/lib/config";
-import { schemaMigrations } from "@/lib/db/migrations";
+import {
+  ensureMultiSourceCompatibilityColumns,
+  schemaMigrations,
+} from "@/lib/db/migrations";
 import { bootstrapAdminPassword } from "@/lib/repos/admin-auth-store";
 import {
   purgeQueuedManagedFiles,
@@ -38,6 +41,7 @@ export function migrateDatabase(
         error.message.includes("no such column")
       ) {
         ensureLegacyColumns(db);
+        ensureMultiSourceCompatibilityColumns(db);
         db.exec(schemaSql);
       } else {
         throw error;
