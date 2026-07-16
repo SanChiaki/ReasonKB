@@ -97,7 +97,7 @@ def test_dockerignore_excludes_local_env_files_from_image_context():
 def test_release_compose_uses_acr_images_without_local_builds():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
-    app_services = ["web", "retrieval-api", "index-worker", "source-worker"]
+    app_services = ["migrate", "web", "retrieval-api", "index-worker", "source-worker"]
     for service_name in app_services:
         service = compose["services"][service_name]
         assert "build" not in service
@@ -122,13 +122,25 @@ def test_release_compose_always_pulls_published_images():
         assert service["pull_policy"] == "always"
 
 
-def test_release_compose_limits_source_credentials_to_source_and_index_workers():
+def test_release_compose_runs_privileged_migration_before_retrieval():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
     master_key_mount = (
         "${REASONKB_SECRETS_ROOT:-./secrets}/master.key:"
         "/run/secrets/reasonkb_master_key:ro"
     )
+    migrate = compose["services"]["migrate"]
+    legacy_secrets_mount = (
+        "${REASONKB_SECRETS_ROOT:-./secrets}:"
+        "/run/reasonkb-legacy-secrets:ro"
+    )
+    assert migrate["command"] == ["sh", "./docker/entrypoints/migrate.sh"]
+    assert master_key_mount in migrate["volumes"]
+    assert legacy_secrets_mount in migrate["volumes"]
+    assert migrate["environment"]["REASONKB_MASTER_KEY_FILE"] == (
+        "/run/secrets/reasonkb_master_key"
+    )
+
     for service_name in ("source-worker", "index-worker"):
         service = compose["services"][service_name]
         assert master_key_mount in service["volumes"]
@@ -138,8 +150,22 @@ def test_release_compose_limits_source_credentials_to_source_and_index_workers()
         assert "SYS_ADMIN" not in service.get("cap_add", [])
 
     retrieval = compose["services"]["retrieval-api"]
+    assert retrieval["depends_on"]["migrate"]["condition"] == (
+        "service_completed_successfully"
+    )
     assert master_key_mount not in retrieval.get("volumes", [])
     assert not any("/data/projects" in volume for volume in retrieval.get("volumes", []))
+    assert legacy_secrets_mount not in compose["services"]["web"]["volumes"]
+    assert legacy_secrets_mount not in retrieval.get("volumes", [])
+
+    retrieval_entrypoint = (
+        ROOT / "docker" / "entrypoints" / "retrieval-api.sh"
+    ).read_text()
+    web_entrypoint = (ROOT / "docker" / "entrypoints" / "web.sh").read_text()
+    migrate_entrypoint = (ROOT / "docker" / "entrypoints" / "migrate.sh").read_text()
+    assert "db:migrate" not in retrieval_entrypoint
+    assert "db:migrate" not in web_entrypoint
+    assert "pnpm -C web db:migrate" in migrate_entrypoint
 
 
 def test_release_compose_health_checks_background_workers():
@@ -153,12 +179,18 @@ def test_release_compose_health_checks_background_workers():
         assert healthcheck["start_period"] == "15s"
 
 
-def test_worker_entrypoints_validate_master_key_before_starting():
-    for entrypoint in ("web.sh", "source-worker.sh", "index-worker.sh"):
+def test_credential_entrypoints_validate_master_key_before_starting():
+    for entrypoint in ("migrate.sh", "web.sh", "source-worker.sh", "index-worker.sh"):
         content = (ROOT / "docker" / "entrypoints" / entrypoint).read_text()
         assert "python -m services.common.source_credentials" in content
+        if entrypoint == "migrate.sh":
+            start_command = "pnpm -C web db:migrate"
+        elif entrypoint == "web.sh":
+            start_command = "pnpm -C web exec next start"
+        else:
+            start_command = "exec python -m services."
         assert content.index("python -m services.common.source_credentials") < content.index(
-            "exec python -m services." if entrypoint != "web.sh" else "pnpm -C web"
+            start_command
         )
 
 

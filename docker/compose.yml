@@ -1,6 +1,35 @@
 name: reasondb
 
 services:
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["sh", "./docker/entrypoints/migrate.sh"]
+    env_file:
+      - path: ${REASONKB_ENV_FILE:-../.env}
+        required: false
+    environment:
+      APP_VAR_ROOT: ${APP_VAR_ROOT:-/app/var}
+      APP_DB_PATH: ${APP_DB_PATH:-/app/var/app.db}
+      APP_UPLOAD_ROOT: ${APP_UPLOAD_ROOT:-/app/var/uploads}
+      APP_CONVERTED_ROOT: ${APP_CONVERTED_ROOT:-/app/var/converted}
+      PROJECTS_ROOT: /data/projects
+      REASONKB_CORPUS_SOURCE: ${REASONKB_CORPUS_SOURCE:-local}
+      REASONKB_SMB_HOST: ${REASONKB_SMB_HOST:-}
+      REASONKB_SMB_SHARE: ${REASONKB_SMB_SHARE:-}
+      REASONKB_SMB_BASE_PATH: ${REASONKB_SMB_BASE_PATH:-}
+      REASONKB_SMB_PORT: ${REASONKB_SMB_PORT:-445}
+      REASONKB_SMB_DOMAIN: ${REASONKB_SMB_DOMAIN:-}
+      REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
+      REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
+      REASONKB_ADMIN_PASSWORD_FILE: /run/secrets/reasonkb_admin_password
+    volumes:
+      - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/admin_password:/run/secrets/reasonkb_admin_password:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}:/run/reasonkb-legacy-secrets:ro
+
   web:
     build:
       context: ..
@@ -38,7 +67,6 @@ services:
       - ${REASONKB_HOST_BROWSE_ROOT:-${HOME:-../.reasonkb}}:/host-browse:ro
       - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
       - ${REASONKB_SECRETS_ROOT:-./secrets}/admin_password:/run/secrets/reasonkb_admin_password:ro
-      - ${REASONKB_SECRETS_ROOT:-./secrets}:/run/reasonkb-legacy-secrets:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
@@ -62,6 +90,9 @@ services:
       VISION_EXTRACTION_ENABLED: ${VISION_EXTRACTION_ENABLED:-false}
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [

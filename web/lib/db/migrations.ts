@@ -35,6 +35,46 @@ function ensureColumns(
   }
 }
 
+export function ensureMultiSourceCompatibilityColumns(db: MigrationDatabase) {
+  ensureColumns(db, "projects", [
+    ["source_id", "source_id TEXT"],
+    ["source_collection_id", "source_collection_id TEXT"],
+    ["lifecycle_state", "lifecycle_state TEXT NOT NULL DEFAULT 'active'"],
+    ["retrieval_eligible", "retrieval_eligible INTEGER NOT NULL DEFAULT 1"],
+    ["purge_after", "purge_after TEXT"],
+  ]);
+  ensureColumns(db, "documents", [
+    ["source_id", "source_id TEXT"],
+    ["source_collection_id", "source_collection_id TEXT"],
+    ["source_item_id", "source_item_id TEXT"],
+    ["source_item_external_id", "source_item_external_id TEXT"],
+    ["source_revision", "source_revision TEXT"],
+    ["expected_source_revision", "expected_source_revision TEXT"],
+    ["expected_source_config_revision", "expected_source_config_revision INTEGER"],
+    ["lifecycle_state", "lifecycle_state TEXT NOT NULL DEFAULT 'active'"],
+    ["retrieval_eligible", "retrieval_eligible INTEGER NOT NULL DEFAULT 1"],
+    ["last_seen_run_id", "last_seen_run_id TEXT"],
+  ]);
+  ensureColumns(db, "document_indexes", [
+    ["source_revision", "source_revision TEXT"],
+    ["is_current", "is_current INTEGER NOT NULL DEFAULT 1"],
+    ["retired_at", "retired_at TEXT"],
+  ]);
+  ensureColumns(db, "jobs", [
+    ["source_id", "source_id TEXT"],
+    ["source_collection_id", "source_collection_id TEXT"],
+    ["expected_source_revision", "expected_source_revision TEXT"],
+    ["expected_source_config_revision", "expected_source_config_revision INTEGER"],
+    ["priority", "priority INTEGER NOT NULL DEFAULT 300"],
+    ["attempt_count", "attempt_count INTEGER NOT NULL DEFAULT 0"],
+    ["max_attempts", "max_attempts INTEGER NOT NULL DEFAULT 6"],
+    ["available_at", "available_at TEXT"],
+    ["claimed_at", "claimed_at TEXT"],
+    ["worker_id", "worker_id TEXT"],
+    ["superseded_at", "superseded_at TEXT"],
+  ]);
+}
+
 function createMultiSourceFoundation(db: MigrationDatabase) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS corpus_sources (
@@ -250,43 +290,7 @@ function createMultiSourceFoundation(db: MigrationDatabase) {
     );
   `);
 
-  ensureColumns(db, "projects", [
-    ["source_id", "source_id TEXT"],
-    ["source_collection_id", "source_collection_id TEXT"],
-    ["lifecycle_state", "lifecycle_state TEXT NOT NULL DEFAULT 'active'"],
-    ["retrieval_eligible", "retrieval_eligible INTEGER NOT NULL DEFAULT 1"],
-    ["purge_after", "purge_after TEXT"],
-  ]);
-  ensureColumns(db, "documents", [
-    ["source_id", "source_id TEXT"],
-    ["source_collection_id", "source_collection_id TEXT"],
-    ["source_item_id", "source_item_id TEXT"],
-    ["source_item_external_id", "source_item_external_id TEXT"],
-    ["source_revision", "source_revision TEXT"],
-    ["expected_source_revision", "expected_source_revision TEXT"],
-    ["expected_source_config_revision", "expected_source_config_revision INTEGER"],
-    ["lifecycle_state", "lifecycle_state TEXT NOT NULL DEFAULT 'active'"],
-    ["retrieval_eligible", "retrieval_eligible INTEGER NOT NULL DEFAULT 1"],
-    ["last_seen_run_id", "last_seen_run_id TEXT"],
-  ]);
-  ensureColumns(db, "document_indexes", [
-    ["source_revision", "source_revision TEXT"],
-    ["is_current", "is_current INTEGER NOT NULL DEFAULT 1"],
-    ["retired_at", "retired_at TEXT"],
-  ]);
-  ensureColumns(db, "jobs", [
-    ["source_id", "source_id TEXT"],
-    ["source_collection_id", "source_collection_id TEXT"],
-    ["expected_source_revision", "expected_source_revision TEXT"],
-    ["expected_source_config_revision", "expected_source_config_revision INTEGER"],
-    ["priority", "priority INTEGER NOT NULL DEFAULT 300"],
-    ["attempt_count", "attempt_count INTEGER NOT NULL DEFAULT 0"],
-    ["max_attempts", "max_attempts INTEGER NOT NULL DEFAULT 6"],
-    ["available_at", "available_at TEXT"],
-    ["claimed_at", "claimed_at TEXT"],
-    ["worker_id", "worker_id TEXT"],
-    ["superseded_at", "superseded_at TEXT"],
-  ]);
+  ensureMultiSourceCompatibilityColumns(db);
 
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_source_collection
