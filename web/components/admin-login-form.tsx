@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { LockKeyhole, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function AdminLoginForm() {
+export function AdminLoginForm({ notice = "" }: { notice?: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,6 +45,11 @@ export function AdminLoginForm() {
           <p className="mt-0.5 text-sm text-[var(--pi-muted)]">部署管理员登录</p>
         </div>
       </div>
+      {notice ? (
+        <p role="status" className="mb-4 rounded-md border border-[var(--pi-brand-soft)] bg-white px-3 py-2 text-sm text-[var(--pi-brand)]">
+          {notice}
+        </p>
+      ) : null}
       <label htmlFor="admin-password" className="text-sm font-medium">
         管理员密码
       </label>

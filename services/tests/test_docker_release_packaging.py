@@ -65,7 +65,11 @@ def _installer_env(base_env: dict[str, str], fake_bin: Path) -> dict[str, str]:
     return env
 
 
-def _run_install(tmp_path: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+def _run_install(
+    tmp_path: Path,
+    env: dict[str, str],
+    *args: str,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             _sh_executable(),
@@ -73,6 +77,7 @@ def _run_install(tmp_path: Path, env: dict[str, str]) -> subprocess.CompletedPro
             'PATH="$REASONKB_TEST_FAKE_BIN:/usr/bin:/bin:/mingw64/bin:$PATH"; export PATH; exec "$@"',
             "sh",
             _shell_file_path(ROOT / "docker" / "install.sh"),
+            *args,
         ],
         cwd=tmp_path,
         env=env,
@@ -81,6 +86,108 @@ def _run_install(tmp_path: Path, env: dict[str, str]) -> subprocess.CompletedPro
         capture_output=True,
         check=False,
     )
+
+
+def test_install_script_resets_a_forgotten_admin_password(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    reasonkb_home.mkdir()
+    (reasonkb_home / ".env").write_text("WEB_PORT=43170\n", encoding="utf-8")
+    (reasonkb_home / "compose.yml").write_text("services: {}\n", encoding="utf-8")
+
+    _write_executable(
+        fake_bin / "docker",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+          exit 0
+        fi
+        if [ "$1" = "compose" ]; then
+          printf '%s\n' "$*" >> "$REASONKB_HOME/docker-calls.txt"
+          case " $* " in
+            *" run "*)
+              cat > "$REASONKB_HOME/reset-password-input.txt"
+              ;;
+          esac
+          exit 0
+        fi
+        exit 1
+        """,
+    )
+
+    env = _installer_env(
+        {
+            **os.environ,
+            "REASONKB_HOME": str(reasonkb_home),
+            "REASONKB_INTERACTIVE": "0",
+            "REASONKB_ADMIN_PASSWORD": "replacement admin password",
+        },
+        fake_bin,
+    )
+
+    result = _run_install(tmp_path, env, "--reset-admin-password")
+
+    assert result.returncode == 0, result.stderr
+    assert "管理员密码已重置" in result.stdout
+    assert (reasonkb_home / "reset-password-input.txt").read_text(
+        encoding="utf-8"
+    ) == "replacement admin password\n"
+    assert (reasonkb_home / "secrets" / "admin_password").read_text(
+        encoding="utf-8"
+    ) == "replacement admin password\n"
+    calls = (reasonkb_home / "docker-calls.txt").read_text(encoding="utf-8")
+    assert "pull migrate" in calls
+    assert "run --rm --no-deps -T migrate" in calls
+    assert "scripts/reset-admin-password.ts" in calls
+
+
+def test_install_script_does_not_update_bootstrap_secret_when_reset_fails(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    secrets_root = reasonkb_home / "secrets"
+    secrets_root.mkdir(parents=True)
+    (reasonkb_home / ".env").write_text("WEB_PORT=43170\n", encoding="utf-8")
+    (reasonkb_home / "compose.yml").write_text("services: {}\n", encoding="utf-8")
+    (secrets_root / "admin_password").write_text("original admin password\n")
+
+    _write_executable(
+        fake_bin / "docker",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+          exit 0
+        fi
+        if [ "$1" = "compose" ]; then
+          case " $* " in
+            *" run "*) cat >/dev/null; exit 1 ;;
+            *) exit 0 ;;
+          esac
+        fi
+        exit 1
+        """,
+    )
+
+    env = _installer_env(
+        {
+            **os.environ,
+            "REASONKB_HOME": str(reasonkb_home),
+            "REASONKB_INTERACTIVE": "0",
+            "REASONKB_ADMIN_PASSWORD": "replacement admin password",
+        },
+        fake_bin,
+    )
+
+    result = _run_install(tmp_path, env, "--reset-admin-password")
+
+    assert result.returncode != 0
+    assert "初始化密码文件未修改" in result.stderr
+    assert (secrets_root / "admin_password").read_text(
+        encoding="utf-8"
+    ) == "original admin password\n"
 
 
 def test_dockerignore_excludes_local_env_files_from_image_context():

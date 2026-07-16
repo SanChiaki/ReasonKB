@@ -5,6 +5,32 @@ REASONKB_HOME="${REASONKB_HOME:-"$HOME/.reasonkb"}"
 REASONKB_COMPOSE_URL="${REASONKB_COMPOSE_URL:-https://cdn.jsdmirror.cn/gh/SanChiaki/ReasonKB@main/docker/compose.release.yml}"
 DEFAULT_LLM_MODEL="openai/deepseek-v4-flash"
 INSTALL_INTERACTIVE=0
+INSTALL_ACTION="install"
+
+case "${1:-}" in
+  "")
+    ;;
+  --reset-admin-password)
+    INSTALL_ACTION="reset-admin-password"
+    ;;
+  -h|--help)
+    cat <<'EOF'
+用法：
+  install.sh
+  install.sh --reset-admin-password
+
+环境变量：
+  REASONKB_HOME              ReasonKB 运行目录，默认 ~/.reasonkb
+  REASONKB_ADMIN_PASSWORD    非交互模式使用的新管理员密码
+EOF
+    exit 0
+    ;;
+  *)
+    echo "未知参数：$1" >&2
+    echo "运行 install.sh --help 查看用法。" >&2
+    exit 2
+    ;;
+esac
 
 case "${REASONKB_INTERACTIVE:-auto}" in
   1|true|TRUE|yes|YES)
@@ -88,6 +114,7 @@ prompt_value() {
 prompt_secret() {
   label="$1"
   default_value="$2"
+  required="${3:-0}"
 
   PROMPT_VALUE="$default_value"
   if [ "$INSTALL_INTERACTIVE" != "1" ]; then
@@ -96,6 +123,8 @@ prompt_secret() {
 
   if [ -n "$default_value" ]; then
     prompt_write "$label [留空则保留现有值]: "
+  elif [ "$required" = "1" ]; then
+    prompt_write "$label: "
   else
     prompt_write "${label}（可选，按 Enter 跳过）: "
   fi
@@ -129,7 +158,9 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$REASONKB_HOME/var"
+if [ "$INSTALL_ACTION" = "install" ]; then
+  mkdir -p "$REASONKB_HOME/var"
+fi
 
 download_with_curl() {
   output_file="$1"
@@ -215,10 +246,11 @@ download_compose_file() {
   return 1
 }
 
-download_compose_file
+if [ "$INSTALL_ACTION" = "install" ]; then
+  download_compose_file
 
-if [ ! -f "$REASONKB_HOME/.env" ]; then
-  cat > "$REASONKB_HOME/.env" <<'EOF'
+  if [ ! -f "$REASONKB_HOME/.env" ]; then
+    cat > "$REASONKB_HOME/.env" <<'EOF'
 # 挂载到 ReasonKB 的项目语料目录。
 # 设置页可以更新这个值，但 Docker 容器需要重新创建后才会应用。
 # REASONKB_PROJECTS_ROOT=/absolute/path/to/projects
@@ -235,6 +267,7 @@ if [ ! -f "$REASONKB_HOME/.env" ]; then
 # VISION_EXTRACTION_ENABLED=false
 # VISION_MODEL=
 EOF
+  fi
 fi
 
 SELECTED_PORTS=""
@@ -447,6 +480,57 @@ write_secret_file() {
   chmod 600 "$path" 2>/dev/null || true
 }
 
+reset_admin_password() {
+  if [ ! -f "$REASONKB_HOME/compose.yml" ] || [ ! -f "$REASONKB_HOME/.env" ]; then
+    echo "未找到现有 ReasonKB 部署：$REASONKB_HOME" >&2
+    echo "请先完成安装，再执行管理员密码重置。" >&2
+    return 1
+  fi
+
+  new_password="${REASONKB_ADMIN_PASSWORD:-}"
+  confirmation="$new_password"
+  if [ "$INSTALL_INTERACTIVE" = "1" ]; then
+    prompt_write "ReasonKB 管理员密码重置"
+    prompt_newline
+    prompt_newline
+    prompt_secret "新的管理员密码（至少 12 个字符）" "" 1
+    new_password="$PROMPT_VALUE"
+    prompt_secret "再次输入新的管理员密码" "" 1
+    confirmation="$PROMPT_VALUE"
+  fi
+
+  if [ -z "$new_password" ]; then
+    echo "未提供新的管理员密码。请使用交互模式，或设置 REASONKB_ADMIN_PASSWORD。" >&2
+    return 1
+  fi
+  if [ "${#new_password}" -lt 12 ] || [ "${#new_password}" -gt 1024 ]; then
+    echo "ReasonKB 管理员密码长度须为 12 至 1024 个字符。" >&2
+    return 1
+  fi
+  if [ "$new_password" != "$confirmation" ]; then
+    echo "两次输入的管理员密码不一致。" >&2
+    return 1
+  fi
+
+  echo "正在拉取管理员密码重置工具..."
+  (
+    cd "$REASONKB_HOME"
+    docker compose --env-file ./.env -f compose.yml pull migrate
+  )
+  echo "正在重置管理员密码..."
+  if ! printf '%s\n' "$new_password" | (
+    cd "$REASONKB_HOME"
+    docker compose --env-file ./.env -f compose.yml run --rm --no-deps -T migrate \
+      pnpm -C web exec tsx scripts/reset-admin-password.ts
+  ); then
+    echo "管理员密码重置失败，宿主机初始化密码文件未修改。" >&2
+    return 1
+  fi
+
+  write_secret_file "$REASONKB_HOME/secrets/admin_password" "$new_password"
+  echo "管理员密码已重置，所有现有管理员会话均已退出。"
+}
+
 generate_hex_secret() {
   bytes="$1"
   if command -v openssl >/dev/null 2>&1; then
@@ -536,6 +620,11 @@ configure_llm_defaults() {
     export PAGEINDEX_LLM_RETRIEVAL_MODEL="$retrieval_model_value"
   fi
 }
+
+if [ "$INSTALL_ACTION" = "reset-admin-password" ]; then
+  reset_admin_password
+  exit 0
+fi
 
 if [ "$INSTALL_INTERACTIVE" = "1" ]; then
   prompt_write "ReasonKB 安装向导"

@@ -87,9 +87,20 @@ The files stay on the host with mode `0600`; the directory uses mode `0700`. Doc
 /run/secrets/reasonkb_admin_password
 ```
 
-The master key is not stored only inside a disposable container. Back it up with the ReasonKB SQLite database. Losing it makes encrypted SMB and Seeyon credentials unrecoverable.
+The master key is not stored only inside a disposable container. Back it up with the ReasonKB SQLite database. Losing it makes encrypted SMB and Seeyon credentials unrecoverable. `admin_password` is a bootstrap and recovery secret, not a readable copy of the current password after it has been changed in the Web UI.
 
 Open `http://localhost:43170/admin/login`, sign in with the initial administrator password, then use `Data sources`.
+
+An authenticated administrator can change the password from `Settings` > `Security`. The change takes effect immediately and revokes every existing administrator session.
+
+If the password is forgotten, reset it from the Docker host without restarting the running services:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh \
+  | sh -s -- --reset-admin-password
+```
+
+The reset command prompts twice for a new password of 12 to 1024 characters, pulls the current reset tool image, updates SQLite, and revokes all administrator sessions. Set `REASONKB_HOME` on the `sh` command when the deployment is not under `~/.reasonkb`.
 
 ## Configuring Sources
 

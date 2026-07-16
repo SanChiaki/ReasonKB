@@ -76,6 +76,31 @@ export function replaceAdminPassword(
   }
 }
 
+export function resetAdminPassword(dbPath: string, newPassword: string) {
+  const passwordHash = hashPassword(newPassword);
+  const now = new Date().toISOString();
+  const db = open(dbPath);
+  try {
+    db.transaction(() => {
+      db.prepare(
+        `INSERT INTO admin_credentials (
+           id, password_hash, password_changed_at, created_at
+         ) VALUES (1, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           password_hash = excluded.password_hash,
+           password_changed_at = excluded.password_changed_at`,
+      ).run(passwordHash, now, now);
+      db.prepare(
+        `UPDATE admin_sessions
+            SET revoked_at = ?
+          WHERE revoked_at IS NULL`,
+      ).run(now);
+    })();
+  } finally {
+    db.close();
+  }
+}
+
 export function verifyAdminCredentials(dbPath: string, password: string) {
   const db = open(dbPath);
   try {
