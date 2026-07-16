@@ -81,8 +81,37 @@ function collectionExternalId(document: SourceDocument) {
   return firstSegment;
 }
 
+function decodeSmbPathPart(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function legacySmbScope(root: string, options: LegacyCorpusMigrationOptions) {
-  const parts = root.replace(/^\\\\|^\/\//, "").split(/[\\/]+/).filter(Boolean);
+  const normalized = root.trim();
+  if (/^smb:\/\//i.test(normalized)) {
+    let url: URL;
+    try {
+      url = new URL(normalized);
+    } catch {
+      throw new Error(`Cannot parse legacy SMB source root: ${root}`);
+    }
+    const parts = url.pathname.split("/").filter(Boolean).map(decodeSmbPathPart);
+    if (!url.hostname || parts.length < 1) {
+      throw new Error(`Cannot parse legacy SMB source root: ${root}`);
+    }
+    const share = parts.shift()!;
+    return {
+      host: url.hostname.toLowerCase(),
+      share,
+      basePath: parts.join("/"),
+      port: options.legacySmbPort ?? (url.port ? Number(url.port) : 445),
+    };
+  }
+
+  const parts = normalized.replace(/^\\\\|^\/\//, "").split(/[\\/]+/).filter(Boolean);
   if (parts.length < 2) {
     throw new Error(`Cannot parse legacy SMB source root: ${root}`);
   }
@@ -95,6 +124,48 @@ function legacySmbScope(root: string, options: LegacyCorpusMigrationOptions) {
     basePath: parts.join("/"),
     port: options.legacySmbPort ?? (portMatch ? Number(portMatch[2]) : 445),
   };
+}
+
+export function repairLegacySmbUriScopes(
+  db: MigrationDatabase,
+  options: LegacyCorpusMigrationOptions,
+) {
+  const sources = db
+    .prepare(
+      `SELECT id, scope_json, config_json
+         FROM corpus_sources
+        WHERE kind = 'smb' AND deleted_at IS NULL`,
+    )
+    .all() as Array<{ id: string; scope_json: string; config_json: string }>;
+  const now = new Date().toISOString();
+  for (const source of sources) {
+    const config = JSON.parse(source.config_json) as { migratedFromLegacy?: boolean };
+    const scope = JSON.parse(source.scope_json) as { host?: string };
+    if (config.migratedFromLegacy !== true || scope.host !== "smb:") {
+      continue;
+    }
+    const roots = db
+      .prepare(
+        `SELECT DISTINCT source_root
+           FROM documents
+          WHERE source_id = ? AND source_kind = 'smb'
+            AND source_root IS NOT NULL AND TRIM(source_root) <> ''`,
+      )
+      .all(source.id) as Array<{ source_root: string }>;
+    if (roots.length !== 1) {
+      throw new Error(
+        `Cannot repair legacy SMB source ${source.id}: expected one document source root, found ${roots.length}`,
+      );
+    }
+    const repairedScope = legacySmbScope(roots[0].source_root, options);
+    db.prepare(
+      `UPDATE corpus_sources
+          SET scope_json = ?, health_state = 'unknown', consecutive_failure_count = 0,
+              error_summary = NULL, validated_at = NULL,
+              validation_requested_at = ?, next_sync_at = ?, updated_at = ?
+        WHERE id = ?`,
+    ).run(JSON.stringify(repairedScope), now, now, now, source.id);
+  }
 }
 
 function importLegacySmbCredentials(

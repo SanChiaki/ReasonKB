@@ -111,7 +111,13 @@ describe("multi-source schema migration", () => {
     const migrated = new Database(dbPath, { readonly: true });
     expect(
       migrated.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),
-    ).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
+    ).toEqual([
+      { version: 1 },
+      { version: 2 },
+      { version: 3 },
+      { version: 4 },
+      { version: 5 },
+    ]);
     expect(
       migrated
         .prepare(
@@ -178,6 +184,7 @@ describe("multi-source schema migration", () => {
       { version: 2, name: "migrate-legacy-corpus" },
       { version: 3, name: "five-transient-index-retries" },
       { version: 4, name: "index-job-revision-lookup" },
+      { version: 5, name: "repair-legacy-smb-uri-scope" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -310,7 +317,7 @@ describe("multi-source schema migration", () => {
       id: "doc_smb",
       projectId: "proj_smb",
       sourceKind: "smb",
-      sourceRoot: "//files.example.test:1445/share/base",
+      sourceRoot: "smb://files.example.test:1445/share/base",
       relativePath: "Engineering/report.md",
       storagePath: "Engineering/report.md",
     });
@@ -324,7 +331,7 @@ describe("multi-source schema migration", () => {
     fs.writeFileSync(passwordPath, "secret-value");
 
     migrateDatabase(dbPath, {
-      legacySmbRoot: "//files.example.test:1445/share/base",
+      legacySmbRoot: "smb://files.example.test:1445/share/base",
       masterKeyPath,
       legacySmbUsernameFile: usernamePath,
       legacySmbPasswordFile: passwordPath,
@@ -354,6 +361,88 @@ describe("multi-source schema migration", () => {
       domain: "CORP",
     });
     expect(encrypted.encrypted_payload).not.toContain("secret-value");
+  });
+
+  it("repairs an already-migrated SMB URI scope without changing identities", () => {
+    const { dir, dbPath, db } = tempDatabase("reasonkb-legacy-smb-uri-repair-");
+    insertProject(db, "proj_smb_repair", "Division A");
+    insertDocument(db, {
+      id: "doc_smb_repair",
+      projectId: "proj_smb_repair",
+      sourceKind: "smb",
+      sourceRoot: "smb://192.168.5.22/ReasonKBE2E",
+      relativePath: "Division A/report.md",
+      storagePath: "Division A/report.md",
+    });
+    db.close();
+    const masterKeyPath = path.join(dir, "master.key");
+    const usernamePath = path.join(dir, "smb_username");
+    const passwordPath = path.join(dir, "smb_password");
+    fs.writeFileSync(masterKeyPath, crypto.randomBytes(32));
+    fs.writeFileSync(usernamePath, "reader");
+    fs.writeFileSync(passwordPath, "secret-value");
+    const options = {
+      masterKeyPath,
+      legacySmbUsernameFile: usernamePath,
+      legacySmbPasswordFile: passwordPath,
+      legacySmbPort: 445,
+    };
+
+    migrateDatabase(dbPath, options);
+    const corrupted = new Database(dbPath);
+    const source = corrupted
+      .prepare("SELECT id FROM corpus_sources")
+      .get() as { id: string };
+    corrupted
+      .prepare(
+        `UPDATE corpus_sources
+            SET scope_json = '{"host":"smb:","share":"192.168.5.22","basePath":"ReasonKBE2E","port":445}',
+                health_state = 'degraded', error_summary = 'Name or service not known',
+                consecutive_failure_count = 1
+          WHERE id = ?`,
+      )
+      .run(source.id);
+    corrupted.prepare("DELETE FROM schema_migrations WHERE version = 5").run();
+    corrupted.close();
+
+    migrateDatabase(dbPath, options);
+
+    const repaired = new Database(dbPath, { readonly: true });
+    expect(
+      repaired
+        .prepare(
+          `SELECT id, scope_json, health_state, error_summary,
+                  consecutive_failure_count, validation_requested_at
+             FROM corpus_sources WHERE id = ?`,
+        )
+        .get(source.id),
+    ).toEqual({
+      id: source.id,
+      scope_json: JSON.stringify({
+        host: "192.168.5.22",
+        share: "ReasonKBE2E",
+        basePath: "",
+        port: 445,
+      }),
+      health_state: "unknown",
+      error_summary: null,
+      consecutive_failure_count: 0,
+      validation_requested_at: expect.any(String),
+    });
+    expect(
+      repaired.prepare("SELECT name FROM schema_migrations WHERE version = 5").get(),
+    ).toEqual({ name: "repair-legacy-smb-uri-scope" });
+    expect(
+      repaired.prepare("SELECT id, source_id FROM projects WHERE id = ?").get(
+        "proj_smb_repair",
+      ),
+    ).toEqual({ id: "proj_smb_repair", source_id: source.id });
+    expect(
+      repaired.prepare("SELECT id, source_id FROM documents WHERE id = ?").get(
+        "doc_smb_repair",
+      ),
+    ).toEqual({ id: "doc_smb_repair", source_id: source.id });
+    repaired.close();
   });
 
   it("retains a missing legacy source document as a non-retrievable tombstone", () => {
@@ -525,7 +614,13 @@ describe("multi-source schema migration", () => {
     const resumed = new Database(dbPath, { readonly: true });
     expect(
       resumed.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),
-    ).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
+    ).toEqual([
+      { version: 1 },
+      { version: 2 },
+      { version: 3 },
+      { version: 4 },
+      { version: 5 },
+    ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,
     });

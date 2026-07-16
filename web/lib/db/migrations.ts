@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import {
   migrateLegacyCorpus,
+  repairLegacySmbUriScopes,
   type LegacyCorpusMigrationOptions,
 } from "@/lib/db/legacy-corpus-migration";
 
@@ -340,5 +341,10 @@ export const schemaMigrations: SchemaMigration[] = [
           ON jobs(document_id, expected_source_revision, status)
       `);
     },
+  },
+  {
+    version: 5,
+    name: "repair-legacy-smb-uri-scope",
+    up: repairLegacySmbUriScopes,
   },
 ];
