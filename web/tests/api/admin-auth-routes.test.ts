@@ -113,4 +113,95 @@ describe("administrator authentication routes", () => {
     );
     expect(await expired.json()).toMatchObject({ configured: true, authenticated: false });
   });
+
+  it("changes the administrator password and revokes every session", async () => {
+    configureAdmin();
+    const loginRoute = await import("@/app/api/admin/auth/login/route");
+    const passwordRoute = await import("@/app/api/admin/auth/password/route");
+    const sessionRoute = await import("@/app/api/admin/auth/session/route");
+
+    const login = await loginRoute.POST(
+      new Request("http://localhost/api/admin/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: "initial admin password" }),
+      }),
+    );
+    const loginBody = await login.json();
+    const cookie = sessionCookie(login);
+
+    const missingCsrf = await passwordRoute.PATCH(
+      new Request("http://localhost/api/admin/auth/password", {
+        method: "PATCH",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({
+          currentPassword: "initial admin password",
+          newPassword: "replacement admin password",
+        }),
+      }),
+    );
+    expect(missingCsrf.status).toBe(401);
+
+    const wrongCurrentPassword = await passwordRoute.PATCH(
+      new Request("http://localhost/api/admin/auth/password", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          cookie,
+          "x-reasonkb-csrf": loginBody.csrfToken,
+        },
+        body: JSON.stringify({
+          currentPassword: "incorrect current password",
+          newPassword: "replacement admin password",
+        }),
+      }),
+    );
+    expect(wrongCurrentPassword.status).toBe(400);
+    expect(await wrongCurrentPassword.json()).toMatchObject({
+      code: "invalid_current_password",
+    });
+
+    const changed = await passwordRoute.PATCH(
+      new Request("http://localhost/api/admin/auth/password", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          cookie,
+          "x-reasonkb-csrf": loginBody.csrfToken,
+        },
+        body: JSON.stringify({
+          currentPassword: "initial admin password",
+          newPassword: "replacement admin password",
+        }),
+      }),
+    );
+    expect(changed.status).toBe(200);
+    expect(await changed.json()).toEqual({ changed: true });
+    expect(changed.headers.get("set-cookie")).toContain("Expires=Thu, 01 Jan 1970");
+
+    const revoked = await sessionRoute.GET(
+      new Request("http://localhost/api/admin/auth/session", {
+        headers: { cookie },
+      }),
+    );
+    expect(await revoked.json()).toMatchObject({ authenticated: false });
+
+    const oldPasswordLogin = await loginRoute.POST(
+      new Request("http://localhost/api/admin/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: "initial admin password" }),
+      }),
+    );
+    expect(oldPasswordLogin.status).toBe(401);
+
+    const newPasswordLogin = await loginRoute.POST(
+      new Request("http://localhost/api/admin/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: "replacement admin password" }),
+      }),
+    );
+    expect(newPasswordLogin.status).toBe(200);
+  });
 });

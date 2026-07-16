@@ -8,6 +8,7 @@ import {
   createAdminSession,
   isAdminConfigured,
   replaceAdminPassword,
+  resetAdminPassword,
   validateAdminSession,
   verifyAdminCredentials,
 } from "@/lib/repos/admin-auth-store";
@@ -81,5 +82,26 @@ describe("administrator authentication", () => {
     ).toBe(true);
     expect(validateAdminSession(dbPath, session.token)).toBeNull();
     expect(verifyAdminCredentials(dbPath, "replacement password")).toBe(true);
+  });
+
+  it("resets a forgotten password and revokes all existing sessions", () => {
+    const dbPath = tempDb();
+    bootstrapAdminPassword(dbPath, "initial admin password");
+    const session = createAdminSession(dbPath);
+
+    resetAdminPassword(dbPath, "recovered admin password");
+
+    expect(validateAdminSession(dbPath, session.token)).toBeNull();
+    expect(verifyAdminCredentials(dbPath, "initial admin password")).toBe(false);
+    expect(verifyAdminCredentials(dbPath, "recovered admin password")).toBe(true);
+  });
+
+  it("can reset an administrator that was never bootstrapped", () => {
+    const dbPath = tempDb();
+
+    resetAdminPassword(dbPath, "recovered admin password");
+
+    expect(isAdminConfigured(dbPath)).toBe(true);
+    expect(verifyAdminCredentials(dbPath, "recovered admin password")).toBe(true);
   });
 });

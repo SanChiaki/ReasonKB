@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { AdminPasswordForm } from "@/components/admin-password-form";
 import { SystemSettingsForm } from "@/components/system-settings-form";
 import { appConfig } from "@/lib/config";
 import { LocalizedText } from "@/lib/i18n";
@@ -46,7 +47,7 @@ export default async function SettingsPage() {
           </p>
         </header>
 
-        <div className="pt-6">
+        <div className="space-y-6 pt-6">
           <SystemSettingsForm
             initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
             initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}
@@ -70,6 +71,7 @@ export default async function SettingsPage() {
             corpusSource={appConfig.corpusSource}
             smbCorpusTarget={appConfig.smbCorpusTarget}
           />
+          <AdminPasswordForm />
         </div>
       </section>
     </AppShell>

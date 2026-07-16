@@ -39,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/inst
     admin_password
 ```
 
-首次安装会输出一次管理员初始密码。之后可从宿主机的 `~/.reasonkb/secrets/admin_password` 查看；不要把它写入镜像或提交到版本库。
+首次安装会输出一次管理员初始密码。`~/.reasonkb/secrets/admin_password` 是初始化和宿主机恢复使用的文件，不是 Web 改密后当前密码的明文副本；不要把它写入镜像或提交到版本库。
 
 ## 3. 密钥位置与备份
 
@@ -106,6 +106,28 @@ http://localhost:43170/admin/login
 ```
 
 使用部署管理员密码登录。所有数据源、目录选择、手工同步、停用、恢复和清除操作都要求管理员会话和 CSRF 校验。普通检索用户不能调用这些管理 API。
+
+### 5.1 修改管理员密码
+
+登录后打开“设置”，在“安全”区域输入当前密码和新密码。新密码长度须为 12 至 1024 个字符。修改立即生效，所有管理员会话（包括当前会话）都会退出，不需要重启容器。
+
+### 5.2 忘记密码后重置
+
+在 Docker 宿主机执行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh \
+  | sh -s -- --reset-admin-password
+```
+
+命令会从终端读取并确认新密码，通过一次性 `migrate` 容器更新 `var/app.db`，随后撤销所有管理员会话并更新宿主机的初始化密码文件。运行中的 Web、检索和 worker 容器无需重启。
+
+如果安装目录不是默认的 `~/.reasonkb`，把目录变量传给管道右侧的 `sh`：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SanChiaki/ReasonKB/main/docker/install.sh \
+  | REASONKB_HOME=/srv/reasonkb sh -s -- --reset-admin-password
+```
 
 ## 6. 添加数据源
 
