@@ -5,6 +5,26 @@ export const ADMIN_SESSION_COOKIE = "reasonkb_admin_session";
 export const ADMIN_CSRF_COOKIE = "reasonkb_admin_csrf";
 export const ADMIN_CSRF_HEADER = "x-reasonkb-csrf";
 
+export function adminCookieIsSecure(request: Request) {
+  const configured = process.env.REASONKB_ADMIN_COOKIE_SECURE?.trim().toLowerCase();
+  if (configured === "true") {
+    return true;
+  }
+  if (configured === "false") {
+    return false;
+  }
+
+  const forwardedProtocol = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (forwardedProtocol) {
+    return forwardedProtocol === "https";
+  }
+  return new URL(request.url).protocol === "https:";
+}
+
 function cookieValue(request: Request, name: string) {
   const cookies = request.headers.get("cookie");
   if (!cookies) {
@@ -51,6 +71,7 @@ export function unauthorizedAdminResponse() {
 
 export function setAdminSessionCookie(
   response: NextResponse,
+  request: Request,
   token: string,
   expiresAt: string,
 ) {
@@ -59,7 +80,7 @@ export function setAdminSessionCookie(
     value: token,
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: adminCookieIsSecure(request),
     path: "/",
     expires: new Date(expiresAt),
   });
@@ -67,6 +88,7 @@ export function setAdminSessionCookie(
 
 export function setAdminCsrfCookie(
   response: NextResponse,
+  request: Request,
   csrfToken: string,
   expiresAt: string,
 ) {
@@ -75,19 +97,20 @@ export function setAdminCsrfCookie(
     value: csrfToken,
     httpOnly: false,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: adminCookieIsSecure(request),
     path: "/",
     expires: new Date(expiresAt),
   });
 }
 
-export function clearAdminSessionCookie(response: NextResponse) {
+export function clearAdminSessionCookie(response: NextResponse, request: Request) {
+  const secure = adminCookieIsSecure(request);
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
     value: "",
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     expires: new Date(0),
   });
@@ -96,7 +119,7 @@ export function clearAdminSessionCookie(response: NextResponse) {
     value: "",
     httpOnly: false,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     expires: new Date(0),
   });

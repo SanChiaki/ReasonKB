@@ -22,6 +22,7 @@ case "${1:-}" in
 环境变量：
   REASONKB_HOME              ReasonKB 运行目录，默认 ~/.reasonkb
   REASONKB_ADMIN_PASSWORD    非交互模式使用的新管理员密码
+  REASONKB_ADMIN_COOKIE_SECURE  管理员 Cookie Secure 模式：auto、true 或 false
 EOF
     exit 0
     ;;
@@ -286,6 +287,9 @@ if [ "$INSTALL_ACTION" = "install" ]; then
 # 设置页文件夹选择器可只读浏览的宿主机目录。
 # 文件夹选择器只能选择这个目录下的文件夹。
 # REASONKB_HOST_BROWSE_ROOT=/absolute/path/to/browse/root
+
+# 管理员 Cookie 的 Secure 模式：auto 按实际访问协议判断，也可强制 true/false。
+# REASONKB_ADMIN_COOKIE_SECURE=auto
 
 # 可选的 LLM 默认配置。设置页保存的运行时配置优先于这些默认值。
 # PAGEINDEX_LLM_API_KEY=

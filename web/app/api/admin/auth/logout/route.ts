@@ -17,6 +17,6 @@ export async function POST(request: Request) {
     revokeAdminSession(appConfig.dbPath, token);
   }
   const response = NextResponse.json({ authenticated: false });
-  clearAdminSessionCookie(response);
+  clearAdminSessionCookie(response, request);
   return response;
 }
