@@ -2,7 +2,7 @@
 set -eu
 
 REASONKB_HOME="${REASONKB_HOME:-"$HOME/.reasonkb"}"
-REASONKB_COMPOSE_URL="${REASONKB_COMPOSE_URL:-https://cdn.jsdmirror.cn/gh/SanChiaki/ReasonKB@main/docker/compose.release.yml}"
+REASONKB_COMPOSE_URL="${REASONKB_COMPOSE_URL:-https://cdn.jsdelivr.net/gh/SanChiaki/ReasonKB@main/docker/compose.release.yml}"
 DEFAULT_LLM_MODEL="openai/deepseek-v4-flash"
 INSTALL_INTERACTIVE=0
 INSTALL_ACTION="install"
