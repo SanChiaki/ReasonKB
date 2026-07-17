@@ -8,6 +8,7 @@ import { bootstrapAdminPassword } from "@/lib/repos/admin-auth-store";
 const tempDirs: string[] = [];
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.resetModules();
   vi.unmock("@/lib/config");
   while (tempDirs.length > 0) {
@@ -34,6 +35,17 @@ function sessionCookie(response: Response) {
     throw new Error("Admin session cookie was not set");
   }
   return `reasonkb_admin_session=${match[1]}`;
+}
+
+async function loginAt(url: string, headers: HeadersInit = {}) {
+  const { POST } = await import("@/app/api/admin/auth/login/route");
+  return POST(
+    new Request(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({ password: "initial admin password" }),
+    }),
+  );
 }
 
 describe("administrator authentication routes", () => {
@@ -112,6 +124,34 @@ describe("administrator authentication routes", () => {
       }),
     );
     expect(await expired.json()).toMatchObject({ configured: true, authenticated: false });
+  });
+
+  it("uses the actual access protocol for administrator cookie security", async () => {
+    configureAdmin();
+    vi.stubEnv("REASONKB_ADMIN_COOKIE_SECURE", "auto");
+
+    const httpLogin = await loginAt("http://192.168.72.120/api/admin/auth/login");
+    expect(httpLogin.headers.get("set-cookie")).not.toContain("Secure");
+
+    const httpsLogin = await loginAt("https://reasonkb.example/api/admin/auth/login");
+    expect(httpsLogin.headers.get("set-cookie")).toContain("Secure");
+
+    const proxiedHttpsLogin = await loginAt(
+      "http://reasonkb-web:3000/api/admin/auth/login",
+      { "x-forwarded-proto": "https" },
+    );
+    expect(proxiedHttpsLogin.headers.get("set-cookie")).toContain("Secure");
+  });
+
+  it("allows administrator cookie security to be explicitly overridden", async () => {
+    configureAdmin();
+    vi.stubEnv("REASONKB_ADMIN_COOKIE_SECURE", "false");
+    const forcedInsecure = await loginAt("https://reasonkb.example/api/admin/auth/login");
+    expect(forcedInsecure.headers.get("set-cookie")).not.toContain("Secure");
+
+    vi.stubEnv("REASONKB_ADMIN_COOKIE_SECURE", "true");
+    const forcedSecure = await loginAt("http://192.168.72.120/api/admin/auth/login");
+    expect(forcedSecure.headers.get("set-cookie")).toContain("Secure");
   });
 
   it("changes the administrator password and revokes every session", async () => {

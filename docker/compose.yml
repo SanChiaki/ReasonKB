@@ -60,6 +60,7 @@ services:
       REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
       REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
       REASONKB_ADMIN_PASSWORD_FILE: /run/secrets/reasonkb_admin_password
+      REASONKB_ADMIN_COOKIE_SECURE: ${REASONKB_ADMIN_COOKIE_SECURE:-auto}
       REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var

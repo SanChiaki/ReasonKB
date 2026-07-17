@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     csrfToken: session.csrfToken,
     expiresAt: session.expiresAt,
   });
-  setAdminSessionCookie(response, session.token, session.expiresAt);
-  setAdminCsrfCookie(response, session.csrfToken, session.expiresAt);
+  setAdminSessionCookie(response, request, session.token, session.expiresAt);
+  setAdminCsrfCookie(response, request, session.csrfToken, session.expiresAt);
   return response;
 }

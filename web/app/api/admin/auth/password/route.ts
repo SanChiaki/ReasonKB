@@ -51,6 +51,6 @@ export async function PATCH(request: Request) {
   }
 
   const response = NextResponse.json({ changed: true });
-  clearAdminSessionCookie(response);
+  clearAdminSessionCookie(response, request);
   return response;
 }

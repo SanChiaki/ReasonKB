@@ -152,6 +152,15 @@ docker login crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com
 
 ## Configuration
 
+Administrator cookies follow the actual access protocol by default. Direct HTTP access omits
+the `Secure` attribute, while HTTPS requests and reverse proxies that set
+`X-Forwarded-Proto: https` enable it. This can be overridden in `.env` when the public protocol
+is known:
+
+```env
+REASONKB_ADMIN_COOKIE_SECURE=auto  # auto | true | false
+```
+
 LLM defaults can be supplied through `.env` and later changed by the administrator:
 
 ```env

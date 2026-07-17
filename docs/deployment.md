@@ -107,6 +107,14 @@ http://localhost:43170/admin/login
 
 使用部署管理员密码登录。所有数据源、目录选择、手工同步、停用、恢复和清除操作都要求管理员会话和 CSRF 校验。普通检索用户不能调用这些管理 API。
 
+管理员 Cookie 默认按实际访问协议设置安全属性。直接通过 HTTP 访问时不设置 `Secure`；HTTPS 请求或带有 `X-Forwarded-Proto: https` 的反向代理请求会设置 `Secure`。如需显式覆盖，可在 `.env` 中配置：
+
+```env
+REASONKB_ADMIN_COOKIE_SECURE=auto  # auto | true | false
+```
+
+公网或非可信网络仍应使用 HTTPS；`false` 仅适用于明确接受明文 HTTP 风险的可信内网。
+
 ### 5.1 修改管理员密码
 
 登录后打开“设置”，在“安全”区域输入当前密码和新密码。新密码长度须为 12 至 1024 个字符。修改立即生效，所有管理员会话（包括当前会话）都会退出，不需要重启容器。

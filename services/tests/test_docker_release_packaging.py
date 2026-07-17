@@ -404,6 +404,14 @@ def test_release_web_reads_runtime_env_file_for_llm_defaults():
         assert name not in web["environment"]
 
 
+def test_release_web_defaults_admin_cookie_security_to_protocol_detection():
+    compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
+
+    assert compose["services"]["web"]["environment"]["REASONKB_ADMIN_COOKIE_SECURE"] == (
+        "${REASONKB_ADMIN_COOKIE_SECURE:-auto}"
+    )
+
+
 def test_release_web_exposes_current_host_projects_root_to_settings_ui():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
