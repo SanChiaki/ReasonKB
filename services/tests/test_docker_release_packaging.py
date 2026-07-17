@@ -190,6 +190,93 @@ def test_install_script_does_not_update_bootstrap_secret_when_reset_fails(tmp_pa
     ) == "original admin password\n"
 
 
+def test_install_script_rejects_invalid_compose_download(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    reasonkb_home = tmp_path / "home"
+    reasonkb_home.mkdir()
+    (reasonkb_home / "compose.yml").write_text("services: {}\n", encoding="utf-8")
+    invalid_compose = tmp_path / "invalid-compose.yml"
+    invalid_compose.write_text("services:\n  web: invalid\n", encoding="utf-8")
+
+    _write_executable(
+        fake_bin / "curl",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        output=""
+        while [ "$#" -gt 0 ]; do
+          if [ "$1" = "-o" ]; then
+            shift
+            output="$1"
+            break
+          fi
+          shift
+        done
+        cp "$REASONKB_INVALID_COMPOSE" "$output"
+        """,
+    )
+    _write_executable(
+        fake_bin / "wget",
+        """
+        #!/usr/bin/env sh
+        exit 1
+        """,
+    )
+    _write_executable(
+        fake_bin / "docker",
+        """
+        #!/usr/bin/env sh
+        set -eu
+        if [ "$1" = "compose" ] && [ "${2:-}" = "version" ]; then
+          exit 0
+        fi
+        if [ "$1" = "compose" ]; then
+          case " $* " in
+            *" config "*)
+              compose_file=""
+              while [ "$#" -gt 0 ]; do
+                if [ "$1" = "-f" ]; then
+                  shift
+                  compose_file="$1"
+                fi
+                shift
+              done
+              if grep -q '^  web: invalid$' "$compose_file"; then
+                echo "services.web must be a mapping" >&2
+                exit 1
+              fi
+              exit 0
+              ;;
+            *)
+              exit 0
+              ;;
+          esac
+        fi
+        exit 1
+        """,
+    )
+
+    env = _installer_env(
+        {
+            **os.environ,
+            "REASONKB_HOME": str(reasonkb_home),
+            "REASONKB_COMPOSE_URL": "https://example.invalid/compose.yml",
+            "REASONKB_INVALID_COMPOSE": str(invalid_compose),
+            "REASONKB_INTERACTIVE": "0",
+        },
+        fake_bin,
+    )
+
+    result = _run_install(tmp_path, env)
+
+    assert result.returncode != 0
+    assert "Compose 文件校验失败" in result.stderr
+    assert "下载 ReasonKB Compose 文件失败" in result.stderr
+    assert "services.web must be a mapping" in result.stderr
+    assert (reasonkb_home / "compose.yml").read_text(encoding="utf-8") == "services: {}\n"
+
+
 def test_dockerignore_excludes_local_env_files_from_image_context():
     patterns = {
         line.strip()
@@ -657,10 +744,12 @@ def test_install_script_preserves_backslashes_when_updating_existing_env_values(
     assert configured["REASONKB_HOST_BROWSE_ROOT"] == browse_root
 
 
-def test_install_script_falls_back_to_wget_when_curl_download_fails(tmp_path):
+def test_install_script_stops_when_curl_download_fails(tmp_path):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     reasonkb_home = tmp_path / "home"
+    reasonkb_home.mkdir()
+    (reasonkb_home / "compose.yml").write_text("services: {}\n", encoding="utf-8")
 
     _write_executable(
         fake_bin / "curl",
@@ -681,18 +770,8 @@ def test_install_script_falls_back_to_wget_when_curl_download_fails(tmp_path):
         fake_bin / "wget",
         """
         #!/usr/bin/env sh
-        set -eu
-        output=""
-        while [ "$#" -gt 0 ]; do
-          case "$1" in
-            -qO|-O)
-              shift
-              output="$1"
-              ;;
-          esac
-          shift
-        done
-        cp "$REASONKB_FAKE_COMPOSE_SOURCE" "$output"
+        printf 'wget was called\n' > "$REASONKB_HOME/wget-called.txt"
+        exit 0
         """,
     )
     _write_executable(
@@ -721,11 +800,11 @@ def test_install_script_falls_back_to_wget_when_curl_download_fails(tmp_path):
 
     result = _run_install(tmp_path, env)
 
-    assert result.returncode == 0, result.stderr
-    assert (reasonkb_home / "compose.yml").read_text(encoding="utf-8") == (
-        ROOT / "docker" / "compose.release.yml"
-    ).read_text(encoding="utf-8")
+    assert result.returncode != 0
+    assert "curl 无法下载 Compose 文件，安装已终止" in result.stderr
     assert (reasonkb_home / "curl-count.txt").read_text(encoding="utf-8").strip() == "3"
+    assert not (reasonkb_home / "wget-called.txt").exists()
+    assert (reasonkb_home / "compose.yml").read_text(encoding="utf-8") == "services: {}\n"
 
 
 def test_install_script_explains_compose_download_failures(tmp_path):
@@ -782,8 +861,8 @@ def test_install_script_explains_compose_download_failures(tmp_path):
     assert "https://example.invalid/compose.yml" in result.stderr
     assert "下载 ReasonKB Compose 文件失败" in result.stderr
     assert "REASONKB_COMPOSE_URL" in result.stderr
-    assert str(reasonkb_home / "compose.yml").replace("\\", "/") in result.stderr.replace("\\", "/")
     assert (reasonkb_home / "curl-count.txt").read_text(encoding="utf-8").strip() == "3"
+    assert not (reasonkb_home / "compose.yml").exists()
 
 
 def test_install_script_prompts_for_source_access_root_and_llm_configuration(tmp_path):

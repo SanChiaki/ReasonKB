@@ -195,6 +195,32 @@ download_with_wget() {
   wget -q --timeout=30 --tries=5 -O "$output_file" "$REASONKB_COMPOSE_URL"
 }
 
+validate_compose_file() {
+  compose_file="$1"
+  compose_name="$(basename "$compose_file")"
+
+  if [ ! -f "$compose_file" ]; then
+    echo "Compose 文件不存在：$compose_file" >&2
+    return 1
+  fi
+
+  if [ -f "$REASONKB_HOME/.env" ]; then
+    if ! (
+      cd "$REASONKB_HOME"
+      docker compose --env-file ./.env -f "$compose_name" config --services >/dev/null
+    ); then
+      echo "Compose 文件校验失败：$compose_file" >&2
+      return 1
+    fi
+  elif ! (
+    cd "$REASONKB_HOME"
+    docker compose -f "$compose_name" config --services >/dev/null
+  ); then
+    echo "Compose 文件校验失败：$compose_file" >&2
+    return 1
+  fi
+}
+
 print_compose_download_help() {
   cat >&2 <<EOF
 下载 ReasonKB Compose 文件失败。
@@ -202,16 +228,14 @@ print_compose_download_help() {
 下载地址：
   $REASONKB_COMPOSE_URL
 
-这通常是当前机器访问 raw.githubusercontent.com 时出现网络、代理或 TLS 中断导致的。
-可以重试、配置代理，或使用镜像/自定义 Compose 地址：
+这通常是当前机器访问 Compose 镜像地址时出现网络、代理或 TLS 中断导致的。
+请重试、配置代理，或使用镜像/自定义 Compose 地址：
 
   REASONKB_COMPOSE_URL=https://your-mirror.example/compose.release.yml ./install.sh
 
-也可以手动下载 docker/compose.release.yml 到：
+如果已手动下载文件，可以直接指定本地文件：
 
-  $REASONKB_HOME/compose.yml
-
-然后重新运行 ./install.sh。
+  REASONKB_COMPOSE_URL=file:///absolute/path/to/compose.release.yml ./install.sh
 EOF
 }
 
@@ -221,29 +245,33 @@ download_compose_file() {
   rm -f "$tmp_file"
 
   if command -v curl >/dev/null 2>&1; then
-    if download_with_curl "$tmp_file"; then
-      mv "$tmp_file" "$REASONKB_HOME/compose.yml"
-      return 0
+    if ! download_with_curl "$tmp_file"; then
+      rm -f "$tmp_file"
+      echo "curl 无法下载 Compose 文件，安装已终止。" >&2
+      print_compose_download_help
+      return 1
     fi
-    rm -f "$tmp_file"
-    echo "curl 无法下载 Compose 文件；如果系统安装了 wget，将继续尝试 wget。" >&2
-  fi
-
-  if command -v wget >/dev/null 2>&1; then
-    if download_with_wget "$tmp_file"; then
-      mv "$tmp_file" "$REASONKB_HOME/compose.yml"
-      return 0
+  elif command -v wget >/dev/null 2>&1; then
+    if ! download_with_wget "$tmp_file"; then
+      rm -f "$tmp_file"
+      echo "wget 无法下载 Compose 文件，安装已终止。" >&2
+      print_compose_download_help
+      return 1
     fi
+  else
+    echo "未找到 curl 或 wget，无法下载 Compose 文件，安装已终止。" >&2
+    print_compose_download_help
+    return 1
+  fi
+
+  if ! validate_compose_file "$tmp_file"; then
     rm -f "$tmp_file"
+    echo "下载到的 Compose 文件无效，安装已终止。" >&2
+    print_compose_download_help
+    return 1
   fi
 
-  if [ -f "$REASONKB_HOME/compose.yml" ]; then
-    echo "无法刷新 compose.yml；继续使用已有文件：$REASONKB_HOME/compose.yml" >&2
-    return 0
-  fi
-
-  print_compose_download_help
-  return 1
+  mv "$tmp_file" "$REASONKB_HOME/compose.yml"
 }
 
 if [ "$INSTALL_ACTION" = "install" ]; then
@@ -635,6 +663,11 @@ fi
 configure_paths
 configure_llm_defaults
 ensure_runtime_secrets
+
+if ! validate_compose_file "$REASONKB_HOME/compose.yml"; then
+  echo "请检查网络、镜像源，或删除损坏的 compose.yml 后重试。" >&2
+  exit 1
+fi
 
 ensure_port_env WEB_PORT 43170
 ensure_port_env RETRIEVAL_API_PORT 43171
