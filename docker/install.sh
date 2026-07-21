@@ -590,6 +590,12 @@ ensure_runtime_secrets() {
     chmod 600 "$secrets_root/master.key" 2>/dev/null || true
   fi
 
+  if [ ! -f "$secrets_root/api_key_pepper" ]; then
+    write_secret_file "$secrets_root/api_key_pepper" "$(generate_hex_secret 32)"
+  else
+    chmod 600 "$secrets_root/api_key_pepper" 2>/dev/null || true
+  fi
+
   GENERATED_ADMIN_PASSWORD=""
   if [ ! -f "$secrets_root/admin_password" ]; then
     admin_password="${REASONKB_ADMIN_PASSWORD:-}"
@@ -609,6 +615,56 @@ ensure_runtime_secrets() {
   else
     chmod 600 "$secrets_root/admin_password" 2>/dev/null || true
   fi
+}
+
+install_agent_launchers() {
+  bin_root="$REASONKB_HOME/bin"
+  mkdir -p "$bin_root"
+  chmod 700 "$bin_root" 2>/dev/null || true
+
+  cat > "$bin_root/reasonkb" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+REASONKB_HOME="${REASONKB_HOME:-$(dirname "$script_dir")}"
+export REASONKB_HOME
+
+if [ ! -f "$REASONKB_HOME/compose.yml" ] || [ ! -f "$REASONKB_HOME/.env" ]; then
+  echo "ReasonKB deployment files were not found under $REASONKB_HOME." >&2
+  exit 1
+fi
+
+exec docker compose --env-file "$REASONKB_HOME/.env" -f "$REASONKB_HOME/compose.yml" \
+  exec -T \
+  -e REASONKB_URL=http://localhost:3000 \
+  -e REASONKB_API_KEY \
+  -e REASONKB_ADMIN_PASSWORD \
+  web node /app/tools/reasonkb-cli.mjs "$@"
+EOF
+
+  cat > "$bin_root/reasonkb-mcp" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+REASONKB_HOME="${REASONKB_HOME:-$(dirname "$script_dir")}"
+export REASONKB_HOME
+
+if [ ! -f "$REASONKB_HOME/compose.yml" ] || [ ! -f "$REASONKB_HOME/.env" ]; then
+  echo "ReasonKB deployment files were not found under $REASONKB_HOME." >&2
+  exit 1
+fi
+
+exec docker compose --env-file "$REASONKB_HOME/.env" -f "$REASONKB_HOME/compose.yml" \
+  exec -T \
+  -e REASONKB_URL=http://localhost:3000 \
+  -e REASONKB_API_KEY \
+  -e REASONKB_MCP_DEBUG \
+  web node /app/tools/reasonkb-mcp.mjs
+EOF
+
+  chmod 700 "$bin_root/reasonkb" "$bin_root/reasonkb-mcp" 2>/dev/null || true
 }
 
 configure_llm_defaults() {
@@ -667,6 +723,7 @@ fi
 configure_paths
 configure_llm_defaults
 ensure_runtime_secrets
+install_agent_launchers
 
 if ! validate_compose_file "$REASONKB_HOME/compose.yml"; then
   echo "请检查网络、镜像源，或删除损坏的 compose.yml 后重试。" >&2
@@ -691,6 +748,8 @@ ReasonKB 正在启动。
 Web 界面：http://localhost:${WEB_PORT:-43170}
 $corpus_summary_line
 运行数据目录：$REASONKB_HOME/var
+CLI：$REASONKB_HOME/bin/reasonkb
+MCP：$REASONKB_HOME/bin/reasonkb-mcp
 EOF
 
 if [ -n "${GENERATED_ADMIN_PASSWORD:-}" ]; then

@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import Database from "better-sqlite3";
+import { runImmediateTransaction } from "@/lib/db/immediate-transaction";
 
 export const AGENT_SCOPES = [
   "read:projects",
@@ -29,6 +31,9 @@ export type CreatedApiKey = ApiKeyRecord & {
 const API_KEY_PREFIX = "rkb_live";
 const KEY_SECRET_BYTES = 32;
 const PREFIX_BYTES = 6;
+
+type Db = InstanceType<typeof Database>;
+
 const CREATE_API_KEYS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY,
@@ -47,6 +52,7 @@ const CREATE_API_KEYS_TABLE_SQL = `
 function open(dbPath: string) {
   const db = new Database(dbPath);
   db.pragma("foreign_keys = ON");
+  db.pragma("busy_timeout = 5000");
   return db;
 }
 
@@ -55,7 +61,27 @@ function ensureApiKeysTable(db: InstanceType<typeof Database>) {
 }
 
 function keyPepper() {
-  return process.env.REASONKB_API_KEY_PEPPER ?? "";
+  const configured = process.env.REASONKB_API_KEY_PEPPER?.trim();
+  if (configured) {
+    return configured;
+  }
+  const pepperFile = process.env.REASONKB_API_KEY_PEPPER_FILE?.trim();
+  if (!pepperFile) {
+    return "";
+  }
+  try {
+    const pepper = fs.readFileSync(pepperFile, "utf8").trimEnd();
+    if (!pepper) {
+      throw new Error("API key pepper file is empty.");
+    }
+    return pepper;
+  } catch (error) {
+    throw new Error(
+      `Unable to read API key pepper file: ${
+        error instanceof Error ? error.message : "unknown error"
+      }`,
+    );
+  }
 }
 
 function hashApiKey(apiKey: string) {
@@ -132,6 +158,40 @@ function toApiKeyRecord(row: {
   };
 }
 
+function auditApiKeyChange(
+  db: Db,
+  input: {
+    action: "api_key.create" | "api_key.revoke";
+    record: ApiKeyRecord;
+    before?: ApiKeyRecord;
+    now: string;
+  },
+) {
+  const safeView = (record: ApiKeyRecord) => ({
+    name: record.name,
+    prefix: record.prefix,
+    scopes: record.scopes,
+    projectIds: record.projectIds,
+    createdAt: record.createdAt,
+    lastUsedAt: record.lastUsedAt,
+    revokedAt: record.revokedAt,
+  });
+  db.prepare(
+    `INSERT INTO admin_audit_events (
+       id, actor, action, target_type, target_id, outcome,
+       before_json, after_json, created_at
+     ) VALUES (?, ?, ?, 'api_key', ?, 'success', ?, ?, ?)`,
+  ).run(
+    `audit_${crypto.randomUUID()}`,
+    input.record.ownerUserId,
+    input.action,
+    input.record.id,
+    input.before ? JSON.stringify(safeView(input.before)) : null,
+    JSON.stringify(safeView(input.record)),
+    input.now,
+  );
+}
+
 export function createApiKey(
   dbPath: string,
   input: {
@@ -157,27 +217,31 @@ export function createApiKey(
 
   try {
     ensureApiKeysTable(db);
-    db.prepare(
-      `INSERT INTO api_keys (
-         id, owner_user_id, name, prefix, key_hash, scopes_json,
-         project_ids_json, created_at
-       ) VALUES (
-         @id, @owner_user_id, @name, @prefix, @key_hash, @scopes_json,
-         @project_ids_json, @created_at
-       )`,
-    ).run(row);
-  } finally {
-    db.close();
-  }
-
-  return {
-    ...toApiKeyRecord({
+    const record = toApiKeyRecord({
       ...row,
       last_used_at: null,
       revoked_at: null,
-    }),
-    apiKey,
-  };
+    });
+    runImmediateTransaction(db, () => {
+      db.prepare(
+        `INSERT INTO api_keys (
+           id, owner_user_id, name, prefix, key_hash, scopes_json,
+           project_ids_json, created_at
+         ) VALUES (
+           @id, @owner_user_id, @name, @prefix, @key_hash, @scopes_json,
+           @project_ids_json, @created_at
+         )`,
+      ).run(row);
+      auditApiKeyChange(db, {
+        action: "api_key.create",
+        record,
+        now,
+      });
+    });
+    return { ...record, apiKey };
+  } finally {
+    db.close();
+  }
 }
 
 export function listApiKeys(dbPath: string, ownerUserId: string): ApiKeyRecord[] {
@@ -207,15 +271,30 @@ export function revokeApiKey(
   const now = new Date().toISOString();
   try {
     ensureApiKeysTable(db);
-    const result = db
-      .prepare(
-        `UPDATE api_keys
-            SET revoked_at = COALESCE(revoked_at, ?)
-          WHERE id = ?
-            AND owner_user_id = ?`,
-      )
-      .run(now, input.keyId, input.ownerUserId);
-    return result.changes > 0;
+    return runImmediateTransaction(db, () => {
+      const row = db
+        .prepare(
+          `SELECT id, owner_user_id, name, prefix, scopes_json, project_ids_json,
+                  created_at, last_used_at, revoked_at
+             FROM api_keys
+            WHERE id = ? AND owner_user_id = ? AND revoked_at IS NULL`,
+        )
+        .get(input.keyId, input.ownerUserId) as
+        | Parameters<typeof toApiKeyRecord>[0]
+        | undefined;
+      if (!row) {
+        return false;
+      }
+      const before = toApiKeyRecord(row);
+      db.prepare("UPDATE api_keys SET revoked_at = ? WHERE id = ?").run(now, input.keyId);
+      auditApiKeyChange(db, {
+        action: "api_key.revoke",
+        before,
+        record: { ...before, revokedAt: now },
+        now,
+      });
+      return true;
+    });
   } finally {
     db.close();
   }

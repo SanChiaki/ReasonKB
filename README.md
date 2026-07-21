@@ -73,11 +73,12 @@ The retrieval API receives only the SQLite/runtime volume. It receives neither s
 
 ## Administrator Bootstrap
 
-The installer creates one deployment administrator and two host-side secret files:
+The installer creates one deployment administrator and three host-side secret files:
 
 ```text
 ~/.reasonkb/secrets/master.key
 ~/.reasonkb/secrets/admin_password
+~/.reasonkb/secrets/api_key_pepper
 ```
 
 The files stay on the host with mode `0600`; the directory uses mode `0700`. Docker mounts them read-only into the privileged services as:
@@ -85,9 +86,10 @@ The files stay on the host with mode `0600`; the directory uses mode `0700`. Doc
 ```text
 /run/secrets/reasonkb_master_key
 /run/secrets/reasonkb_admin_password
+/run/secrets/reasonkb_api_key_pepper
 ```
 
-The master key is not stored only inside a disposable container. Back it up with the ReasonKB SQLite database. Losing it makes encrypted SMB and Seeyon credentials unrecoverable. `admin_password` is a bootstrap and recovery secret, not a readable copy of the current password after it has been changed in the Web UI.
+The master key and API Key pepper are not stored only inside a disposable container. Back them up with the ReasonKB SQLite database. Losing the master key makes encrypted SMB and Seeyon credentials unrecoverable; losing the pepper invalidates existing Agent API Keys. `admin_password` is a bootstrap and recovery secret, not a readable copy of the current password after it has been changed in the Web UI.
 
 Open `http://localhost:43170/admin/login`, sign in with the initial administrator password, then use `Data sources`.
 
@@ -185,23 +187,30 @@ ReasonKB includes API-key protected agent routes under `/api/agent/*`, a Node
 CLI, and a stdio MCP server. Use these when an external coding agent needs to
 query indexed documents without writing chat history.
 
-Recommended local setup:
+Docker users create and revoke API Keys from `Settings` > `API keys`. The
+installer also creates host launchers that run the bundled tools inside the Web
+container, without requiring Node.js on the host:
 
 ```bash
-REASONKB_API_KEY_PEPPER=long-random-local-secret
-REASONKB_ADMIN_PASSWORD=your-administrator-password
-node tools/reasonkb-cli.mjs create-key --name codex
+export REASONKB_API_KEY=rkb_live_...
+~/.reasonkb/bin/reasonkb projects
 ```
 
-Then configure the agent environment with:
+For a same-host MCP client, configure the command as:
 
-```bash
-REASONKB_URL=http://localhost:43170
-REASONKB_API_KEY=rkb_live_...
+```json
+{
+  "command": "/home/user/.reasonkb/bin/reasonkb-mcp",
+  "env": {
+    "REASONKB_API_KEY": "rkb_live_..."
+  }
+}
 ```
 
+The installer keeps the stable API Key hash pepper in
+`~/.reasonkb/secrets/api_key_pepper`; back it up with the SQLite database.
 See [`docs/agent-access.md`](docs/agent-access.md) for the full CLI and MCP
-configuration.
+configuration, headless Key administration, and source-development commands.
 
 ## Verification
 

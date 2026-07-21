@@ -1,13 +1,17 @@
 import { AppShell } from "@/components/app-shell";
 import { AdminPasswordForm } from "@/components/admin-password-form";
+import { ApiKeyManager } from "@/components/api-key-manager";
 import { SystemSettingsForm } from "@/components/system-settings-form";
 import { appConfig } from "@/lib/config";
 import { LocalizedText } from "@/lib/i18n";
 import { listConversations } from "@/lib/repos/conversation-store";
+import { listApiKeys } from "@/lib/repos/api-key-store";
+import { listProjects } from "@/lib/repos/project-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
 import { requireAdminPage } from "@/lib/security/admin-page-auth";
 
 const demoUserId = "user_demo";
+const adminOwnerId = "deployment-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +35,11 @@ export default async function SettingsPage() {
   await requireAdminPage();
   const conversations = listConversations(appConfig.dbPath, demoUserId);
   const settings = getSystemSettings(appConfig.dbPath, defaults);
+  const apiKeys = listApiKeys(appConfig.dbPath, adminOwnerId);
+  const projects = listProjects(appConfig.dbPath).map((project) => ({
+    id: project.id,
+    name: project.name,
+  }));
 
   return (
     <AppShell conversations={conversations}>
@@ -71,6 +80,7 @@ export default async function SettingsPage() {
             corpusSource={appConfig.corpusSource}
             smbCorpusTarget={appConfig.smbCorpusTarget}
           />
+          <ApiKeyManager initialApiKeys={apiKeys} projects={projects} />
           <AdminPasswordForm />
         </div>
       </section>

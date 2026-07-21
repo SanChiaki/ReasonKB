@@ -8,10 +8,12 @@ function usage() {
 Environment:
   REASONKB_URL             ReasonKB web URL, default ${DEFAULT_BASE_URL}
   REASONKB_API_KEY         API key for /api/agent/* requests
-  REASONKB_ADMIN_PASSWORD  Administrator password used only by create-key
+  REASONKB_ADMIN_PASSWORD  Administrator password used by key-management commands
 
 Commands:
   create-key --name NAME [--scope SCOPE ...] [--project PROJECT_ID ...]
+  keys
+  revoke-key KEY_ID
   projects
   documents PROJECT_ID
   query QUERY [--project PROJECT_ID ...]
@@ -90,7 +92,7 @@ async function request(path, init = {}, { requireKey = true } = {}) {
 async function adminSessionHeaders() {
   const password = process.env.REASONKB_ADMIN_PASSWORD || "";
   if (!password) {
-    throw new Error("REASONKB_ADMIN_PASSWORD is required for create-key.");
+    throw new Error("REASONKB_ADMIN_PASSWORD is required for key-management commands.");
   }
   const response = await fetch(`${baseUrl()}/api/admin/auth/login`, {
     method: "POST",
@@ -142,6 +144,34 @@ async function main() {
             projectIds: optionList(options, "project"),
           }),
         },
+        { requireKey: false },
+      ),
+    );
+    return;
+  }
+
+  if (command === "keys") {
+    const adminHeaders = await adminSessionHeaders();
+    printJson(
+      await request(
+        "/api/admin/api-keys",
+        { headers: adminHeaders },
+        { requireKey: false },
+      ),
+    );
+    return;
+  }
+
+  if (command === "revoke-key") {
+    const keyId = values[0];
+    if (!keyId) {
+      throw new Error("revoke-key requires KEY_ID.");
+    }
+    const adminHeaders = await adminSessionHeaders();
+    printJson(
+      await request(
+        `/api/admin/api-keys/${encodeURIComponent(keyId)}`,
+        { method: "DELETE", headers: adminHeaders },
         { requireKey: false },
       ),
     );

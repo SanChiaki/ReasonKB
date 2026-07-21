@@ -60,6 +60,7 @@ services:
       REASONKB_SMB_AUTH_PROTOCOL: ${REASONKB_SMB_AUTH_PROTOCOL:-ntlm}
       REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
       REASONKB_ADMIN_PASSWORD_FILE: /run/secrets/reasonkb_admin_password
+      REASONKB_API_KEY_PEPPER_FILE: /run/secrets/reasonkb_api_key_pepper
       REASONKB_ADMIN_COOKIE_SECURE: ${REASONKB_ADMIN_COOKIE_SECURE:-auto}
       REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
     volumes:
@@ -68,6 +69,7 @@ services:
       - ${REASONKB_HOST_BROWSE_ROOT:-${HOME:-../.reasonkb}}:/host-browse:ro
       - ${REASONKB_SECRETS_ROOT:-./secrets}/master.key:/run/secrets/reasonkb_master_key:ro
       - ${REASONKB_SECRETS_ROOT:-./secrets}/admin_password:/run/secrets/reasonkb_admin_password:ro
+      - ${REASONKB_SECRETS_ROOT:-./secrets}/api_key_pepper:/run/secrets/reasonkb_api_key_pepper:ro
     depends_on:
       retrieval-api:
         condition: service_healthy
