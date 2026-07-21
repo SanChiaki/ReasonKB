@@ -750,6 +750,44 @@ def test_seeyon_replacement_keeps_document_identity_and_queues_new_revision(
     ]
 
 
+def test_successful_sync_repairs_missing_index_job_for_uploaded_document(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    project = access_root / "Engineering"
+    project.mkdir(parents=True)
+    (project / "report.md").write_text("# Report", encoding="utf-8")
+    _insert_local_source(db_path, access_root)
+    engine = SourceWorkerEngine(str(db_path), access_root)
+
+    _run_until_idle(engine)
+
+    conn = sqlite3.connect(db_path)
+    document_id = conn.execute("SELECT id FROM documents").fetchone()[0]
+    assert conn.execute(
+        "SELECT status FROM jobs WHERE document_id = ?", (document_id,)
+    ).fetchone() == ("queued",)
+    conn.execute("DELETE FROM jobs WHERE document_id = ?", (document_id,))
+    conn.execute(
+        "UPDATE corpus_sources SET next_sync_at = '2026-01-01T00:00:00+00:00'"
+    )
+    conn.commit()
+    conn.close()
+
+    _run_until_idle(engine)
+
+    conn = sqlite3.connect(db_path)
+    jobs = conn.execute(
+        "SELECT status, expected_source_revision FROM jobs WHERE document_id = ?",
+        (document_id,),
+    ).fetchall()
+    document = conn.execute(
+        "SELECT status, source_revision FROM documents WHERE id = ?", (document_id,)
+    ).fetchone()
+    conn.close()
+    assert jobs == [("queued", document[1])]
+    assert document[0] == "uploaded"
+
+
 def test_source_failure_error_summary_redacts_secret_terms(tmp_path):
     db_path = _create_db(tmp_path)
     access_root = tmp_path / "sources"

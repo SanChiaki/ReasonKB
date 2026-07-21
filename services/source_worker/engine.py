@@ -858,9 +858,10 @@ class SourceWorkerEngine:
         supported = lifecycle == "active"
         status = "uploaded" if supported else "skipped"
         import_status = "imported" if supported else "skipped"
+        metadata = json.loads(str(observation["metadata_json"]))
         import_error = None
         if lifecycle == "unsupported":
-            import_error = "Unsupported file type"
+            import_error = metadata.get("unsupportedReason") or "Unsupported file type"
         elif lifecycle == "oversized":
             import_error = "Document exceeds the configured size limit"
         if existing:
@@ -896,7 +897,7 @@ class SourceWorkerEngine:
                     json.loads(str(run["scope_json"])).get("rootPath", ""),
                     observation["external_id"],
                     observation["relative_path"],
-                    json.loads(str(observation["metadata_json"])).get("mtimeNs"),
+                    metadata.get("mtimeNs"),
                     observation["size_bytes"],
                     observation["media_type"] or "unsupported",
                     import_status,
@@ -962,7 +963,7 @@ class SourceWorkerEngine:
                 "UPDATE document_indexes SET is_current = 0, retired_at = ? WHERE document_id = ?",
                 (now, document_id),
             )
-        if supported and (revision_changed or existing is None):
+        if supported and status == "uploaded":
             self._queue_index_job(conn, run, document_id, str(observation["source_revision"]), now)
         return 1 if revision_changed else 0
 

@@ -4,7 +4,10 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
-import { createIndexJob } from "@/lib/repos/job-store";
+import {
+  createIndexJob,
+  reindexPendingDocumentsByProject,
+} from "@/lib/repos/job-store";
 import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
@@ -77,5 +80,97 @@ describe("document index jobs", () => {
     expect(job.updated_at).not.toBe(oldUpdatedAt);
     expect(availableAt).toBeGreaterThanOrEqual(before);
     expect(availableAt).toBeLessThanOrEqual(after);
+  });
+
+  it("bulk reindexes uploaded documents without duplicating running jobs", () => {
+    const dbPath = makeTempDb();
+    const project = createProject(dbPath, { name: "Seeyon Library", sourceKind: "seeyon" });
+    const oldUpdatedAt = "2026-07-13T09:13:39.726779+00:00";
+    const db = new Database(dbPath);
+    const insertDocument = db.prepare(
+      `INSERT INTO documents (
+         id, project_id, owner_user_id, file_name, storage_path, mime_type,
+         file_size, status, source_id, source_collection_id, source_revision,
+         expected_source_revision, expected_source_config_revision,
+         lifecycle_state, created_at, updated_at
+       ) VALUES (?, ?, 'deployment', ?, 'seeyon://document', 'application/pdf',
+                 100, ?, ?, ?, ?, ?, 1, 'active', ?, ?)`,
+    );
+    for (const [id, status] of [
+      ["doc_new", "uploaded"],
+      ["doc_retry", "uploaded"],
+      ["doc_running", "uploaded"],
+      ["doc_failed", "failed"],
+      ["doc_ready", "ready"],
+    ]) {
+      insertDocument.run(
+        id,
+        project.id,
+        `${id}.pdf`,
+        status,
+        project.sourceId,
+        project.collectionId,
+        `revision:${id}`,
+        `revision:${id}`,
+        oldUpdatedAt,
+        oldUpdatedAt,
+      );
+    }
+    db.prepare(
+      `INSERT INTO jobs (
+         id, type, document_id, payload_json, status, error_message,
+         source_id, source_collection_id, expected_source_revision,
+         expected_source_config_revision, priority, attempt_count, max_attempts,
+         available_at, created_at, updated_at
+       ) VALUES ('job_retry', 'document_index', 'doc_retry', '{}', 'queued',
+                 'temporary failure', ?, ?, 'revision:doc_retry', 1,
+                 300, 4, 6, '2099-01-01T00:00:00.000Z', ?, ?)`,
+    ).run(project.sourceId, project.collectionId, oldUpdatedAt, oldUpdatedAt);
+    db.prepare(
+      `INSERT INTO jobs (
+         id, type, document_id, payload_json, status, source_id,
+         source_collection_id, expected_source_revision,
+         expected_source_config_revision, priority, attempt_count, max_attempts,
+         available_at, created_at, updated_at
+       ) VALUES ('job_running', 'document_index', 'doc_running', '{}', 'running',
+                 ?, ?, 'revision:doc_running', 1, 200, 1, 6, ?, ?, ?)`,
+    ).run(project.sourceId, project.collectionId, oldUpdatedAt, oldUpdatedAt, oldUpdatedAt);
+    db.close();
+
+    const before = Date.now();
+    expect(reindexPendingDocumentsByProject(dbPath, project.id)).toEqual({
+      matched: 3,
+      created: 1,
+      requeued: 1,
+      alreadyRunning: 1,
+    });
+    const after = Date.now();
+
+    const check = new Database(dbPath, { readonly: true });
+    const activeJobs = check
+      .prepare(
+        `SELECT document_id, status, priority, attempt_count, available_at
+           FROM jobs WHERE status IN ('queued', 'running') ORDER BY document_id`,
+      )
+      .all() as Array<{
+      document_id: string;
+      status: string;
+      priority: number;
+      attempt_count: number;
+      available_at: string;
+    }>;
+    check.close();
+
+    expect(activeJobs.map((job) => [job.document_id, job.status])).toEqual([
+      ["doc_new", "queued"],
+      ["doc_retry", "queued"],
+      ["doc_running", "running"],
+    ]);
+    for (const job of activeJobs.filter((item) => item.status === "queued")) {
+      expect(job.priority).toBe(50);
+      expect(job.attempt_count).toBe(0);
+      expect(Date.parse(job.available_at)).toBeGreaterThanOrEqual(before);
+      expect(Date.parse(job.available_at)).toBeLessThanOrEqual(after);
+    }
   });
 });

@@ -196,8 +196,28 @@ class SeeyonConnector:
                     )
                     yield from self._walk_archive(item_id, item_id, relative_path)
                     continue
-                file_id = self._opaque_id(raw.get("file_id"), "file_id")
                 size = self._integer(raw.get("fr_size"), "fr_size")
+                if raw.get("file_id") is None:
+                    yield SourceItemMetadata(
+                        external_id=item_id,
+                        parent_external_id=parent_external_id,
+                        item_type="document",
+                        name=name,
+                        relative_path=relative_path.as_posix(),
+                        mime_type=mimetypes.guess_type(name)[0] or "application/octet-stream",
+                        size_bytes=size,
+                        source_revision=f"seeyon:no-file-id:{size}",
+                        fetch_locator=None,
+                        media_type="unsupported",
+                        metadata={
+                            "skipCode": "seeyon_missing_file_id",
+                            "unsupportedReason": "Seeyon item has no file_id and was not imported.",
+                            "frCreateTime": raw.get("fr_create_time"),
+                            "frType": raw.get("fr_type"),
+                        },
+                    )
+                    continue
+                file_id = self._opaque_id(raw.get("file_id"), "file_id")
                 file_name = str(raw.get("file_name") or name)
                 yield SourceItemMetadata(
                     external_id=item_id,

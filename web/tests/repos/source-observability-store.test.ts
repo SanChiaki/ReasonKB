@@ -63,4 +63,60 @@ describe("source observability store", () => {
       oversizedDocuments: 1,
     });
   });
+
+  it("reports Seeyon items skipped because file_id is missing", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reasonkb-source-status-"));
+    tempDirs.push(dir);
+    const dbPath = path.join(dir, "app.db");
+    migrateDatabase(dbPath);
+    const project = createProject(dbPath, {
+      name: "Seeyon Documents",
+      sourceKind: "seeyon",
+    });
+    const now = new Date().toISOString();
+    const reason = "Seeyon item has no file_id and was not imported.";
+    const db = new Database(dbPath);
+    db.prepare(
+      `INSERT INTO source_items (
+         id, source_id, collection_id, external_id, item_type, name,
+         relative_path, lifecycle_state, metadata_json, created_at, updated_at
+       ) VALUES ('item_no_file', ?, ?, '133196293316757805', 'document',
+                 'Seeyon body document', 'Seeyon body document', 'unsupported',
+                 ?, ?, ?)`,
+    ).run(
+      project.sourceId,
+      project.collectionId,
+      JSON.stringify({
+        skipCode: "seeyon_missing_file_id",
+        unsupportedReason: reason,
+      }),
+      now,
+      now,
+    );
+    db.prepare(
+      `INSERT INTO documents (
+         id, project_id, owner_user_id, file_name, storage_path, mime_type,
+         file_size, status, source_kind, media_type, import_status, import_error,
+         source_id, source_collection_id, source_item_id,
+         source_item_external_id, lifecycle_state, retrieval_eligible,
+         created_at, updated_at
+       ) VALUES ('doc_no_file', ?, 'deployment', 'Seeyon body document', '',
+                 'application/octet-stream', 186686, 'skipped', 'seeyon',
+                 'unsupported', 'skipped', ?, ?, ?, 'item_no_file',
+                 '133196293316757805', 'unsupported', 0, ?, ?)`,
+    ).run(project.id, reason, project.sourceId, project.collectionId, now, now);
+    db.prepare(
+      "UPDATE source_items SET document_id = 'doc_no_file' WHERE id = 'item_no_file'",
+    ).run();
+    db.close();
+
+    expect(getSourceRuntimeStatus(dbPath, project.sourceId)?.coverage).toMatchObject({
+      totalDocuments: 1,
+      unsupportedDocuments: 1,
+      missingFileIdDocuments: 1,
+    });
+    expect(
+      listSourceItems(dbPath, project.sourceId, { collectionId: project.collectionId }),
+    ).toEqual([expect.objectContaining({ statusReason: reason })]);
+  });
 });
