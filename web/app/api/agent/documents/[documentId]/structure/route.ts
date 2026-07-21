@@ -8,6 +8,7 @@ import {
 import {
   getDocumentDetail,
   getDocumentIndexTree,
+  isDocumentRetrievable,
 } from "@/lib/repos/document-store";
 import { getProjectById } from "@/lib/repos/project-store";
 
@@ -33,6 +34,9 @@ export async function GET(
       { error: "API key is not allowed to access this document." },
       { status: 403 },
     );
+  }
+  if (!isDocumentRetrievable(appConfig.dbPath, documentId)) {
+    return NextResponse.json({ error: "Document index tree not found." }, { status: 404 });
   }
 
   const tree = getDocumentIndexTree(appConfig.dbPath, documentId);

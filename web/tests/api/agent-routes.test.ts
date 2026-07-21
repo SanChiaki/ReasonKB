@@ -1,9 +1,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
+import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import { createApiKey } from "@/lib/repos/api-key-store";
+import { createDocumentRecord } from "@/lib/repos/document-store";
 import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
@@ -33,6 +36,58 @@ function mockConfig(dbPath: string) {
       retrievalInternalApiKey: "",
     },
   }));
+}
+
+function createRetrievableDocument(
+  dbPath: string,
+  projectId: string,
+  fileName: string,
+) {
+  const document = createDocumentRecord(dbPath, {
+    ownerUserId: "user_demo",
+    projectId,
+    fileName,
+    storagePath: `/tmp/${fileName}`,
+    mimeType: "application/pdf",
+    fileSize: 100,
+  });
+  const now = new Date().toISOString();
+  const db = new Database(dbPath);
+  try {
+    db.prepare(
+      `INSERT INTO document_indexes (
+         id, document_id, doc_name, doc_description, structure_json, pages_json,
+         index_version, indexed_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      `idx_${document.id}`,
+      document.id,
+      fileName,
+      `${fileName} description`,
+      JSON.stringify([{ title: "Root", node_id: "0000" }]),
+      JSON.stringify([{ page: 1, content: `${fileName} content` }]),
+      "v1",
+      now,
+    );
+    db.prepare(
+      `UPDATE documents
+          SET status = 'ready', retrieval_eligible = 1, page_count = 1,
+              last_indexed_at = ?, updated_at = ?
+        WHERE id = ?`,
+    ).run(now, now, document.id);
+  } finally {
+    db.close();
+  }
+  return document;
+}
+
+function readDocumentsKey(dbPath: string, projectId: string) {
+  return createApiKey(dbPath, {
+    ownerUserId: "user_demo",
+    name: "Documents",
+    scopes: ["read:documents"],
+    projectIds: [projectId],
+  });
 }
 
 describe("agent routes", () => {
@@ -120,5 +175,159 @@ describe("agent routes", () => {
       projectIds: [alpha.id],
       mode: "answer",
     });
+  });
+
+  it("returns pages and structure only while a document is retrievable", async () => {
+    const dbPath = makeTempDb();
+    mockConfig(dbPath);
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const document = createRetrievableDocument(dbPath, project.id, "alpha.pdf");
+    const key = readDocumentsKey(dbPath, project.id);
+    const headers = { Authorization: `Bearer ${key.apiKey}` };
+    const context = { params: Promise.resolve({ documentId: document.id }) };
+    const { GET: getPages } = await import(
+      "@/app/api/agent/documents/[documentId]/pages/route"
+    );
+    const { GET: getStructure } = await import(
+      "@/app/api/agent/documents/[documentId]/structure/route"
+    );
+
+    const pagesResponse = await getPages(
+      new NextRequest(
+        `http://localhost/api/agent/documents/${document.id}/pages`,
+        { headers },
+      ),
+      context,
+    );
+    const structureResponse = await getStructure(
+      new Request(
+        `http://localhost/api/agent/documents/${document.id}/structure`,
+        { headers },
+      ),
+      context,
+    );
+
+    expect(pagesResponse.status).toBe(200);
+    expect(await pagesResponse.json()).toMatchObject({
+      pages: [{ page: 1, content: "alpha.pdf content" }],
+    });
+    expect(structureResponse.status).toBe(200);
+    expect(await structureResponse.json()).toHaveProperty("tree.documentId", document.id);
+
+    const db = new Database(dbPath);
+    db.prepare("UPDATE documents SET retrieval_eligible = 0 WHERE id = ?").run(document.id);
+    db.close();
+
+    const blockedPages = await getPages(
+      new NextRequest(
+        `http://localhost/api/agent/documents/${document.id}/pages`,
+        { headers },
+      ),
+      context,
+    );
+    const blockedStructure = await getStructure(
+      new Request(
+        `http://localhost/api/agent/documents/${document.id}/structure`,
+        { headers },
+      ),
+      context,
+    );
+
+    expect(blockedPages.status).toBe(404);
+    expect(await blockedPages.json()).toEqual({ error: "Document pages not found." });
+    expect(blockedStructure.status).toBe(404);
+    expect(await blockedStructure.json()).toEqual({
+      error: "Document index tree not found.",
+    });
+  });
+
+  it("hides missing, ineligible, unready, and stale-index documents", async () => {
+    const dbPath = makeTempDb();
+    mockConfig(dbPath);
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const visible = createRetrievableDocument(dbPath, project.id, "visible.pdf");
+    const missing = createRetrievableDocument(dbPath, project.id, "missing.pdf");
+    const ineligible = createRetrievableDocument(dbPath, project.id, "ineligible.pdf");
+    const unready = createRetrievableDocument(dbPath, project.id, "unready.pdf");
+    const staleIndex = createRetrievableDocument(dbPath, project.id, "stale.pdf");
+    const db = new Database(dbPath);
+    try {
+      db.prepare(
+        `UPDATE documents
+            SET lifecycle_state = 'missing', retrieval_eligible = 0
+          WHERE id = ?`,
+      ).run(missing.id);
+      db.prepare("UPDATE documents SET retrieval_eligible = 0 WHERE id = ?").run(
+        ineligible.id,
+      );
+      db.prepare("UPDATE documents SET status = 'failed' WHERE id = ?").run(unready.id);
+      db.prepare("UPDATE document_indexes SET is_current = 0 WHERE document_id = ?").run(
+        staleIndex.id,
+      );
+    } finally {
+      db.close();
+    }
+    const key = readDocumentsKey(dbPath, project.id);
+    const { GET } = await import(
+      "@/app/api/agent/projects/[projectId]/documents/route"
+    );
+    const response = await GET(
+      new Request(`http://localhost/api/agent/projects/${project.id}/documents`, {
+        headers: { Authorization: `Bearer ${key.apiKey}` },
+      }),
+      { params: Promise.resolve({ projectId: project.id }) },
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.documents.map((item: { id: string }) => item.id)).toEqual([visible.id]);
+  });
+
+  it("blocks document content after its source is revoked", async () => {
+    const dbPath = makeTempDb();
+    mockConfig(dbPath);
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const document = createRetrievableDocument(dbPath, project.id, "revoked.pdf");
+    const key = readDocumentsKey(dbPath, project.id);
+    const db = new Database(dbPath);
+    db.prepare("UPDATE corpus_sources SET state = 'disabled' WHERE id = ?").run(
+      project.sourceId,
+    );
+    db.close();
+    const headers = { Authorization: `Bearer ${key.apiKey}` };
+    const context = { params: Promise.resolve({ documentId: document.id }) };
+    const { GET: getPages } = await import(
+      "@/app/api/agent/documents/[documentId]/pages/route"
+    );
+    const { GET: getStructure } = await import(
+      "@/app/api/agent/documents/[documentId]/structure/route"
+    );
+
+    const pagesResponse = await getPages(
+      new NextRequest(
+        `http://localhost/api/agent/documents/${document.id}/pages`,
+        { headers },
+      ),
+      context,
+    );
+    const structureResponse = await getStructure(
+      new Request(
+        `http://localhost/api/agent/documents/${document.id}/structure`,
+        { headers },
+      ),
+      context,
+    );
+
+    expect(pagesResponse.status).toBe(404);
+    expect(structureResponse.status).toBe(404);
   });
 });

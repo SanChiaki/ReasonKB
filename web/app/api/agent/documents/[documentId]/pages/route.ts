@@ -9,6 +9,7 @@ import {
   getDocumentDetail,
   getDocumentPages,
   InvalidPagesFilterError,
+  isDocumentRetrievable,
 } from "@/lib/repos/document-store";
 import { getProjectById } from "@/lib/repos/project-store";
 
@@ -34,6 +35,9 @@ export async function GET(
       { error: "API key is not allowed to access this document." },
       { status: 403 },
     );
+  }
+  if (!isDocumentRetrievable(appConfig.dbPath, documentId)) {
+    return NextResponse.json({ error: "Document pages not found." }, { status: 404 });
   }
 
   try {

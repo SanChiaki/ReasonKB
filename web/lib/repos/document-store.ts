@@ -1,6 +1,48 @@
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
 
+const DOCUMENT_ACCESS_JOINS_SQL = `
+  JOIN projects p ON p.id = d.project_id
+  JOIN corpus_sources project_s ON project_s.id = p.source_id
+  JOIN source_collections project_c ON project_c.id = p.source_collection_id
+  LEFT JOIN corpus_sources s ON s.id = d.source_id
+  LEFT JOIN source_collections c ON c.id = d.source_collection_id
+`;
+
+const DOCUMENT_ACCESS_WHERE_SQL = `
+  d.deleted_at IS NULL
+  AND d.lifecycle_state = 'active'
+  AND p.deleted_at IS NULL
+  AND p.lifecycle_state = 'active'
+  AND p.retrieval_eligible = 1
+  AND project_s.deleted_at IS NULL
+  AND project_s.state = 'active'
+  AND project_c.deleted_at IS NULL
+  AND project_c.selected = 1
+  AND project_c.registration_state = 'active'
+  AND project_c.validation_state = 'valid'
+  AND project_c.lifecycle_state = 'active'
+  AND (
+    d.source_id IS NULL OR (
+      s.deleted_at IS NULL AND s.state = 'active'
+      AND c.deleted_at IS NULL AND c.selected = 1
+      AND c.registration_state = 'active'
+      AND c.validation_state = 'valid'
+      AND c.lifecycle_state = 'active'
+    )
+  )
+`;
+
+const DOCUMENT_RETRIEVABLE_WHERE_SQL = `
+  ${DOCUMENT_ACCESS_WHERE_SQL}
+  AND d.status = 'ready'
+  AND d.retrieval_eligible = 1
+  AND EXISTS (
+    SELECT 1 FROM document_indexes current_di
+     WHERE current_di.document_id = d.id AND current_di.is_current = 1
+  )
+`;
+
 function open(dbPath: string) {
   const db = new Database(dbPath);
   db.pragma("foreign_keys = ON");
@@ -15,22 +57,8 @@ export function isDocumentAccessible(dbPath: string, documentId: string) {
         .prepare(
           `SELECT 1
              FROM documents d
-             JOIN projects p ON p.id = d.project_id
-             LEFT JOIN corpus_sources s ON s.id = d.source_id
-             LEFT JOIN source_collections c ON c.id = d.source_collection_id
-            WHERE d.id = ? AND d.deleted_at IS NULL
-              AND d.lifecycle_state = 'active'
-              AND p.deleted_at IS NULL AND p.lifecycle_state = 'active'
-              AND p.retrieval_eligible = 1
-              AND (
-                d.source_id IS NULL OR (
-                  s.deleted_at IS NULL AND s.state = 'active'
-                  AND c.deleted_at IS NULL AND c.selected = 1
-                  AND c.registration_state = 'active'
-                  AND c.validation_state = 'valid'
-                  AND c.lifecycle_state = 'active'
-                )
-              )`,
+             ${DOCUMENT_ACCESS_JOINS_SQL}
+            WHERE d.id = ? AND ${DOCUMENT_ACCESS_WHERE_SQL}`,
         )
         .get(documentId),
     );
@@ -40,16 +68,15 @@ export function isDocumentAccessible(dbPath: string, documentId: string) {
 }
 
 export function isDocumentRetrievable(dbPath: string, documentId: string) {
-  if (!isDocumentAccessible(dbPath, documentId)) return false;
   const db = open(dbPath);
   try {
     return Boolean(
       db
         .prepare(
-          `SELECT 1 FROM documents d
-             JOIN document_indexes di ON di.document_id = d.id
-            WHERE d.id = ? AND d.status = 'ready'
-              AND d.retrieval_eligible = 1 AND di.is_current = 1`,
+          `SELECT 1
+             FROM documents d
+             ${DOCUMENT_ACCESS_JOINS_SQL}
+            WHERE d.id = ? AND ${DOCUMENT_RETRIEVABLE_WHERE_SQL}`,
         )
         .get(documentId),
     );
@@ -233,46 +260,36 @@ function parsePagesFilter(pages: string | null) {
   return selected;
 }
 
-export function listDocumentsByProject(dbPath: string, projectId: string) {
-  const db = open(dbPath);
-  const rows = db
-    .prepare(
-      `SELECT d.id, d.file_name, d.page_count, d.status, d.created_at, d.updated_at,
-              d.error_message,
-              source_kind, source_relative_path, project_relative_path,
-              media_type, import_status, import_error,
-              last_index_duration_ms, last_index_total_tokens,
-              last_index_llm_call_count, last_indexed_at,
-              di.document_id AS index_document_id
-         FROM documents d
-         LEFT JOIN document_indexes di ON di.document_id = d.id
-        WHERE d.project_id = ?
-          AND d.deleted_at IS NULL
-        ORDER BY d.created_at DESC`,
-    )
-    .all(projectId) as Array<{
-    id: string;
-    file_name: string;
-    page_count: number | null;
-    status: string;
-    error_message: string | null;
-    created_at: string;
-    updated_at: string;
-    source_kind: string;
-    source_relative_path: string | null;
-    project_relative_path: string | null;
-    media_type: string;
-    import_status: string;
-    import_error: string | null;
-    last_index_duration_ms: number | null;
-    last_index_total_tokens: number | null;
-    last_index_llm_call_count: number | null;
-    last_indexed_at: string | null;
-    index_document_id: string | null;
-  }>;
+type DocumentListRow = {
+  id: string;
+  file_name: string;
+  page_count: number | null;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  source_kind: string;
+  source_relative_path: string | null;
+  project_relative_path: string | null;
+  media_type: string;
+  import_status: string;
+  import_error: string | null;
+  last_index_duration_ms: number | null;
+  last_index_total_tokens: number | null;
+  last_index_llm_call_count: number | null;
+  last_indexed_at: string | null;
+  index_document_id: string | null;
+};
 
-  db.close();
-  return rows.map((row) => ({
+const DOCUMENT_LIST_COLUMNS_SQL = `
+  d.id, d.file_name, d.page_count, d.status, d.created_at, d.updated_at,
+  d.error_message, d.source_kind, d.source_relative_path, d.project_relative_path,
+  d.media_type, d.import_status, d.import_error, d.last_index_duration_ms,
+  d.last_index_total_tokens, d.last_index_llm_call_count, d.last_indexed_at
+`;
+
+function documentListView(row: DocumentListRow) {
+  return {
     id: row.id,
     fileName: row.file_name,
     pageCount: row.page_count ?? 0,
@@ -291,7 +308,50 @@ export function listDocumentsByProject(dbPath: string, projectId: string) {
     hasIndexTree: row.index_document_id !== null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }));
+  };
+}
+
+export function listDocumentsByProject(dbPath: string, projectId: string) {
+  const db = open(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        `SELECT ${DOCUMENT_LIST_COLUMNS_SQL},
+                di.document_id AS index_document_id
+           FROM documents d
+           LEFT JOIN document_indexes di ON di.document_id = d.id
+          WHERE d.project_id = ?
+            AND d.deleted_at IS NULL
+          ORDER BY d.created_at DESC`,
+      )
+      .all(projectId) as DocumentListRow[];
+    return rows.map(documentListView);
+  } finally {
+    db.close();
+  }
+}
+
+export function listRetrievableDocumentsByProject(
+  dbPath: string,
+  projectId: string,
+) {
+  const db = open(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        `SELECT ${DOCUMENT_LIST_COLUMNS_SQL},
+                d.id AS index_document_id
+           FROM documents d
+           ${DOCUMENT_ACCESS_JOINS_SQL}
+          WHERE d.project_id = ?
+            AND ${DOCUMENT_RETRIEVABLE_WHERE_SQL}
+          ORDER BY d.created_at DESC`,
+      )
+      .all(projectId) as DocumentListRow[];
+    return rows.map(documentListView);
+  } finally {
+    db.close();
+  }
 }
 
 export function listDocumentIndexRuns(dbPath: string, documentId: string) {

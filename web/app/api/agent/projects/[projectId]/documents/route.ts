@@ -5,7 +5,7 @@ import {
   isAuthResponse,
   requireAgentAuth,
 } from "@/lib/agent-auth";
-import { listDocumentsByProject } from "@/lib/repos/document-store";
+import { listRetrievableDocumentsByProject } from "@/lib/repos/document-store";
 import { getProjectById } from "@/lib/repos/project-store";
 
 export async function GET(
@@ -32,6 +32,6 @@ export async function GET(
 
   return NextResponse.json({
     project,
-    documents: listDocumentsByProject(appConfig.dbPath, projectId),
+    documents: listRetrievableDocumentsByProject(appConfig.dbPath, projectId),
   });
 }
