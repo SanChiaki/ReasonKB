@@ -516,6 +516,7 @@ type RuntimeStatus = {
     indexingDocuments: number;
     failedDocuments: number;
     unsupportedDocuments: number;
+    missingFileIdDocuments: number;
     oversizedDocuments: number;
     missingDocuments: number;
     accessRevokedDocuments: number;
@@ -614,6 +615,16 @@ function SourceRuntimeStatus({ source }: { source: AdminSource }) {
               <div key={label} className="bg-white px-3 py-3"><p className="text-[11px] text-[var(--pi-muted)]">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>
             ))}
           </div>
+
+          {source.kind === "seeyon" && status.coverage.missingFileIdDocuments > 0 ? (
+            <div className="mt-3 flex items-start gap-2 border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <p>
+                已跳过 {status.coverage.missingFileIdDocuments} 个缺少 file_id 的致远条目。
+                ReasonKB 无法下载这些内容，因此未建立索引。
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-xs">

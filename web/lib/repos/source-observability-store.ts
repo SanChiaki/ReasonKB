@@ -24,12 +24,18 @@ export function getSourceRuntimeStatus(dbPath: string, sourceId: string) {
            SUM(CASE WHEN d.status IN ('processing', 'indexing') THEN 1 ELSE 0 END) AS indexing_documents,
            SUM(CASE WHEN d.status = 'failed' THEN 1 ELSE 0 END) AS failed_documents,
            SUM(CASE WHEN d.lifecycle_state = 'unsupported' THEN 1 ELSE 0 END) AS unsupported_documents,
+           SUM(CASE WHEN d.lifecycle_state = 'unsupported'
+                         AND si.lifecycle_state = 'unsupported'
+                         AND si.deleted_at IS NULL
+                         AND json_extract(si.metadata_json, '$.skipCode') = 'seeyon_missing_file_id'
+                    THEN 1 ELSE 0 END) AS missing_file_id_documents,
            SUM(CASE WHEN d.lifecycle_state = 'oversized' THEN 1 ELSE 0 END) AS oversized_documents,
            SUM(CASE WHEN d.lifecycle_state = 'missing' THEN 1 ELSE 0 END) AS missing_documents,
            SUM(CASE WHEN d.lifecycle_state = 'access_revoked' THEN 1 ELSE 0 END) AS access_revoked_documents
          FROM documents d
          LEFT JOIN document_indexes di
            ON di.document_id = d.id AND di.is_current = 1
+         LEFT JOIN source_items si ON si.id = d.source_item_id
         WHERE d.source_id = ?
           AND d.deleted_at IS NULL`,
       )
@@ -40,6 +46,7 @@ export function getSourceRuntimeStatus(dbPath: string, sourceId: string) {
       indexing_documents: number;
       failed_documents: number;
       unsupported_documents: number;
+      missing_file_id_documents: number;
       oversized_documents: number;
       missing_documents: number;
       access_revoked_documents: number;
@@ -85,6 +92,7 @@ export function getSourceRuntimeStatus(dbPath: string, sourceId: string) {
         indexingDocuments: Number(coverage.indexing_documents ?? 0),
         failedDocuments: Number(coverage.failed_documents ?? 0),
         unsupportedDocuments: Number(coverage.unsupported_documents ?? 0),
+        missingFileIdDocuments: Number(coverage.missing_file_id_documents ?? 0),
         oversizedDocuments: Number(coverage.oversized_documents ?? 0),
         missingDocuments: Number(coverage.missing_documents ?? 0),
         accessRevokedDocuments: Number(coverage.access_revoked_documents ?? 0),

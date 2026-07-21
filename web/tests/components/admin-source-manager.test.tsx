@@ -109,4 +109,76 @@ describe("AdminSourceManager", () => {
     });
     expect(sourceReads).toBeGreaterThanOrEqual(2);
   });
+
+  it("warns when Seeyon items were skipped because file_id is missing", async () => {
+    const source: AdminSource = {
+      id: "src_1",
+      kind: "seeyon",
+      displayName: "Seeyon",
+      state: "active",
+      scope: { endpoint: "https://oa.example.test/seeyon" },
+      config: { loginName: "reader" },
+      configRevision: 1,
+      selectionPolicy: "all",
+      schedule: {
+        mode: "scheduled",
+        intervalSeconds: 600,
+        maxDocumentSizeBytes: 104857600,
+      },
+      health: {
+        state: "normal",
+        consecutiveFailureCount: 0,
+        lastSuccessAt: "2026-07-13T06:00:00Z",
+        nextSyncAt: "2026-07-13T06:10:00Z",
+        errorSummary: null,
+      },
+      validatedAt: "2026-07-13T06:00:00Z",
+      purgeAfter: null,
+      createdAt: "2026-07-13T06:00:00Z",
+      updatedAt: "2026-07-13T06:00:00Z",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (request: string | URL | Request) => {
+        const url = String(request);
+        if (url.endsWith("/status")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: {
+                coverage: {
+                  totalDocuments: 2,
+                  retrievableDocuments: 1,
+                  queuedDocuments: 0,
+                  indexingDocuments: 0,
+                  failedDocuments: 0,
+                  unsupportedDocuments: 1,
+                  missingFileIdDocuments: 1,
+                  oversizedDocuments: 0,
+                  missingDocuments: 0,
+                  accessRevokedDocuments: 0,
+                  percent: 50,
+                },
+                itemStates: { active: 1, unsupported: 1 },
+                syncRuns: [],
+              },
+            }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ collections: [] }),
+        };
+      }),
+    );
+
+    render(<AdminSourceManager initialSources={[source]} />);
+    fireEvent.click(screen.getByRole("button", { name: /Seeyon/ }));
+
+    expect(
+      await screen.findByText(/已跳过 1 个缺少 file_id 的致远条目/),
+    ).toBeInTheDocument();
+  });
 });

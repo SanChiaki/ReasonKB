@@ -148,6 +148,59 @@ def test_recursively_maps_verified_seeyon_81sp2_fields_to_source_items():
     assert isinstance(items[2].external_id, str)
 
 
+def test_missing_file_id_is_retained_as_unsupported_without_aborting_scan(monkeypatch):
+    source = connector()
+
+    def list_page(archive_id, page_number, page_size):
+        assert archive_id == "1002"
+        return {
+            "total": 2,
+            "pages": 1,
+            "data": [
+                {
+                    "fr_id": "133196293316757805",
+                    "fr_name": "Seeyon body document",
+                    "file_name": "4402010611253660896",
+                    "file_id": None,
+                    "fr_size": 186686,
+                    "fr_type": 21,
+                    "fr_mine_type": 23,
+                    "hasAtt": False,
+                    "is_folder": False,
+                },
+                {
+                    "fr_id": "5594372999647937129",
+                    "fr_name": "root.xlsx",
+                    "file_name": "root.xlsx",
+                    "file_id": 6951434855901449788,
+                    "fr_size": 5,
+                    "fr_type": 21,
+                    "is_folder": False,
+                },
+            ],
+        }
+
+    monkeypatch.setattr(source, "_list_page", list_page)
+    collection = CollectionDescriptor(
+        identity_key="seeyon:1001:1002",
+        external_id="1001",
+        root_external_id="1002",
+        display_name="Documents",
+    )
+
+    items = list(source.scan_collection(collection))
+
+    assert len(items) == 2
+    skipped = items[0]
+    assert skipped.external_id == "133196293316757805"
+    assert skipped.name == "Seeyon body document"
+    assert skipped.media_type == "unsupported"
+    assert skipped.fetch_locator is None
+    assert skipped.source_revision == "seeyon:no-file-id:186686"
+    assert skipped.metadata["skipCode"] == "seeyon_missing_file_id"
+    assert items[1].fetch_locator == "6951434855901449788"
+
+
 def test_downloads_the_current_file_id_and_checks_fr_size(tmp_path):
     source = connector()
     collection = CollectionDescriptor(
