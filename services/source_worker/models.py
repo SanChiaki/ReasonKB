@@ -43,6 +43,25 @@ class SourceItemMetadata:
     metadata: dict[str, object] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class ExclusionPlan:
+    """Immutable source-native identities excluded from one collection scan."""
+
+    collection_excluded: bool = False
+    folder_external_ids: frozenset[str] = frozenset()
+    document_external_ids: frozenset[str] = frozenset()
+
+    def excludes(self, external_id: str, item_type: str) -> bool:
+        if item_type == "folder":
+            return external_id in self.folder_external_ids
+        if item_type == "document":
+            return external_id in self.document_external_ids
+        return False
+
+
+EMPTY_EXCLUSION_PLAN = ExclusionPlan()
+
+
 class CorpusConnector(Protocol):
     kind: str
 
@@ -52,7 +71,11 @@ class CorpusConnector(Protocol):
     def discover_collections(self) -> Iterator[CollectionDescriptor]:
         ...
 
-    def scan_collection(self, collection: CollectionDescriptor) -> Iterator[SourceItemMetadata]:
+    def scan_collection(
+        self,
+        collection: CollectionDescriptor,
+        exclusions: ExclusionPlan = EMPTY_EXCLUSION_PLAN,
+    ) -> Iterator[SourceItemMetadata]:
         ...
 
     def fetch_item(

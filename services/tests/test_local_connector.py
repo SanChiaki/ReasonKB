@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from services.source_worker.connectors.local import LocalConnector
+from services.source_worker.models import ExclusionPlan
 
 
 def test_discovers_top_level_and_root_collections(tmp_path):
@@ -65,6 +66,28 @@ def test_does_not_follow_symbolic_links(tmp_path):
     collection = next(connector.discover_collections())
 
     assert list(connector.scan_collection(collection)) == []
+
+
+def test_excluded_folder_is_observed_without_traversing_descendants(tmp_path):
+    root = tmp_path / "sources"
+    project = root / "Engineering"
+    (project / "archive").mkdir(parents=True)
+    (project / "archive" / "old.md").write_text("old", encoding="utf-8")
+    (project / "current.md").write_text("current", encoding="utf-8")
+    connector = LocalConnector(root, tmp_path)
+    collection = next(connector.discover_collections())
+
+    items = list(
+        connector.scan_collection(
+            collection,
+            ExclusionPlan(folder_external_ids=frozenset({"Engineering/archive"})),
+        )
+    )
+
+    assert [(item.item_type, item.external_id) for item in items] == [
+        ("folder", "Engineering/archive"),
+        ("document", "Engineering/current.md"),
+    ]
 
 
 def test_fetches_only_the_expected_revision_with_a_size_bound(tmp_path):

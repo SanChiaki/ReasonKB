@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Iterator
 
 from services.common.source_formats import is_ignored_name, media_type_for_name
-from services.source_worker.models import CollectionDescriptor, SourceItemMetadata
+from services.source_worker.models import (
+    EMPTY_EXCLUSION_PLAN,
+    CollectionDescriptor,
+    ExclusionPlan,
+    SourceItemMetadata,
+)
 
 ROOT_COLLECTION_ID = "__root__"
 COPY_CHUNK_SIZE = 1024 * 1024
@@ -48,7 +53,11 @@ class LocalConnector:
                 display_name="Root Collection",
             )
 
-    def scan_collection(self, collection: CollectionDescriptor) -> Iterator[SourceItemMetadata]:
+    def scan_collection(
+        self,
+        collection: CollectionDescriptor,
+        exclusions: ExclusionPlan = EMPTY_EXCLUSION_PLAN,
+    ) -> Iterator[SourceItemMetadata]:
         self.validate()
         if collection.external_id == ROOT_COLLECTION_ID:
             yield from self._scan_root_documents()
@@ -57,7 +66,12 @@ class LocalConnector:
         self._ensure_safe_path(collection_root)
         if not collection_root.is_dir():
             raise FileNotFoundError(f"Local collection root does not exist: {collection.external_id}")
-        yield from self._walk_directory(collection_root, collection.external_id, None)
+        yield from self._walk_directory(
+            collection_root,
+            collection.external_id,
+            None,
+            exclusions,
+        )
 
     def fetch_item(
         self,
@@ -100,6 +114,7 @@ class LocalConnector:
         directory: Path,
         source_prefix: str,
         parent_external_id: str | None,
+        exclusions: ExclusionPlan,
     ) -> Iterator[SourceItemMetadata]:
         with os.scandir(directory) as entries:
             sorted_entries = sorted(entries, key=lambda value: value.name.casefold())
@@ -118,10 +133,13 @@ class LocalConnector:
                     fetch_locator=None,
                 )
                 yield metadata
+                if exclusions.excludes(external_id, "folder"):
+                    continue
                 yield from self._walk_directory(
                     Path(entry.path),
                     external_id,
                     external_id,
+                    exclusions,
                 )
             elif entry.is_file(follow_symlinks=False):
                 yield self._file_metadata(

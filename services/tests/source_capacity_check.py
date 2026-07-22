@@ -10,14 +10,14 @@ import time
 import tracemalloc
 
 from services.source_worker.engine import SourceWorkerEngine
-from services.source_worker.models import CollectionDescriptor, SourceItemMetadata
+from services.source_worker.models import CollectionDescriptor, ExclusionPlan, SourceItemMetadata
 
 
 class SyntheticConnector:
     def __init__(self, document_count: int):
         self.document_count = document_count
 
-    def scan_collection(self, collection: CollectionDescriptor):
+    def scan_collection(self, collection: CollectionDescriptor, exclusions: ExclusionPlan):
         for index in range(self.document_count):
             name = f"document-{index:06d}.txt"
             yield SourceItemMetadata(

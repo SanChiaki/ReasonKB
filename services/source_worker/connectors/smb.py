@@ -7,7 +7,12 @@ from typing import Any, Iterator
 from services.common.source_formats import is_ignored_name, media_type_for_name
 from services.remote_corpus.smb_paths import build_smb_url
 from services.source_worker.connectors.local import COPY_CHUNK_SIZE, ROOT_COLLECTION_ID
-from services.source_worker.models import CollectionDescriptor, SourceItemMetadata
+from services.source_worker.models import (
+    EMPTY_EXCLUSION_PLAN,
+    CollectionDescriptor,
+    ExclusionPlan,
+    SourceItemMetadata,
+)
 
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
 
@@ -78,7 +83,11 @@ class SmbConnector:
                 display_name="Root Collection",
             )
 
-    def scan_collection(self, collection: CollectionDescriptor) -> Iterator[SourceItemMetadata]:
+    def scan_collection(
+        self,
+        collection: CollectionDescriptor,
+        exclusions: ExclusionPlan = EMPTY_EXCLUSION_PLAN,
+    ) -> Iterator[SourceItemMetadata]:
         self._ensure_session()
         if collection.external_id == ROOT_COLLECTION_ID:
             for entry in self.smbclient.scandir(self.root_url, port=self.port):
@@ -92,13 +101,14 @@ class SmbConnector:
         remote_root = build_smb_url(
             self.host, self.share, self._join(self.base_path, collection.external_id)
         )
-        yield from self._walk(remote_root, collection.external_id, None)
+        yield from self._walk(remote_root, collection.external_id, None, exclusions)
 
     def _walk(
         self,
         remote_path: str,
         source_prefix: str,
         parent_external_id: str | None,
+        exclusions: ExclusionPlan,
     ) -> Iterator[SourceItemMetadata]:
         entries = self.smbclient.scandir(remote_path, port=self.port)
         for entry in sorted(entries, key=lambda value: value.name.casefold()):
@@ -114,7 +124,9 @@ class SmbConnector:
                     name=entry.name,
                     relative_path=relative_path,
                 )
-                yield from self._walk(entry.path, external_id, external_id)
+                if exclusions.excludes(external_id, "folder"):
+                    continue
+                yield from self._walk(entry.path, external_id, external_id, exclusions)
             elif entry.is_file():
                 yield self._file_metadata(
                     entry, external_id, relative_path, parent_external_id
