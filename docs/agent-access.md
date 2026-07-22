@@ -18,7 +18,9 @@ Keys can be limited to these scopes:
 - `evidence`
 
 An empty project selection allows access to every active project. Selecting
-projects restricts the key to those project IDs.
+projects restricts the key to those project IDs. An API Key or Agent query can
+name at most 100 project IDs; use separate Keys when larger explicit scopes are
+required.
 
 ## Docker CLI
 

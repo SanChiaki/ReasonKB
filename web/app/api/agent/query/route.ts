@@ -7,11 +7,15 @@ import {
 } from "@/lib/agent-auth";
 import { appConfig } from "@/lib/config";
 import { sendRetrievalQuery } from "@/lib/retrieval-client";
-import { getProjectById } from "@/lib/repos/project-store";
+import { MAX_AGENT_PROJECT_IDS } from "@/lib/repos/api-key-store";
+import { findUnavailableProjectIds } from "@/lib/repos/project-store";
 
 const schema = z.object({
   query: z.string().trim().min(1),
-  projectIds: z.array(z.string().trim().min(1)).default([]),
+  projectIds: z
+    .array(z.string().trim().min(1))
+    .max(MAX_AGENT_PROJECT_IDS)
+    .default([]),
 });
 
 export async function POST(request: Request) {
@@ -33,9 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json(projectIds, { status: 403 });
   }
 
-  const missingProjectIds = projectIds.filter(
-    (projectId) => !getProjectById(appConfig.dbPath, projectId),
-  );
+  const missingProjectIds = findUnavailableProjectIds(appConfig.dbPath, projectIds);
   if (missingProjectIds.length > 0) {
     return NextResponse.json(
       { error: "One or more projects were not found.", missingProjectIds },

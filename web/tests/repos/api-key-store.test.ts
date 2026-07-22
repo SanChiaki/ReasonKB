@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import {
+  MAX_AGENT_PROJECT_IDS,
   createApiKey,
   listApiKeys,
   revokeApiKey,
@@ -93,6 +94,21 @@ describe("api key store", () => {
 
     fs.writeFileSync(secretPath, "different-pepper\n");
     expect(verifyApiKey(dbPath, created.apiKey)).toBeNull();
+  });
+
+  it("rejects API keys with an excessive project scope", () => {
+    const dbPath = makeTempDb();
+
+    expect(() =>
+      createApiKey(dbPath, {
+        ownerUserId: "user_demo",
+        name: "Too broad",
+        projectIds: Array.from(
+          { length: MAX_AGENT_PROJECT_IDS + 1 },
+          (_, index) => `proj_${index}`,
+        ),
+      }),
+    ).toThrow(`at most ${MAX_AGENT_PROJECT_IDS} projects`);
   });
 
   it("rolls back API key mutations when their audit event cannot be stored", () => {

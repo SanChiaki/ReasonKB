@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { appConfig } from "@/lib/config";
 import {
+  MAX_AGENT_PROJECT_IDS,
   createApiKey,
   listApiKeys,
 } from "@/lib/repos/api-key-store";
@@ -15,7 +16,10 @@ const adminOwnerId = "deployment-admin";
 const schema = z.object({
   name: z.string().trim().min(1).max(120),
   scopes: z.array(z.string().trim().min(1)).optional(),
-  projectIds: z.array(z.string().trim().min(1)).optional(),
+  projectIds: z
+    .array(z.string().trim().min(1))
+    .max(MAX_AGENT_PROJECT_IDS)
+    .optional(),
 });
 
 export async function GET(request: Request) {

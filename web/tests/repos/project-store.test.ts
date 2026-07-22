@@ -4,7 +4,11 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
-import { getProjectById, listProjects } from "@/lib/repos/project-store";
+import {
+  findUnavailableProjectIds,
+  getProjectById,
+  listProjects,
+} from "@/lib/repos/project-store";
 import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
@@ -65,6 +69,26 @@ describe("deployment-shared source projects", () => {
 
     expect(listProjects(dbPath)).toEqual([]);
     expect(getProjectById(dbPath, fenced.id)).toBeNull();
+  });
+
+  it("finds unavailable project IDs without changing request order", () => {
+    const dbPath = makeTempDb();
+    const active = createProject(dbPath, { name: "Active" });
+    const disabled = createProject(dbPath, { name: "Disabled" });
+    const db = new Database(dbPath);
+    db.prepare("UPDATE corpus_sources SET state = 'disabled' WHERE id = ?").run(
+      disabled.sourceId,
+    );
+    db.close();
+
+    expect(
+      findUnavailableProjectIds(dbPath, [
+        active.id,
+        disabled.id,
+        "proj_missing",
+        active.id,
+      ]),
+    ).toEqual([disabled.id, "proj_missing"]);
   });
 
   it("counts only active, current, retrieval-eligible documents", () => {

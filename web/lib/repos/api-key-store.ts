@@ -10,6 +10,8 @@ export const AGENT_SCOPES = [
   "evidence",
 ] as const;
 
+export const MAX_AGENT_PROJECT_IDS = 100;
+
 export type AgentScope = (typeof AGENT_SCOPES)[number];
 
 export type ApiKeyRecord = {
@@ -120,9 +122,17 @@ function normalizeScopes(scopes: string[] | undefined): AgentScope[] {
 }
 
 function normalizeProjectIds(projectIds: string[] | undefined) {
-  return [...new Set(projectIds ?? [])]
-    .map((projectId) => projectId.trim())
-    .filter(Boolean);
+  const normalized = [
+    ...new Set(
+      (projectIds ?? [])
+        .map((projectId) => projectId.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (normalized.length > MAX_AGENT_PROJECT_IDS) {
+    throw new Error(`API keys can target at most ${MAX_AGENT_PROJECT_IDS} projects.`);
+  }
+  return normalized;
 }
 
 function parseJsonArray(value: string) {

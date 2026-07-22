@@ -5,7 +5,10 @@ import Database from "better-sqlite3";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
-import { createApiKey } from "@/lib/repos/api-key-store";
+import {
+  MAX_AGENT_PROJECT_IDS,
+  createApiKey,
+} from "@/lib/repos/api-key-store";
 import { createDocumentRecord } from "@/lib/repos/document-store";
 import { createProject } from "@/tests/helpers/source-project";
 
@@ -176,6 +179,45 @@ describe("agent routes", () => {
       mode: "answer",
     });
   });
+
+  it.each(["query", "evidence"] as const)(
+    "rejects excessive project IDs on the %s route",
+    async (routeName) => {
+      const dbPath = makeTempDb();
+      mockConfig(dbPath);
+      const sendRetrievalQuery = vi.fn();
+      vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQuery }));
+      const key = createApiKey(dbPath, {
+        ownerUserId: "user_demo",
+        name: "Bounded request",
+        scopes: [routeName],
+      });
+      const route =
+        routeName === "query"
+          ? await import("@/app/api/agent/query/route")
+          : await import("@/app/api/agent/evidence/route");
+
+      const response = await route.POST(
+        new Request(`http://localhost/api/agent/${routeName}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key.apiKey}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            query: "What changed?",
+            projectIds: Array.from(
+              { length: MAX_AGENT_PROJECT_IDS + 1 },
+              (_, index) => `proj_${index}`,
+            ),
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(sendRetrievalQuery).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns pages and structure only while a document is retrievable", async () => {
     const dbPath = makeTempDb();
