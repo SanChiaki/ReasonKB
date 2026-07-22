@@ -140,12 +140,16 @@ describe("source observability store", () => {
          relative_path, lifecycle_state, created_at, updated_at
        ) VALUES (?, ?, ?, ?, 'document', ?, ?, 'active', ?, ?)`,
     );
-    for (const name of ["alpha.pdf", "beta.pdf", "gamma.pdf"]) {
+    for (const [id, externalId, name] of [
+      ["item_alpha", "external-alpha", "same.pdf"],
+      ["item_beta", "external-beta", "same.pdf"],
+      ["item_gamma", "external-gamma", "zeta.pdf"],
+    ]) {
       insert.run(
-        `item_${name}`,
+        id,
         project.sourceId,
         project.collectionId,
-        name,
+        externalId,
         name,
         name,
         now,
@@ -158,14 +162,14 @@ describe("source observability store", () => {
       collectionId: project.collectionId,
       limit: 2,
     });
-    expect(first?.items.map((item) => item.name)).toEqual(["alpha.pdf", "beta.pdf"]);
+    expect(first?.items.map((item) => item.id)).toEqual(["item_alpha", "item_beta"]);
     expect(first?.nextCursor).toBeTruthy();
     const second = listSourceItems(dbPath, project.sourceId, {
       collectionId: project.collectionId,
       limit: 2,
       cursor: first?.nextCursor,
     });
-    expect(second?.items.map((item) => item.name)).toEqual(["gamma.pdf"]);
+    expect(second?.items.map((item) => item.id)).toEqual(["item_gamma"]);
     expect(second?.nextCursor).toBeNull();
   });
 });

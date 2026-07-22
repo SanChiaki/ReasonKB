@@ -193,4 +193,53 @@ describe("DocumentTable", () => {
 
     expect(screen.getByRole("button", { name: /index tree unavailable for queued\.pdf/i })).toBeDisabled();
   });
+
+  it("marks excluded documents and disables index actions", () => {
+    render(
+      <DocumentTable
+        documents={[
+          {
+            id: "doc_excluded",
+            fileName: "excluded.pdf",
+            pageCount: 3,
+            status: "ready",
+            lifecycleState: "excluded",
+            retrievalEligible: false,
+            statusReason: "Excluded by a source exclusion rule.",
+            createdAt: "2026-04-25T10:00:00.000Z",
+            hasIndexTree: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Excluded")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /index tree unavailable for excluded\.pdf/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /reindex excluded\.pdf/i })).toBeDisabled();
+  });
+
+  it("does not treat every retrieval-ineligible document as excluded", () => {
+    render(
+      <DocumentTable
+        documents={[
+          {
+            id: "doc_failed",
+            fileName: "retry.pdf",
+            pageCount: 0,
+            status: "failed",
+            lifecycleState: "active",
+            retrievalEligible: false,
+            createdAt: "2026-04-25T10:00:00.000Z",
+            hasIndexTree: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText("Excluded")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /view index tree for retry\.pdf/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /reindex retry\.pdf/i })).toBeEnabled();
+  });
 });

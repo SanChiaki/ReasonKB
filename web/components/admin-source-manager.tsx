@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDashed,
+  CircleSlash2,
   Database,
   FolderPlus,
   Folder,
@@ -20,7 +21,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { readAdminCsrfToken } from "@/components/admin-shell";
 
 export type AdminSource = {
@@ -61,6 +62,16 @@ type SourceCollection = {
   selected: boolean;
   validationError: string | null;
   projectId: string | null;
+  exclusionRuleId: string | null;
+};
+
+type SourceExclusion = {
+  id: string;
+  collectionId: string;
+  targetType: "collection" | "folder" | "document";
+  targetExternalId: string;
+  displayPath: string;
+  createdAt: string;
 };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -228,6 +239,10 @@ function SourceRow({
   const [editing, setEditing] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
+  const [detailRevision, setDetailRevision] = useState(0);
+  const refreshDetails = useCallback(() => {
+    setDetailRevision((value) => value + 1);
+  }, []);
 
   async function action(name: "validate" | "enable" | "disable" | "sync" | "restore") {
     setWorking(true);
@@ -246,6 +261,7 @@ function SourceRow({
           refreshed = await onChanged();
         }
       }
+      refreshDetails();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "操作失败。");
     } finally {
@@ -337,8 +353,16 @@ function SourceRow({
       {editing ? <SourceEditForm source={source} onSaved={async () => { setEditing(false); await onChanged(); }} /> : null}
       {expanded ? (
         <>
-          <CollectionManager source={source} />
-          <SourceRuntimeStatus source={source} />
+          <CollectionManager
+            source={source}
+            refreshRevision={detailRevision}
+            onExclusionsChanged={refreshDetails}
+          />
+          <SourceRuntimeStatus
+            source={source}
+            externalRevision={detailRevision}
+            onExclusionsChanged={refreshDetails}
+          />
         </>
       ) : null}
     </article>
@@ -400,7 +424,15 @@ function SourceEditForm({ source, onSaved }: { source: AdminSource; onSaved: () 
   );
 }
 
-function CollectionManager({ source }: { source: AdminSource }) {
+function CollectionManager({
+  source,
+  refreshRevision,
+  onExclusionsChanged,
+}: {
+  source: AdminSource;
+  refreshRevision: number;
+  onExclusionsChanged: () => void;
+}) {
   const [collections, setCollections] = useState<SourceCollection[]>([]);
   const [policy, setPolicy] = useState(source.selectionPolicy);
   const [loading, setLoading] = useState(true);
@@ -420,7 +452,7 @@ function CollectionManager({ source }: { source: AdminSource }) {
     }
   }
 
-  useEffect(() => { void load(); }, [source.id]);
+  useEffect(() => { void load(); }, [source.id, source.updatedAt, refreshRevision]);
 
   async function updatePolicy(next: AdminSource["selectionPolicy"], ids?: string[]) {
     try {
@@ -466,12 +498,39 @@ function CollectionManager({ source }: { source: AdminSource }) {
     }
   }
 
+  async function excludeCollection(collection: SourceCollection) {
+    if (!window.confirm(`确认排除“${collection.displayName}”及其中全部文档？`)) return;
+    try {
+      await api(`/api/admin/sources/${source.id}/exclusions`, {
+        method: "POST",
+        body: JSON.stringify({ targetType: "collection", collectionId: collection.id }),
+      });
+      await load();
+      onExclusionsChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "排除目录失败。");
+    }
+  }
+
+  async function restoreCollection(collection: SourceCollection) {
+    if (!collection.exclusionRuleId) return;
+    try {
+      await api(`/api/admin/sources/${source.id}/exclusions/${collection.exclusionRuleId}`, {
+        method: "DELETE",
+      });
+      await load();
+      onExclusionsChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "恢复目录失败。");
+    }
+  }
+
   return (
     <section className="border-t border-[var(--pi-border)] px-4 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold">目录选择</h3>
-          <p className="mt-0.5 text-xs text-[var(--pi-muted)]">全选会持续纳入以后发现或登记的新目录。</p>
+          <p className="mt-0.5 text-xs text-[var(--pi-muted)]">全选会持续纳入以后发现或登记的新目录，明确排除项除外。</p>
         </div>
         <div className="inline-flex rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] p-0.5">
           {(["none", "explicit", "all"] as const).map((value) => (
@@ -498,7 +557,13 @@ function CollectionManager({ source }: { source: AdminSource }) {
             <div key={item.id} className="flex items-center gap-3 py-2.5 text-sm">
               <input type="checkbox" aria-label={`选择 ${item.displayName}`} checked={item.selected} disabled={policy !== "explicit" || item.validationState !== "valid"} onChange={() => toggleCollection(item.id)} className="h-4 w-4 accent-[var(--pi-brand)]" />
               <span className="min-w-0 flex-1"><span className="block truncate font-medium">{item.displayName}</span><span className="block truncate text-xs text-[var(--pi-muted)]">{item.externalId}{item.rootExternalId ? ` / ${item.rootExternalId}` : ""}</span></span>
-              <span className={`text-xs ${item.validationState === "valid" ? "text-[var(--pi-success)]" : item.validationState === "invalid" ? "text-[var(--pi-danger)]" : "text-[var(--pi-muted)]"}`}>{item.validationState}</span>
+              <span className={`text-xs ${item.exclusionRuleId ? "text-[var(--pi-danger)]" : item.validationState === "valid" ? "text-[var(--pi-success)]" : item.validationState === "invalid" ? "text-[var(--pi-danger)]" : "text-[var(--pi-muted)]"}`}>{item.exclusionRuleId ? "已排除" : item.validationState}</span>
+              <ActionButton
+                label={item.exclusionRuleId ? `恢复 ${item.displayName}` : `排除 ${item.displayName}`}
+                icon={item.exclusionRuleId ? RotateCcw : CircleSlash2}
+                danger={!item.exclusionRuleId}
+                onClick={() => item.exclusionRuleId ? restoreCollection(item) : excludeCollection(item)}
+              />
               {item.origin === "registered" ? <ActionButton label="注销登记" icon={Trash2} danger disabled={item.selected} onClick={() => deregister(item.id)} /> : null}
             </div>
           ))}
@@ -520,6 +585,7 @@ type RuntimeStatus = {
     oversizedDocuments: number;
     missingDocuments: number;
     accessRevokedDocuments: number;
+    excludedDocuments: number;
     percent: number;
   };
   itemStates: Record<string, number>;
@@ -548,46 +614,161 @@ type SourceItem = {
   documentStatus: string | null;
   statusReason: string | null;
   hasChildren: boolean;
+  exclusionRuleId: string | null;
+  excludedByRuleId: string | null;
+  excludedByPath: string | null;
 };
 
-function SourceRuntimeStatus({ source }: { source: AdminSource }) {
+function SourceRuntimeStatus({
+  source,
+  externalRevision,
+  onExclusionsChanged,
+}: {
+  source: AdminSource;
+  externalRevision: number;
+  onExclusionsChanged: () => void;
+}) {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [collections, setCollections] = useState<SourceCollection[]>([]);
+  const [exclusions, setExclusions] = useState<SourceExclusion[]>([]);
   const [collectionId, setCollectionId] = useState("");
   const [items, setItems] = useState<SourceItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [parents, setParents] = useState<Array<{ id: string; name: string }>>([]);
   const [error, setError] = useState("");
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const itemsContextRef = useRef("");
+  const itemsRequestRef = useRef(0);
+  const loadMoreRequestRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       api<{ status: RuntimeStatus }>(`/api/admin/sources/${source.id}/status`),
       api<{ collections: SourceCollection[] }>(`/api/admin/sources/${source.id}/collections`),
+      api<{ exclusions: SourceExclusion[] }>(`/api/admin/sources/${source.id}/exclusions`),
     ])
-      .then(([statusPayload, collectionPayload]) => {
+      .then(([statusPayload, collectionPayload, exclusionPayload]) => {
         if (cancelled) return;
         setStatus(statusPayload.status);
         setCollections(collectionPayload.collections);
-        setCollectionId((current) => current || collectionPayload.collections[0]?.id || "");
+        setExclusions(exclusionPayload.exclusions ?? []);
+        setCollectionId((current) =>
+          collectionPayload.collections.some((collection) => collection.id === current)
+            ? current
+            : collectionPayload.collections[0]?.id || "",
+        );
+        setError("");
       })
       .catch((cause) => {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "无法加载运行状态。");
       });
     return () => { cancelled = true; };
-  }, [source.id]);
+  }, [source.id, source.updatedAt, externalRevision]);
+
+  const hasActiveSync = Boolean(
+    status?.syncRuns.some((run) => run.status === "queued" || run.status === "running"),
+  );
+  useEffect(() => {
+    if (!hasActiveSync) return;
+    const timer = window.setTimeout(onExclusionsChanged, 2000);
+    return () => window.clearTimeout(timer);
+  }, [hasActiveSync, externalRevision, onExclusionsChanged]);
+
+  useEffect(() => {
+    setParents([]);
+  }, [collectionId]);
 
   const parentId = parents.at(-1)?.id ?? "";
   useEffect(() => {
+    const contextKey = JSON.stringify([source.id, collectionId, parentId]);
+    itemsContextRef.current = contextKey;
+    const requestId = ++itemsRequestRef.current;
+    loadMoreRequestRef.current += 1;
+    setLoadingMore(false);
     if (!collectionId) {
       setItems([]);
+      setNextCursor(null);
+      setLoadingItems(false);
       return;
     }
+    setItems([]);
+    setNextCursor(null);
+    setLoadingItems(true);
     const query = new URLSearchParams({ collectionId });
     if (parentId) query.set("parentId", parentId);
-    api<{ items: SourceItem[] }>(`/api/admin/sources/${source.id}/items?${query}`)
-      .then((payload) => setItems(payload.items))
-      .catch((cause) => setError(cause instanceof Error ? cause.message : "无法加载目录内容。"));
-  }, [source.id, collectionId, parentId]);
+    api<{ items: SourceItem[]; nextCursor: string | null }>(`/api/admin/sources/${source.id}/items?${query}`)
+      .then((payload) => {
+        if (itemsRequestRef.current !== requestId || itemsContextRef.current !== contextKey) return;
+        setItems(payload.items);
+        setNextCursor(payload.nextCursor ?? null);
+      })
+      .catch((cause) => {
+        if (itemsRequestRef.current === requestId && itemsContextRef.current === contextKey) {
+          setError(cause instanceof Error ? cause.message : "无法加载目录内容。");
+        }
+      })
+      .finally(() => {
+        if (itemsRequestRef.current === requestId && itemsContextRef.current === contextKey) {
+          setLoadingItems(false);
+        }
+      });
+  }, [source.id, source.updatedAt, collectionId, parentId, externalRevision]);
+
+  async function loadMore() {
+    if (!collectionId || !nextCursor || loadingMore) return;
+    const contextKey = itemsContextRef.current;
+    const cursor = nextCursor;
+    const requestId = ++loadMoreRequestRef.current;
+    setLoadingMore(true);
+    const query = new URLSearchParams({ collectionId, cursor });
+    if (parentId) query.set("parentId", parentId);
+    try {
+      const payload = await api<{ items: SourceItem[]; nextCursor: string | null }>(
+        `/api/admin/sources/${source.id}/items?${query}`,
+      );
+      if (loadMoreRequestRef.current !== requestId || itemsContextRef.current !== contextKey) return;
+      setItems((current) => {
+        const knownIds = new Set(current.map((item) => item.id));
+        return [...current, ...payload.items.filter((item) => !knownIds.has(item.id))];
+      });
+      setNextCursor(payload.nextCursor ?? null);
+    } catch (cause) {
+      if (loadMoreRequestRef.current === requestId && itemsContextRef.current === contextKey) {
+        setError(cause instanceof Error ? cause.message : "无法加载更多目录内容。");
+      }
+    } finally {
+      if (loadMoreRequestRef.current === requestId && itemsContextRef.current === contextKey) {
+        setLoadingMore(false);
+      }
+    }
+  }
+
+  async function excludeItem(item: SourceItem) {
+    const target = item.itemType === "folder" ? `目录“${item.name}”及其当前和未来内容` : `文件“${item.name}”`;
+    if (!window.confirm(`确认排除${target}？`)) return;
+    try {
+      await api(`/api/admin/sources/${source.id}/exclusions`, {
+        method: "POST",
+        body: JSON.stringify({ targetType: "item", sourceItemId: item.id }),
+      });
+      onExclusionsChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "排除项目失败。");
+    }
+  }
+
+  async function restoreExclusion(ruleId: string) {
+    try {
+      await api(`/api/admin/sources/${source.id}/exclusions/${ruleId}`, {
+        method: "DELETE",
+      });
+      onExclusionsChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "恢复排除项失败。");
+    }
+  }
 
   if (!status && !error) {
     return <p className="border-t border-[var(--pi-border)] px-4 py-4 text-sm text-[var(--pi-muted)]">正在加载运行状态...</p>;
@@ -611,6 +792,7 @@ function SourceRuntimeStatus({ source }: { source: AdminSource }) {
               ["超限", status.coverage.oversizedDocuments],
               ["缺失", status.coverage.missingDocuments],
               ["无权限", status.coverage.accessRevokedDocuments],
+              ["已排除", status.coverage.excludedDocuments ?? 0],
             ].map(([label, value]) => (
               <div key={label} className="bg-white px-3 py-3"><p className="text-[11px] text-[var(--pi-muted)]">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>
             ))}
@@ -634,6 +816,37 @@ function SourceRuntimeStatus({ source }: { source: AdminSource }) {
               </tbody>
             </table>
           </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-xs font-semibold">排除项</h4>
+              <span className="text-xs text-[var(--pi-muted)]">{exclusions.length} 项</span>
+            </div>
+            {exclusions.length ? (
+              <div className="mt-2 divide-y divide-[var(--pi-border)] border-y border-[var(--pi-border)]">
+                {exclusions.map((exclusion) => (
+                  <div key={exclusion.id} className="flex items-center gap-3 px-2 py-2 text-xs">
+                    <CircleSlash2 size={15} className="shrink-0 text-[var(--pi-danger)]" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{exclusion.displayPath}</span>
+                      <span className="block text-[11px] text-[var(--pi-muted)]">
+                        {collections.find((collection) => collection.id === exclusion.collectionId)?.displayName ?? exclusion.collectionId}
+                        {" · "}
+                        {exclusion.targetType === "collection" ? "文档库" : exclusion.targetType === "folder" ? "目录" : "文件"}
+                      </span>
+                    </span>
+                    <ActionButton
+                      label={`恢复 ${exclusion.displayPath}`}
+                      icon={RotateCcw}
+                      onClick={() => restoreExclusion(exclusion.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 border-y border-[var(--pi-border)] px-3 py-4 text-center text-xs text-[var(--pi-muted)]">暂无排除项</p>
+            )}
+          </div>
         </>
       ) : null}
 
@@ -652,21 +865,37 @@ function SourceRuntimeStatus({ source }: { source: AdminSource }) {
       </div>
       {collectionId ? (
         <div className="mt-2 max-h-64 overflow-y-auto border-y border-[var(--pi-border)]">
-          {items.length ? items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              disabled={item.itemType !== "folder" && !item.hasChildren}
-              onClick={() => setParents((current) => [...current, { id: item.id, name: item.name }])}
-              className="flex w-full items-center gap-2 border-b border-[var(--pi-border)] px-2 py-2 text-left text-xs last:border-0 enabled:hover:bg-[var(--pi-bg)] disabled:cursor-default"
-            >
-              {item.itemType === "folder" ? <Folder size={15} className="text-[var(--pi-brand)]" /> : <FileText size={15} className="text-[var(--pi-muted)]" />}
-              <span className="min-w-0 flex-1 truncate">{item.name}</span>
-              <span className="w-24 truncate text-[var(--pi-muted)]">{item.documentStatus ?? item.lifecycleState}</span>
-              <span className="w-40 truncate text-[var(--pi-muted)]" title={item.statusReason ?? undefined}>{item.statusReason ?? "-"}</span>
-              <span className="w-20 text-right text-[var(--pi-muted)]">{item.sizeBytes == null ? "" : `${Math.ceil(item.sizeBytes / 1024)} KB`}</span>
-            </button>
+          {loadingItems ? (
+            <p className="px-3 py-4 text-center text-xs text-[var(--pi-muted)]">正在加载目录内容...</p>
+          ) : items.length ? items.map((item) => (
+            <div key={item.id} className="flex items-center gap-1 border-b border-[var(--pi-border)] px-1 py-1 last:border-0">
+              <button
+                type="button"
+                disabled={item.itemType !== "folder" && !item.hasChildren}
+                onClick={() => setParents((current) => [...current, { id: item.id, name: item.name }])}
+                className="flex min-w-0 flex-1 items-center gap-2 px-1 py-1 text-left text-xs enabled:hover:bg-[var(--pi-bg)] disabled:cursor-default"
+              >
+                {item.itemType === "folder" ? <Folder size={15} className="shrink-0 text-[var(--pi-brand)]" /> : <FileText size={15} className="shrink-0 text-[var(--pi-muted)]" />}
+                <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                <span className="w-24 truncate text-[var(--pi-muted)]">{item.documentStatus ?? item.lifecycleState}</span>
+                <span className="w-40 truncate text-[var(--pi-muted)]" title={item.excludedByPath ?? item.statusReason ?? undefined}>{item.excludedByPath ? `由 ${item.excludedByPath} 排除` : item.statusReason ?? "-"}</span>
+                <span className="w-20 text-right text-[var(--pi-muted)]">{item.sizeBytes == null ? "" : `${Math.ceil(item.sizeBytes / 1024)} KB`}</span>
+              </button>
+              <ActionButton
+                label={item.exclusionRuleId ? `恢复 ${item.name}` : item.excludedByRuleId ? `${item.name} 已由上级排除` : `排除 ${item.name}`}
+                icon={item.exclusionRuleId ? RotateCcw : CircleSlash2}
+                danger={!item.exclusionRuleId && !item.excludedByRuleId}
+                disabled={Boolean(item.excludedByRuleId && !item.exclusionRuleId)}
+                onClick={() => item.exclusionRuleId ? restoreExclusion(item.exclusionRuleId) : excludeItem(item)}
+              />
+            </div>
           )) : <p className="px-3 py-4 text-center text-xs text-[var(--pi-muted)]">此层级暂无内容</p>}
+          {nextCursor ? (
+            <button type="button" onClick={loadMore} disabled={loadingMore} className="flex w-full items-center justify-center gap-2 px-3 py-2 text-xs text-[var(--pi-brand)] hover:bg-[var(--pi-bg)] disabled:cursor-wait disabled:opacity-60">
+              {loadingMore ? <RefreshCw size={14} className="animate-spin" aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+              {loadingMore ? "正在加载..." : "加载更多"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </section>

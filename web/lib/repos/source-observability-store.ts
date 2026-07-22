@@ -159,7 +159,19 @@ export function listSourceItems(
       .get(input.collectionId, sourceId);
     if (!collection) return null;
     const limit = Math.max(1, Math.min(input.limit ?? 100, 500));
-    const offset = decodeItemsCursor(input.cursor);
+    const cursor = decodeItemsCursor(input.cursor);
+    const cursorSql = cursor
+      ? `AND (
+           CASE source_items.item_type WHEN 'folder' THEN 0 ELSE 1 END > ?
+           OR (
+             CASE source_items.item_type WHEN 'folder' THEN 0 ELSE 1 END = ?
+             AND (
+               source_items.name COLLATE NOCASE > ? COLLATE NOCASE
+               OR (source_items.name = ? COLLATE NOCASE AND source_items.id > ?)
+             )
+           )
+         )`
+      : "";
     const rows = db
       .prepare(
         `SELECT source_items.id, external_id, parent_item_id, item_type,
@@ -184,16 +196,19 @@ export function listSourceItems(
           WHERE source_items.source_id = ? AND source_items.collection_id = ?
             AND source_items.parent_item_id IS ?
             AND source_items.deleted_at IS NULL
+            ${cursorSql}
           ORDER BY CASE source_items.item_type WHEN 'folder' THEN 0 ELSE 1 END,
                    source_items.name COLLATE NOCASE, source_items.id
-          LIMIT ? OFFSET ?`,
+          LIMIT ?`,
       )
       .all(
         sourceId,
         input.collectionId,
         input.parentId ?? null,
+        ...(cursor
+          ? [cursor.itemTypeRank, cursor.itemTypeRank, cursor.name, cursor.name, cursor.id]
+          : []),
         limit + 1,
-        offset,
       ) as Array<Record<string, unknown>>;
     const hasNextPage = rows.length > limit;
     const pageRows = hasNextPage ? rows.slice(0, limit) : rows;
@@ -224,7 +239,10 @@ export function listSourceItems(
           updatedAt: row.updated_at,
         };
       }),
-      nextCursor: hasNextPage ? encodeItemsCursor(offset + limit) : null,
+      nextCursor:
+        hasNextPage && pageRows.length > 0
+          ? encodeItemsCursor(pageRows[pageRows.length - 1])
+          : null,
     };
   } finally {
     db.close();
@@ -304,22 +322,36 @@ function effectiveExclusions(
 export class InvalidSourceItemsCursorError extends Error {}
 
 function decodeItemsCursor(cursor?: string | null) {
-  if (!cursor) return 0;
+  if (!cursor) return null;
   try {
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as {
-      offset?: unknown;
+      itemTypeRank?: unknown;
+      name?: unknown;
+      id?: unknown;
     };
-    if (!Number.isSafeInteger(parsed.offset) || (parsed.offset as number) < 0) {
-      throw new Error("invalid offset");
+    if (
+      (parsed.itemTypeRank !== 0 && parsed.itemTypeRank !== 1) ||
+      typeof parsed.name !== "string" ||
+      typeof parsed.id !== "string" ||
+      !parsed.id
+    ) {
+      throw new Error("invalid cursor");
     }
-    return parsed.offset as number;
+    return parsed as { itemTypeRank: 0 | 1; name: string; id: string };
   } catch {
     throw new InvalidSourceItemsCursorError("Invalid source item cursor.");
   }
 }
 
-function encodeItemsCursor(offset: number) {
-  return Buffer.from(JSON.stringify({ offset }), "utf8").toString("base64url");
+function encodeItemsCursor(row: Record<string, unknown>) {
+  return Buffer.from(
+    JSON.stringify({
+      itemTypeRank: row.item_type === "folder" ? 0 : 1,
+      name: row.name,
+      id: row.id,
+    }),
+    "utf8",
+  ).toString("base64url");
 }
 
 export function listAdminAuditEvents(dbPath: string, limit = 100) {

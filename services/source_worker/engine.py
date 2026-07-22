@@ -393,7 +393,7 @@ class SourceWorkerEngine:
                     collection["id"],
                 ),
             )
-            if selected and not collection_excluded:
+            if selected:
                 self._ensure_project(
                     conn,
                     str(collection["source_id"]),
@@ -401,7 +401,7 @@ class SourceWorkerEngine:
                     str(collection["display_name"]),
                     now,
                 )
-            elif collection_excluded:
+            if collection_excluded:
                 conn.execute(
                     """
                     UPDATE projects SET lifecycle_state = 'excluded', retrieval_eligible = 0,
@@ -603,9 +603,9 @@ class SourceWorkerEngine:
                         now,
                     ),
                 )
-            if selected and not collection_excluded:
+            if selected:
                 self._ensure_project(conn, str(source["id"]), collection_id, descriptor.display_name, now)
-            elif collection_excluded:
+            if collection_excluded:
                 conn.execute(
                     """
                     UPDATE projects SET lifecycle_state = 'excluded', retrieval_eligible = 0,
