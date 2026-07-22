@@ -88,6 +88,9 @@ describe("document index tree repository helpers", () => {
         expect.objectContaining({
           fileName: "queued.pdf",
           hasIndexTree: false,
+          lifecycleState: "active",
+          retrievalEligible: true,
+          statusReason: null,
         }),
       ]),
     );

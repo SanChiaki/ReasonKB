@@ -188,7 +188,7 @@ export function queueManualSourceSync(dbPath: string, sourceId: string) {
       ).run(now, now, sourceId);
       const collections = db
         .prepare(
-          `SELECT id
+          `SELECT id, filter_revision
              FROM source_collections
             WHERE source_id = ?
               AND selected = 1
@@ -196,7 +196,7 @@ export function queueManualSourceSync(dbPath: string, sourceId: string) {
               AND registration_state = 'active'
               AND deleted_at IS NULL`,
         )
-        .all(sourceId) as Array<{ id: string }>;
+        .all(sourceId) as Array<{ id: string; filter_revision: number }>;
       let queued = 0;
       let coalesced = 0;
       for (const collection of collections) {
@@ -213,14 +213,15 @@ export function queueManualSourceSync(dbPath: string, sourceId: string) {
         }
         db.prepare(
           `INSERT INTO sync_runs (
-             id, source_id, collection_id, source_config_revision, trigger_kind,
-             status, started_at
-           ) VALUES (?, ?, ?, ?, 'manual', 'queued', ?)`,
+             id, source_id, collection_id, source_config_revision,
+             collection_filter_revision, trigger_kind, status, started_at
+           ) VALUES (?, ?, ?, ?, ?, 'manual', 'queued', ?)`,
         ).run(
           `sync_${crypto.randomUUID()}`,
           sourceId,
           collection.id,
           source.config_revision,
+          collection.filter_revision,
           now,
         );
         queued += 1;

@@ -25,15 +25,20 @@ function collectionView(row: Record<string, unknown>) {
     selected: Boolean(row.selected),
     validationError: row.validation_error,
     projectId: row.project_id ?? null,
+    exclusionRuleId: row.exclusion_rule_id ?? null,
+    filterRevision: row.filter_revision,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 function collectionSelectSql() {
-  return `SELECT c.*, p.id AS project_id
+  return `SELECT c.*, p.id AS project_id, exclusion.id AS exclusion_rule_id
             FROM source_collections c
-            LEFT JOIN projects p ON p.source_collection_id = c.id`;
+            LEFT JOIN projects p ON p.source_collection_id = c.id
+            LEFT JOIN source_exclusion_rules exclusion
+              ON exclusion.collection_id = c.id
+             AND exclusion.target_type = 'collection'`;
 }
 
 function audit(
@@ -59,13 +64,23 @@ function audit(
 function ensureProject(db: Db, collectionId: string, now: string) {
   const row = db
     .prepare(
-      `SELECT c.source_id, c.display_name, p.id AS project_id
+      `SELECT c.source_id, c.display_name, p.id AS project_id,
+              EXISTS(
+                SELECT 1 FROM source_exclusion_rules exclusion
+                 WHERE exclusion.collection_id = c.id
+                   AND exclusion.target_type = 'collection'
+              ) AS excluded
          FROM source_collections c
          LEFT JOIN projects p ON p.source_collection_id = c.id
         WHERE c.id = ?`,
     )
     .get(collectionId) as
-    | { source_id: string; display_name: string; project_id: string | null }
+    | {
+        source_id: string;
+        display_name: string;
+        project_id: string | null;
+        excluded: number;
+      }
     | undefined;
   if (!row) {
     throw new Error("Source Collection not found.");
@@ -73,10 +88,15 @@ function ensureProject(db: Db, collectionId: string, now: string) {
   if (row.project_id) {
     db.prepare(
       `UPDATE projects
-          SET name = ?, lifecycle_state = 'pending', retrieval_eligible = 0,
+          SET name = ?, lifecycle_state = ?, retrieval_eligible = 0,
               deleted_at = NULL, updated_at = ?
         WHERE id = ?`,
-    ).run(row.display_name, now, row.project_id);
+    ).run(
+      row.display_name,
+      row.excluded ? "excluded" : "pending",
+      now,
+      row.project_id,
+    );
     return row.project_id;
   }
   const projectId = `proj_${crypto.randomUUID()}`;
@@ -84,17 +104,30 @@ function ensureProject(db: Db, collectionId: string, now: string) {
     `INSERT INTO projects (
        id, owner_user_id, name, source_id, source_collection_id,
        lifecycle_state, retrieval_eligible, created_at, updated_at
-     ) VALUES (?, 'deployment', ?, ?, ?, 'pending', 0, ?, ?)`,
-  ).run(projectId, row.display_name, row.source_id, collectionId, now, now);
+     ) VALUES (?, 'deployment', ?, ?, ?, ?, 0, ?, ?)`,
+  ).run(
+    projectId,
+    row.display_name,
+    row.source_id,
+    collectionId,
+    row.excluded ? "excluded" : "pending",
+    now,
+    now,
+  );
   return projectId;
 }
 
 function deactivateProject(db: Db, collectionId: string, now: string) {
   db.prepare(
     `UPDATE projects
-        SET lifecycle_state = 'inactive', retrieval_eligible = 0, updated_at = ?
+        SET lifecycle_state = CASE WHEN EXISTS (
+              SELECT 1 FROM source_exclusion_rules exclusion
+               WHERE exclusion.collection_id = ?
+                 AND exclusion.target_type = 'collection'
+            ) THEN 'excluded' ELSE 'inactive' END,
+            retrieval_eligible = 0, updated_at = ?
       WHERE source_collection_id = ?`,
-  ).run(now, collectionId);
+  ).run(collectionId, now, collectionId);
 }
 
 export function listSourceCollections(dbPath: string, sourceId: string) {
@@ -156,7 +189,13 @@ export function registerSeeyonCollection(
           `UPDATE source_collections
               SET display_name = ?, registration_state = 'active',
                   validation_state = 'unvalidated', validation_error = NULL,
-                  selected = 0, lifecycle_state = 'inactive', updated_at = ?
+                  selected = 0,
+                  lifecycle_state = CASE WHEN EXISTS (
+                    SELECT 1 FROM source_exclusion_rules exclusion
+                     WHERE exclusion.collection_id = source_collections.id
+                       AND exclusion.target_type = 'collection'
+                  ) THEN 'excluded' ELSE 'inactive' END,
+                  updated_at = ?
             WHERE id = ?`,
         ).run(input.displayName, now, collectionId);
       } else {
@@ -212,13 +251,18 @@ export function setCollectionValidation(
     return runImmediateTransaction(db, () => {
       const row = db
         .prepare(
-          `SELECT c.source_id, s.selection_policy
+          `SELECT c.source_id, s.selection_policy,
+                  EXISTS(
+                    SELECT 1 FROM source_exclusion_rules exclusion
+                     WHERE exclusion.collection_id = c.id
+                       AND exclusion.target_type = 'collection'
+                  ) AS excluded
              FROM source_collections c
              JOIN corpus_sources s ON s.id = c.source_id
             WHERE c.id = ? AND c.registration_state = 'active'`,
         )
         .get(collectionId) as
-        | { source_id: string; selection_policy: string }
+        | { source_id: string; selection_policy: string; excluded: number }
         | undefined;
       if (!row) {
         return null;
@@ -233,7 +277,7 @@ export function setCollectionValidation(
         input.valid ? "valid" : "invalid",
         input.valid ? null : (input.error ?? "Collection validation failed."),
         selected,
-        selected ? "pending" : "inactive",
+        row.excluded ? "excluded" : selected ? "pending" : "inactive",
         now,
         collectionId,
       );
@@ -320,18 +364,35 @@ export function setCollectionSelectionPolicy(
       );
       db.prepare(
         `UPDATE source_collections
-            SET selected = 0, lifecycle_state = 'inactive', updated_at = ?
+            SET selected = 0,
+                lifecycle_state = CASE WHEN EXISTS (
+                  SELECT 1 FROM source_exclusion_rules exclusion
+                   WHERE exclusion.collection_id = source_collections.id
+                     AND exclusion.target_type = 'collection'
+                ) THEN 'excluded' ELSE 'inactive' END,
+                updated_at = ?
           WHERE source_id = ? AND deleted_at IS NULL`,
       ).run(now, sourceId);
       db.prepare(
         `UPDATE projects
-            SET lifecycle_state = 'inactive', retrieval_eligible = 0, updated_at = ?
+            SET lifecycle_state = CASE WHEN EXISTS (
+                  SELECT 1 FROM source_exclusion_rules exclusion
+                   WHERE exclusion.collection_id = projects.source_collection_id
+                     AND exclusion.target_type = 'collection'
+                ) THEN 'excluded' ELSE 'inactive' END,
+                retrieval_eligible = 0, updated_at = ?
           WHERE source_id = ?`,
       ).run(now, sourceId);
       for (const collectionId of selectedIds) {
         db.prepare(
           `UPDATE source_collections
-              SET selected = 1, lifecycle_state = 'pending', updated_at = ?
+              SET selected = 1,
+                  lifecycle_state = CASE WHEN EXISTS (
+                    SELECT 1 FROM source_exclusion_rules exclusion
+                     WHERE exclusion.collection_id = source_collections.id
+                       AND exclusion.target_type = 'collection'
+                  ) THEN 'excluded' ELSE 'pending' END,
+                  updated_at = ?
             WHERE id = ?`,
         ).run(now, collectionId);
         ensureProject(db, collectionId, now);
@@ -378,7 +439,12 @@ export function deregisterSourceCollection(dbPath: string, collectionId: string)
       }
       db.prepare(
         `UPDATE source_collections
-            SET registration_state = 'deregistered', lifecycle_state = 'inactive',
+            SET registration_state = 'deregistered',
+                lifecycle_state = CASE WHEN EXISTS (
+                  SELECT 1 FROM source_exclusion_rules exclusion
+                   WHERE exclusion.collection_id = source_collections.id
+                     AND exclusion.target_type = 'collection'
+                ) THEN 'excluded' ELSE 'inactive' END,
                 updated_at = ?
           WHERE id = ?`,
       ).run(now, collectionId);

@@ -347,4 +347,38 @@ export const schemaMigrations: SchemaMigration[] = [
     name: "repair-legacy-smb-uri-scope",
     up: repairLegacySmbUriScopes,
   },
+  {
+    version: 6,
+    name: "source-exclusion-rules",
+    up(db) {
+      ensureColumns(db, "source_collections", [
+        ["filter_revision", "filter_revision INTEGER NOT NULL DEFAULT 1"],
+      ]);
+      ensureColumns(db, "sync_runs", [
+        [
+          "collection_filter_revision",
+          "collection_filter_revision INTEGER NOT NULL DEFAULT 1",
+        ],
+      ]);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS source_exclusion_rules (
+          id TEXT PRIMARY KEY,
+          source_id TEXT NOT NULL,
+          collection_id TEXT NOT NULL,
+          target_type TEXT NOT NULL
+            CHECK (target_type IN ('collection', 'folder', 'document')),
+          target_external_id TEXT NOT NULL,
+          display_path TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE,
+          FOREIGN KEY(collection_id) REFERENCES source_collections(id) ON DELETE CASCADE,
+          UNIQUE(collection_id, target_type, target_external_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_source_exclusion_rules_source
+          ON source_exclusion_rules(source_id, collection_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_source_exclusion_rules_target
+          ON source_exclusion_rules(collection_id, target_type, target_external_id);
+      `);
+    },
+  },
 ];

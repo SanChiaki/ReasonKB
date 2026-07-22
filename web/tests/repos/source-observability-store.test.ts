@@ -49,14 +49,17 @@ describe("source observability store", () => {
 
     expect(
       listSourceItems(dbPath, project.sourceId, { collectionId: project.collectionId }),
-    ).toEqual([
-      expect.objectContaining({
-        id: "item_1",
-        lifecycleState: "oversized",
-        documentStatus: "skipped",
-        statusReason: "Document exceeds the configured size limit",
-      }),
-    ]);
+    ).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "item_1",
+          lifecycleState: "oversized",
+          documentStatus: "skipped",
+          statusReason: "Document exceeds the configured size limit",
+        }),
+      ],
+      nextCursor: null,
+    });
     expect(getSourceRuntimeStatus(dbPath, project.sourceId)?.coverage).toMatchObject({
       totalDocuments: 1,
       retrievableDocuments: 0,
@@ -117,6 +120,52 @@ describe("source observability store", () => {
     });
     expect(
       listSourceItems(dbPath, project.sourceId, { collectionId: project.collectionId }),
-    ).toEqual([expect.objectContaining({ statusReason: reason })]);
+    ).toEqual({
+      items: [expect.objectContaining({ statusReason: reason })],
+      nextCursor: null,
+    });
+  });
+
+  it("paginates source items without silently truncating a directory", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reasonkb-source-items-page-"));
+    tempDirs.push(dir);
+    const dbPath = path.join(dir, "app.db");
+    migrateDatabase(dbPath);
+    const project = createProject(dbPath, { name: "Operations" });
+    const now = new Date().toISOString();
+    const db = new Database(dbPath);
+    const insert = db.prepare(
+      `INSERT INTO source_items (
+         id, source_id, collection_id, external_id, item_type, name,
+         relative_path, lifecycle_state, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, 'document', ?, ?, 'active', ?, ?)`,
+    );
+    for (const name of ["alpha.pdf", "beta.pdf", "gamma.pdf"]) {
+      insert.run(
+        `item_${name}`,
+        project.sourceId,
+        project.collectionId,
+        name,
+        name,
+        name,
+        now,
+        now,
+      );
+    }
+    db.close();
+
+    const first = listSourceItems(dbPath, project.sourceId, {
+      collectionId: project.collectionId,
+      limit: 2,
+    });
+    expect(first?.items.map((item) => item.name)).toEqual(["alpha.pdf", "beta.pdf"]);
+    expect(first?.nextCursor).toBeTruthy();
+    const second = listSourceItems(dbPath, project.sourceId, {
+      collectionId: project.collectionId,
+      limit: 2,
+      cursor: first?.nextCursor,
+    });
+    expect(second?.items.map((item) => item.name)).toEqual(["gamma.pdf"]);
+    expect(second?.nextCursor).toBeNull();
   });
 });

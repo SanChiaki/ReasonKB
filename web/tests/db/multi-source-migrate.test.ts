@@ -117,6 +117,7 @@ describe("multi-source schema migration", () => {
       { version: 3 },
       { version: 4 },
       { version: 5 },
+      { version: 6 },
     ]);
     expect(
       migrated
@@ -178,6 +179,16 @@ describe("multi-source schema migration", () => {
         (row) => row.name,
       ),
     );
+    const collectionColumns = new Set(
+      (
+        db.prepare("PRAGMA table_info(source_collections)").all() as Array<{ name: string }>
+      ).map((row) => row.name),
+    );
+    const syncRunColumns = new Set(
+      (db.prepare("PRAGMA table_info(sync_runs)").all() as Array<{ name: string }>).map(
+        (row) => row.name,
+      ),
+    );
 
     expect(versions).toEqual([
       { version: 1, name: "multi-source-foundation" },
@@ -185,6 +196,7 @@ describe("multi-source schema migration", () => {
       { version: 3, name: "five-transient-index-retries" },
       { version: 4, name: "index-job-revision-lookup" },
       { version: 5, name: "repair-legacy-smb-uri-scope" },
+      { version: 6, name: "source-exclusion-rules" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -193,6 +205,7 @@ describe("multi-source schema migration", () => {
           "source_credentials",
           "source_collections",
           "source_items",
+          "source_exclusion_rules",
           "source_discovery_runs",
           "sync_runs",
           "admin_credentials",
@@ -217,6 +230,8 @@ describe("multi-source schema migration", () => {
         ]),
       ),
     );
+    expect(collectionColumns).toContain("filter_revision");
+    expect(syncRunColumns).toContain("collection_filter_revision");
     db.close();
   });
 
@@ -620,6 +635,7 @@ describe("multi-source schema migration", () => {
       { version: 3 },
       { version: 4 },
       { version: 5 },
+      { version: 6 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,
