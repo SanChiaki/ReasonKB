@@ -88,6 +88,29 @@ def _run_install(
     )
 
 
+def _run_launcher(
+    launcher: Path,
+    env: dict[str, str],
+    *args: str,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            _sh_executable(),
+            "-c",
+            'PATH="$REASONKB_TEST_FAKE_BIN:/usr/bin:/bin:/mingw64/bin:$PATH"; export PATH; exec "$@"',
+            "sh",
+            _shell_file_path(launcher),
+            *args,
+        ],
+        cwd=launcher.parent,
+        env=env,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=False,
+    )
+
+
 def test_install_script_resets_a_forgotten_admin_password(tmp_path):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
@@ -412,6 +435,23 @@ def test_release_web_defaults_admin_cookie_security_to_protocol_detection():
     )
 
 
+def test_web_mounts_the_api_key_pepper_only_into_the_web_service():
+    pepper_mount = (
+        "${REASONKB_SECRETS_ROOT:-./secrets}/api_key_pepper:"
+        "/run/secrets/reasonkb_api_key_pepper:ro"
+    )
+    for compose_name in ("compose.yml", "compose.release.yml"):
+        compose = yaml.safe_load((ROOT / "docker" / compose_name).read_text())
+        web = compose["services"]["web"]
+        assert web["environment"]["REASONKB_API_KEY_PEPPER_FILE"] == (
+            "/run/secrets/reasonkb_api_key_pepper"
+        )
+        assert pepper_mount in web["volumes"]
+        for service_name, service in compose["services"].items():
+            if service_name != "web":
+                assert pepper_mount not in service.get("volumes", [])
+
+
 def test_release_web_exposes_current_host_projects_root_to_settings_ui():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
@@ -590,10 +630,25 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
     admin_password = (
         reasonkb_home / "secrets" / "admin_password"
     ).read_text(encoding="utf-8").strip()
+    api_key_pepper = (
+        reasonkb_home / "secrets" / "api_key_pepper"
+    ).read_text(encoding="utf-8").strip()
     assert len(master_key) == 64
     assert len(admin_password) >= 12
-    assert stat.S_IMODE((reasonkb_home / "secrets" / "master.key").stat().st_mode) == 0o600
-    assert stat.S_IMODE((reasonkb_home / "secrets" / "admin_password").stat().st_mode) == 0o600
+    assert len(api_key_pepper) == 64
+    cli_launcher = reasonkb_home / "bin" / "reasonkb"
+    mcp_launcher = reasonkb_home / "bin" / "reasonkb-mcp"
+    if os.name != "nt":
+        assert stat.S_IMODE((reasonkb_home / "secrets" / "master.key").stat().st_mode) == 0o600
+        assert stat.S_IMODE((reasonkb_home / "secrets" / "admin_password").stat().st_mode) == 0o600
+        assert stat.S_IMODE((reasonkb_home / "secrets" / "api_key_pepper").stat().st_mode) == 0o600
+        assert stat.S_IMODE(cli_launcher.stat().st_mode) == 0o700
+        assert stat.S_IMODE(mcp_launcher.stat().st_mode) == 0o700
+    assert "docker compose" in cli_launcher.read_text(encoding="utf-8")
+    assert "exec -T" in cli_launcher.read_text(encoding="utf-8")
+    assert "/app/tools/reasonkb-cli.mjs" in cli_launcher.read_text(encoding="utf-8")
+    assert "exec -T" in mcp_launcher.read_text(encoding="utf-8")
+    assert "/app/tools/reasonkb-mcp.mjs" in mcp_launcher.read_text(encoding="utf-8")
     assert f"首次生成的管理员密码：{admin_password}" in result.stdout
     docker_args = (reasonkb_home / "docker-args.txt").read_text(encoding="utf-8")
     assert "pull" in docker_args.splitlines()
@@ -603,6 +658,29 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
         "--force-recreate",
         "--remove-orphans",
     ]
+
+    (reasonkb_home / "docker-args.txt").write_text("", encoding="utf-8")
+    launcher_env = _installer_env(
+        {
+            **os.environ,
+            "REASONKB_API_KEY": "rkb_live_test",
+        },
+        fake_bin,
+    )
+    cli_result = _run_launcher(cli_launcher, launcher_env, "projects")
+    assert cli_result.returncode == 0, cli_result.stderr
+    cli_args = (reasonkb_home / "docker-args.txt").read_text(encoding="utf-8")
+    assert "exec" in cli_args.splitlines()
+    assert "-T" in cli_args.splitlines()
+    assert "/app/tools/reasonkb-cli.mjs" in cli_args.splitlines()
+    assert cli_args.splitlines()[-1] == "projects"
+
+    (reasonkb_home / "docker-args.txt").write_text("", encoding="utf-8")
+    mcp_result = _run_launcher(mcp_launcher, launcher_env)
+    assert mcp_result.returncode == 0, mcp_result.stderr
+    mcp_args = (reasonkb_home / "docker-args.txt").read_text(encoding="utf-8")
+    assert "-T" in mcp_args.splitlines()
+    assert "/app/tools/reasonkb-mcp.mjs" in mcp_args.splitlines()
 
 
 def test_install_script_persists_environment_configuration(tmp_path):

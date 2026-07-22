@@ -107,3 +107,31 @@ export function getProjectById(dbPath: string, projectId: string) {
     db.close();
   }
 }
+
+export function findUnavailableProjectIds(dbPath: string, projectIds: string[]) {
+  const uniqueProjectIds = [...new Set(projectIds)];
+  if (uniqueProjectIds.length === 0) {
+    return [];
+  }
+
+  const placeholders = uniqueProjectIds.map(() => "?").join(", ");
+  const db = open(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        `SELECT p.id
+           FROM projects p
+           JOIN corpus_sources s ON s.id = p.source_id
+           JOIN source_collections c ON c.id = p.source_collection_id
+          WHERE p.id IN (${placeholders})
+            AND ${activeProjectWhere}`,
+      )
+      .all(...uniqueProjectIds) as Array<{ id: string }>;
+    const availableProjectIds = new Set(rows.map((row) => row.id));
+    return uniqueProjectIds.filter(
+      (projectId) => !availableProjectIds.has(projectId),
+    );
+  } finally {
+    db.close();
+  }
+}

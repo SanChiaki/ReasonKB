@@ -17,8 +17,11 @@ afterEach(() => {
   vi.resetModules();
   vi.unmock("@/lib/config");
   vi.unmock("@/lib/repos/conversation-store");
+  vi.unmock("@/lib/repos/api-key-store");
+  vi.unmock("@/lib/repos/project-store");
   vi.unmock("@/lib/repos/system-settings-store");
   vi.unmock("@/components/app-shell");
+  vi.unmock("@/components/api-key-manager");
   vi.unmock("@/lib/security/admin-page-auth");
   routerMocks.refresh.mockClear();
 });
@@ -37,6 +40,12 @@ describe("SettingsPage", () => {
     }));
     vi.doMock("@/lib/repos/conversation-store", () => ({
       listConversations: () => [],
+    }));
+    vi.doMock("@/lib/repos/api-key-store", () => ({
+      listApiKeys: () => [],
+    }));
+    vi.doMock("@/lib/repos/project-store", () => ({
+      listProjects: () => [],
     }));
     vi.doMock("@/lib/repos/system-settings-store", () => ({
       getSystemSettings: () => ({
@@ -57,6 +66,9 @@ describe("SettingsPage", () => {
     vi.doMock("@/components/app-shell", () => ({
       AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     }));
+    vi.doMock("@/components/api-key-manager", () => ({
+      ApiKeyManager: () => <div>API key manager</div>,
+    }));
     vi.doMock("@/lib/security/admin-page-auth", () => ({
       requireAdminPage: async () => undefined,
     }));
@@ -73,5 +85,6 @@ describe("SettingsPage", () => {
     expect(screen.getByText(/model service is ready/i)).toBeInTheDocument();
     expect(screen.getAllByText("/Users/oam/.reasonkb/projects").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /choose folder/i })).toBeEnabled();
+    expect(screen.getByText("API key manager")).toBeInTheDocument();
   });
 });
