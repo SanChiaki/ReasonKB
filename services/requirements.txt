@@ -2,6 +2,7 @@ litellm==1.83.7
 fastapi==0.116.1
 pymupdf==1.26.4
 PyPDF2==3.0.1
+pycryptodome==3.23.0
 python-dotenv==1.0.1
 cryptography==46.0.3
 pyyaml==6.0.2
