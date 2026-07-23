@@ -10,6 +10,7 @@ import {
   createApiKey,
 } from "@/lib/repos/api-key-store";
 import { createDocumentRecord } from "@/lib/repos/document-store";
+import { createSourceExclusion } from "@/lib/repos/source-exclusion-store";
 import { createProject } from "@/tests/helpers/source-project";
 
 const tempDirs: string[] = [];
@@ -286,7 +287,7 @@ describe("agent routes", () => {
     });
   });
 
-  it("hides missing, ineligible, unready, and stale-index documents", async () => {
+  it("hides excluded, missing, ineligible, unready, and stale-index documents", async () => {
     const dbPath = makeTempDb();
     mockConfig(dbPath);
     const project = createProject(dbPath, {
@@ -298,8 +299,29 @@ describe("agent routes", () => {
     const ineligible = createRetrievableDocument(dbPath, project.id, "ineligible.pdf");
     const unready = createRetrievableDocument(dbPath, project.id, "unready.pdf");
     const staleIndex = createRetrievableDocument(dbPath, project.id, "stale.pdf");
+    const excluded = createRetrievableDocument(dbPath, project.id, "excluded.pdf");
     const db = new Database(dbPath);
     try {
+      const now = new Date().toISOString();
+      db.prepare(
+        `INSERT INTO source_items (
+           id, source_id, collection_id, external_id, item_type, name,
+           relative_path, source_revision, lifecycle_state, document_id,
+           created_at, updated_at
+         ) VALUES ('item_agent_excluded', ?, ?, 'excluded.pdf', 'document',
+                   'excluded.pdf', 'excluded.pdf', 'revision:excluded', 'active',
+                   ?, ?, ?)`,
+      ).run(project.sourceId, project.collectionId, excluded.id, now, now);
+      db.prepare(
+        `UPDATE documents
+            SET source_id = ?, source_collection_id = ?,
+                source_item_id = 'item_agent_excluded',
+                source_item_external_id = 'excluded.pdf',
+                source_revision = 'revision:excluded',
+                expected_source_revision = 'revision:excluded',
+                expected_source_config_revision = 1
+          WHERE id = ?`,
+      ).run(project.sourceId, project.collectionId, excluded.id);
       db.prepare(
         `UPDATE documents
             SET lifecycle_state = 'missing', retrieval_eligible = 0
@@ -315,6 +337,10 @@ describe("agent routes", () => {
     } finally {
       db.close();
     }
+    createSourceExclusion(dbPath, project.sourceId, {
+      targetType: "item",
+      sourceItemId: "item_agent_excluded",
+    });
     const key = readDocumentsKey(dbPath, project.id);
     const { GET } = await import(
       "@/app/api/agent/projects/[projectId]/documents/route"

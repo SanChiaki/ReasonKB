@@ -150,6 +150,8 @@ const messages = {
     "documents.callSingular": "call",
     "documents.callPlural": "calls",
     "documents.statusUnknown": "Unknown",
+    "documents.excluded": "Excluded",
+    "documents.excludedAction": "Excluded documents cannot be opened or reindexed",
 
     "apiKeys.eyebrow": "Agent access",
     "apiKeys.title": "API keys",
@@ -430,6 +432,8 @@ const messages = {
     "documents.callSingular": "调用",
     "documents.callPlural": "调用",
     "documents.statusUnknown": "未知",
+    "documents.excluded": "已排除",
+    "documents.excludedAction": "已排除的文档不能查看索引或重新索引",
 
     "apiKeys.eyebrow": "Agent 访问",
     "apiKeys.title": "API 密钥",

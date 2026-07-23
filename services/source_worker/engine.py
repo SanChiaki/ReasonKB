@@ -13,6 +13,7 @@ from services.common.sqlite_store import open_db
 from services.source_worker.connectors.factory import build_connector
 from services.source_worker.models import (
     CollectionDescriptor,
+    ExclusionPlan,
     SourceAccessDenied,
     SourceItemMetadata,
 )
@@ -20,6 +21,10 @@ from services.source_worker.models import (
 RECONCILE_BATCH_SIZE = 250
 OBSERVATION_BATCH_SIZE = 500
 MAX_SOURCE_BACKOFF_SECONDS = 6 * 60 * 60
+
+
+class SyncRunSuperseded(RuntimeError):
+    pass
 
 
 def utc_now() -> datetime:
@@ -178,11 +183,14 @@ class SourceWorkerEngine:
         run = self._claim_sync_run()
         if run:
             try:
-                self._scan_and_reconcile(run)
-                summary["synchronized"] += 1
+                if self._scan_and_reconcile(run):
+                    summary["synchronized"] += 1
             except Exception as error:
-                self._fail_sync_run(run, error)
-                summary["failed"] += 1
+                if self._run_is_current(run):
+                    self._fail_sync_run(run, error)
+                    summary["failed"] += 1
+                else:
+                    self._supersede_sync_run(run)
         return summary
 
     def _claim_validation(self) -> dict[str, object] | None:
@@ -362,13 +370,28 @@ class SourceWorkerEngine:
                 )
                 return
             selected = 1 if source["selection_policy"] == "all" else 0
+            collection_excluded = bool(
+                conn.execute(
+                    """
+                    SELECT 1 FROM source_exclusion_rules
+                     WHERE collection_id = ? AND target_type = 'collection'
+                     LIMIT 1
+                    """,
+                    (collection["id"],),
+                ).fetchone()
+            )
             conn.execute(
                 """
                 UPDATE source_collections SET validation_state = 'valid',
                        validation_error = NULL, selected = ?, lifecycle_state = ?,
                        updated_at = ? WHERE id = ?
                 """,
-                (selected, "pending" if selected else "inactive", now, collection["id"]),
+                (
+                    selected,
+                    "excluded" if collection_excluded else ("pending" if selected else "inactive"),
+                    now,
+                    collection["id"],
+                ),
             )
             if selected:
                 self._ensure_project(
@@ -377,6 +400,14 @@ class SourceWorkerEngine:
                     str(collection["id"]),
                     str(collection["display_name"]),
                     now,
+                )
+            if collection_excluded:
+                conn.execute(
+                    """
+                    UPDATE projects SET lifecycle_state = 'excluded', retrieval_eligible = 0,
+                           updated_at = ? WHERE source_collection_id = ?
+                    """,
+                    (now, collection["id"]),
                 )
 
     def _fail_collection_validation(
@@ -477,7 +508,13 @@ class SourceWorkerEngine:
                 SELECT id FROM source_collections
                  WHERE source_id = ? AND selected = 1
                    AND validation_state = 'valid' AND registration_state = 'active'
-                   AND lifecycle_state <> 'missing' AND deleted_at IS NULL
+                   AND lifecycle_state NOT IN ('missing', 'excluded', 'access_revoked')
+                   AND deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM source_exclusion_rules e
+                      WHERE e.collection_id = source_collections.id
+                        AND e.target_type = 'collection'
+                   )
                 """,
                 (source["id"],),
             ).fetchall()
@@ -499,11 +536,22 @@ class SourceWorkerEngine:
         now = iso_now()
         with open_db(self.db_path) as conn:
             row = conn.execute(
-                "SELECT id, selected FROM source_collections WHERE source_id = ? AND identity_key = ?",
+                "SELECT id, selected, lifecycle_state FROM source_collections WHERE source_id = ? AND identity_key = ?",
                 (source["id"], descriptor.identity_key),
             ).fetchone()
             selected = 1 if source["selection_policy"] == "all" else (row["selected"] if row else 0)
-            lifecycle = "pending" if selected else "inactive"
+            collection_excluded = bool(
+                row
+                and conn.execute(
+                    """
+                    SELECT 1 FROM source_exclusion_rules
+                     WHERE collection_id = ? AND target_type = 'collection'
+                     LIMIT 1
+                    """,
+                    (row["id"],),
+                ).fetchone()
+            )
+            lifecycle = "excluded" if collection_excluded else ("pending" if selected else "inactive")
             if row:
                 collection_id = row["id"]
                 conn.execute(
@@ -557,6 +605,14 @@ class SourceWorkerEngine:
                 )
             if selected:
                 self._ensure_project(conn, str(source["id"]), collection_id, descriptor.display_name, now)
+            if collection_excluded:
+                conn.execute(
+                    """
+                    UPDATE projects SET lifecycle_state = 'excluded', retrieval_eligible = 0,
+                           updated_at = ? WHERE source_collection_id = ?
+                    """,
+                    (now, collection_id),
+                )
 
     def _queue_sync_run_in_connection(
         self,
@@ -566,6 +622,36 @@ class SourceWorkerEngine:
         config_revision: int,
         trigger: str,
     ) -> None:
+        collection = conn.execute(
+            """
+            SELECT c.filter_revision, c.selected, c.lifecycle_state,
+                   c.registration_state, c.validation_state, c.deleted_at,
+                   s.state, s.config_revision
+              FROM source_collections c
+              JOIN corpus_sources s ON s.id = c.source_id
+             WHERE c.id = ? AND c.source_id = ?
+            """,
+            (collection_id, source_id),
+        ).fetchone()
+        if (
+            collection is None
+            or collection["state"] != "active"
+            or int(collection["config_revision"]) != config_revision
+            or not collection["selected"]
+            or collection["registration_state"] != "active"
+            or collection["validation_state"] != "valid"
+            or collection["lifecycle_state"] in ("missing", "access_revoked")
+            or collection["deleted_at"] is not None
+            or conn.execute(
+                """
+                SELECT 1 FROM source_exclusion_rules
+                 WHERE collection_id = ? AND target_type = 'collection'
+                 LIMIT 1
+                """,
+                (collection_id,),
+            ).fetchone()
+        ):
+            return
         active = conn.execute(
             "SELECT id FROM sync_runs WHERE collection_id = ? AND status IN ('queued', 'running')",
             (collection_id,),
@@ -575,15 +661,49 @@ class SourceWorkerEngine:
         conn.execute(
             """
             INSERT INTO sync_runs (
-              id, source_id, collection_id, source_config_revision,
+              id, source_id, collection_id, source_config_revision, collection_filter_revision,
               trigger_kind, status, started_at
-            ) VALUES (?, ?, ?, ?, ?, 'queued', ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, 'queued', ?)
             """,
-            (f"sync_{uuid.uuid4()}", source_id, collection_id, config_revision, trigger, iso_now()),
+            (
+                f"sync_{uuid.uuid4()}",
+                source_id,
+                collection_id,
+                config_revision,
+                int(collection["filter_revision"]),
+                trigger,
+                iso_now(),
+            ),
         )
 
     def _claim_sync_run(self) -> dict[str, object] | None:
         with open_db(self.db_path) as conn:
+            stale_runs = conn.execute(
+                """
+                SELECT r.* FROM sync_runs r
+                 WHERE r.status = 'queued'
+                   AND NOT EXISTS (
+                     SELECT 1
+                       FROM source_collections c
+                       JOIN corpus_sources s ON s.id = c.source_id
+                      WHERE c.id = r.collection_id AND s.id = r.source_id
+                        AND s.state = 'active'
+                        AND s.config_revision = r.source_config_revision
+                        AND c.filter_revision = r.collection_filter_revision
+                        AND c.selected = 1
+                        AND c.registration_state = 'active'
+                        AND c.validation_state = 'valid'
+                        AND c.lifecycle_state NOT IN ('missing', 'access_revoked')
+                        AND c.deleted_at IS NULL
+                        AND NOT EXISTS (
+                          SELECT 1 FROM source_exclusion_rules e
+                           WHERE e.collection_id = c.id AND e.target_type = 'collection'
+                        )
+                   )
+                """
+            ).fetchall()
+            for stale_run in stale_runs:
+                self._supersede_sync_run_in_connection(conn, dict(stale_run), iso_now())
             row = conn.execute(
                 """
                 SELECT r.*, c.external_id, c.root_external_id, c.display_name,
@@ -593,6 +713,15 @@ class SourceWorkerEngine:
                   JOIN source_collections c ON c.id = r.collection_id
                   JOIN corpus_sources s ON s.id = r.source_id
                  WHERE r.status = 'queued' AND s.state = 'active' AND c.selected = 1
+                   AND s.config_revision = r.source_config_revision
+                   AND c.filter_revision = r.collection_filter_revision
+                   AND c.registration_state = 'active' AND c.validation_state = 'valid'
+                   AND c.lifecycle_state NOT IN ('missing', 'access_revoked')
+                   AND c.deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM source_exclusion_rules e
+                      WHERE e.collection_id = c.id AND e.target_type = 'collection'
+                   )
                  ORDER BY CASE r.trigger_kind WHEN 'manual' THEN 0 ELSE 1 END,
                           r.started_at
                  LIMIT 1
@@ -606,7 +735,11 @@ class SourceWorkerEngine:
             ).rowcount
             return dict(row) if changed else None
 
-    def _scan_and_reconcile(self, run: dict[str, object]) -> None:
+    def _scan_and_reconcile(self, run: dict[str, object]) -> bool:
+        exclusions = self._load_exclusion_plan(run)
+        if exclusions is None or exclusions.collection_excluded:
+            self._supersede_sync_run(run)
+            return False
         connector = self._build_connector(run)
         collection = CollectionDescriptor(
             identity_key=str(run["identity_key"]),
@@ -616,7 +749,7 @@ class SourceWorkerEngine:
         )
         count = 0
         observations: list[SourceItemMetadata] = []
-        for item in connector.scan_collection(collection):
+        for item in connector.scan_collection(collection, exclusions):
             observations.append(item)
             count += 1
             if len(observations) >= OBSERVATION_BATCH_SIZE:
@@ -627,23 +760,48 @@ class SourceWorkerEngine:
             self._store_observations(str(run["id"]), observations)
 
         if not self._run_is_current(run):
-            with open_db(self.db_path) as conn:
-                conn.execute(
-                    "UPDATE sync_runs SET status = 'superseded', completed_at = ? WHERE id = ?",
-                    (iso_now(), run["id"]),
-                )
-                conn.execute("DELETE FROM sync_run_observations WHERE run_id = ?", (run["id"],))
-            return
+            self._supersede_sync_run(run)
+            return False
 
         changed = 0
-        while True:
-            batch_changed, reconciled = self._reconcile_pending_batch(run)
-            if not reconciled:
-                break
-            changed += batch_changed
-            self._report_progress()
+        try:
+            while True:
+                batch_changed, reconciled = self._reconcile_pending_batch(run, exclusions)
+                if not reconciled:
+                    break
+                changed += batch_changed
+                self._report_progress()
+        except SyncRunSuperseded:
+            self._supersede_sync_run(run)
+            return False
 
-        self._complete_sync_run(run, count, changed)
+        return self._complete_sync_run(run, count, changed)
+
+    def _load_exclusion_plan(self, run: dict[str, object]) -> ExclusionPlan | None:
+        with open_db(self.db_path) as conn:
+            if not self._run_is_current_in_connection(conn, run):
+                return None
+            rows = conn.execute(
+                """
+                SELECT target_type, target_external_id
+                  FROM source_exclusion_rules
+                 WHERE collection_id = ?
+                """,
+                (run["collection_id"],),
+            ).fetchall()
+        return ExclusionPlan(
+            collection_excluded=any(row["target_type"] == "collection" for row in rows),
+            folder_external_ids=frozenset(
+                str(row["target_external_id"])
+                for row in rows
+                if row["target_type"] == "folder"
+            ),
+            document_external_ids=frozenset(
+                str(row["target_external_id"])
+                for row in rows
+                if row["target_type"] == "document"
+            ),
+        )
 
     def _store_observations(
         self,
@@ -691,30 +849,16 @@ class SourceWorkerEngine:
 
     def _run_is_current(self, run: dict[str, object]) -> bool:
         with open_db(self.db_path) as conn:
-            row = conn.execute(
-                """
-                SELECT s.config_revision, s.state, c.selected, c.lifecycle_state
-                  FROM corpus_sources s
-                  JOIN source_collections c ON c.source_id = s.id
-                 WHERE s.id = ? AND c.id = ?
-                """,
-                (run["source_id"], run["collection_id"]),
-            ).fetchone()
-            return bool(
-                row
-                and row["config_revision"] == run["source_config_revision"]
-                and row["state"] == "active"
-                and row["selected"]
-                and row["lifecycle_state"] != "missing"
-            )
+            return self._run_is_current_in_connection(conn, run)
 
     def _reconcile_pending_batch(
         self,
         run: dict[str, object],
+        exclusions: ExclusionPlan,
     ) -> tuple[int, bool]:
         with open_db(self.db_path) as conn:
             if not self._run_is_current_in_connection(conn, run):
-                raise RuntimeError("Sync Run was superseded during reconciliation")
+                raise SyncRunSuperseded("Sync Run was superseded during reconciliation")
             rows = conn.execute(
                 """
                 SELECT * FROM sync_run_observations
@@ -732,6 +876,7 @@ class SourceWorkerEngine:
                     conn,
                     run,
                     dict(row),
+                    exclusions,
                 )
             return changed, True
 
@@ -740,6 +885,7 @@ class SourceWorkerEngine:
         conn: sqlite3.Connection,
         run: dict[str, object],
         observation: dict[str, object],
+        exclusions: ExclusionPlan,
     ) -> int:
         now = iso_now()
         parent_id = None
@@ -756,7 +902,7 @@ class SourceWorkerEngine:
         item_id = existing["id"] if existing else stable_item_id(
             str(run["source_id"]), str(observation["external_id"])
         )
-        lifecycle = self._item_lifecycle(run, observation)
+        lifecycle = self._item_lifecycle(run, observation, exclusions)
         if existing:
             conn.execute(
                 """
@@ -818,13 +964,22 @@ class SourceWorkerEngine:
         changed = 0
         if observation["item_type"] == "document":
             changed = self._reconcile_document(conn, run, observation, item_id, lifecycle, now)
+        elif lifecycle == "excluded":
+            self._exclude_known_descendants(conn, run, item_id, now)
         conn.execute(
             "UPDATE sync_run_observations SET reconciled_at = ? WHERE run_id = ? AND external_id = ?",
             (now, run["id"], observation["external_id"]),
         )
         return changed
 
-    def _item_lifecycle(self, run: dict[str, object], observation: dict[str, object]) -> str:
+    def _item_lifecycle(
+        self,
+        run: dict[str, object],
+        observation: dict[str, object],
+        exclusions: ExclusionPlan,
+    ) -> str:
+        if exclusions.excludes(str(observation["external_id"]), str(observation["item_type"])):
+            return "excluded"
         if observation["item_type"] != "document":
             return "active"
         if observation["media_type"] == "unsupported":
@@ -833,6 +988,73 @@ class SourceWorkerEngine:
         if size > int(run["max_document_size_bytes"]):
             return "oversized"
         return "active"
+
+    @staticmethod
+    def _exclude_known_descendants(
+        conn: sqlite3.Connection,
+        run: dict[str, object],
+        folder_item_id: str,
+        now: str,
+    ) -> None:
+        conn.execute(
+            """
+            WITH RECURSIVE descendants(id) AS (
+              SELECT id FROM source_items
+               WHERE parent_item_id = ? AND deleted_at IS NULL
+              UNION ALL
+              SELECT child.id
+                FROM source_items child
+                JOIN descendants parent ON child.parent_item_id = parent.id
+               WHERE child.deleted_at IS NULL
+            )
+            UPDATE source_items
+               SET lifecycle_state = 'excluded', last_seen_run_id = ?,
+                   updated_at = ?
+             WHERE id IN (SELECT id FROM descendants)
+            """,
+            (folder_item_id, run["id"], now),
+        )
+        conn.execute(
+            """
+            WITH RECURSIVE descendants(id) AS (
+              SELECT id FROM source_items
+               WHERE parent_item_id = ? AND deleted_at IS NULL
+              UNION ALL
+              SELECT child.id
+                FROM source_items child
+                JOIN descendants parent ON child.parent_item_id = parent.id
+               WHERE child.deleted_at IS NULL
+            )
+            UPDATE documents
+               SET lifecycle_state = 'excluded', retrieval_eligible = 0,
+                   last_seen_run_id = ?, updated_at = ?
+             WHERE source_item_id IN (SELECT id FROM descendants)
+               AND deleted_at IS NULL
+            """,
+            (folder_item_id, run["id"], now),
+        )
+        conn.execute(
+            """
+            WITH RECURSIVE descendants(id) AS (
+              SELECT id FROM source_items
+               WHERE parent_item_id = ? AND deleted_at IS NULL
+              UNION ALL
+              SELECT child.id
+                FROM source_items child
+                JOIN descendants parent ON child.parent_item_id = parent.id
+               WHERE child.deleted_at IS NULL
+            )
+            UPDATE jobs
+               SET status = 'superseded', superseded_at = ?, updated_at = ?,
+                   finished_at = ?, error_message = 'Document excluded by source rule'
+             WHERE status = 'queued'
+               AND document_id IN (
+                 SELECT document_id FROM source_items
+                  WHERE id IN (SELECT id FROM descendants) AND document_id IS NOT NULL
+               )
+            """,
+            (folder_item_id, now, now, now),
+        )
 
     def _reconcile_document(
         self,
@@ -856,22 +1078,40 @@ class SourceWorkerEngine:
         revision_changed = existing is None or existing["source_revision"] != observation["source_revision"]
         document_id = existing["id"] if existing else f"doc_{uuid.uuid4()}"
         supported = lifecycle == "active"
-        status = "uploaded" if supported else "skipped"
-        import_status = "imported" if supported else "skipped"
         metadata = json.loads(str(observation["metadata_json"]))
-        import_error = None
-        if lifecycle == "unsupported":
-            import_error = metadata.get("unsupportedReason") or "Unsupported file type"
-        elif lifecycle == "oversized":
-            import_error = "Document exceeds the configured size limit"
+        if lifecycle == "excluded" and existing:
+            status = str(existing["status"])
+            import_status = str(existing["import_status"])
+            import_error = existing["import_error"]
+        else:
+            status = "uploaded" if supported else "skipped"
+            import_status = "imported" if supported else "skipped"
+            import_error = None
+            if lifecycle == "unsupported":
+                import_error = metadata.get("unsupportedReason") or "Unsupported file type"
+            elif lifecycle == "oversized":
+                import_error = "Document exceeds the configured size limit"
+            elif lifecycle == "excluded":
+                import_error = "Document excluded by source rule"
         if existing:
-            has_index = conn.execute(
-                "SELECT 1 FROM document_indexes WHERE document_id = ? AND is_current = 1",
+            current_index = conn.execute(
+                """
+                SELECT source_revision FROM document_indexes
+                 WHERE document_id = ? AND is_current = 1
+                 ORDER BY indexed_at DESC LIMIT 1
+                """,
                 (document_id,),
             ).fetchone()
-            if supported and not revision_changed and has_index:
+            index_matches_revision = bool(
+                current_index
+                and (
+                    current_index["source_revision"] == observation["source_revision"]
+                    or (current_index["source_revision"] is None and not revision_changed)
+                )
+            )
+            if supported and index_matches_revision:
                 status = "ready"
-            elif not revision_changed and existing["status"] == "failed":
+            elif supported and not revision_changed and existing["status"] == "failed":
                 status = "failed"
             conn.execute(
                 """
@@ -908,7 +1148,7 @@ class SourceWorkerEngine:
                     observation["source_revision"],
                     run["source_config_revision"],
                     lifecycle,
-                    1 if status == "ready" else 0,
+                    1 if supported and status == "ready" else 0,
                     run["id"],
                     now,
                     document_id,
@@ -958,10 +1198,19 @@ class SourceWorkerEngine:
                 ),
             )
             conn.execute("UPDATE source_items SET document_id = ? WHERE id = ?", (document_id, item_id))
-        if revision_changed:
+        if supported and existing and not index_matches_revision:
             conn.execute(
                 "UPDATE document_indexes SET is_current = 0, retired_at = ? WHERE document_id = ?",
                 (now, document_id),
+            )
+        if lifecycle == "excluded":
+            conn.execute(
+                """
+                UPDATE jobs SET status = 'superseded', superseded_at = ?, updated_at = ?,
+                       finished_at = ?, error_message = 'Document excluded by source rule'
+                 WHERE document_id = ? AND status = 'queued'
+                """,
+                (now, now, now, document_id),
             )
         if supported and status == "uploaded":
             self._queue_index_job(conn, run, document_id, str(observation["source_revision"]), now)
@@ -1014,15 +1263,12 @@ class SourceWorkerEngine:
             ),
         )
 
-    def _complete_sync_run(self, run: dict[str, object], count: int, changed: int) -> None:
+    def _complete_sync_run(self, run: dict[str, object], count: int, changed: int) -> bool:
         now = iso_now()
         with open_db(self.db_path) as conn:
             if not self._run_is_current_in_connection(conn, run):
-                conn.execute(
-                    "UPDATE sync_runs SET status = 'superseded', completed_at = ? WHERE id = ?",
-                    (now, run["id"]),
-                )
-                return
+                self._supersede_sync_run_in_connection(conn, run, now)
+                return False
             missing_count = conn.execute(
                 """
                 SELECT COUNT(*) FROM source_items
@@ -1093,6 +1339,69 @@ class SourceWorkerEngine:
                     int(run["source_config_revision"]),
                     "manual",
                 )
+        return True
+
+    def _supersede_sync_run(self, run: dict[str, object]) -> None:
+        with open_db(self.db_path) as conn:
+            self._supersede_sync_run_in_connection(conn, run, iso_now())
+
+    def _supersede_sync_run_in_connection(
+        self,
+        conn: sqlite3.Connection,
+        run: dict[str, object],
+        now: str,
+    ) -> None:
+        conn.execute(
+            """
+            UPDATE sync_runs SET status = 'superseded', completed_at = ?,
+                   error_summary = NULL
+             WHERE id = ? AND status IN ('queued', 'running')
+            """,
+            (now, run["id"]),
+        )
+        conn.execute("DELETE FROM sync_run_observations WHERE run_id = ?", (run["id"],))
+        current = conn.execute(
+            """
+            SELECT s.config_revision, s.state, c.filter_revision, c.selected,
+                   c.lifecycle_state, c.registration_state, c.validation_state,
+                   c.deleted_at
+              FROM corpus_sources s
+              JOIN source_collections c ON c.source_id = s.id
+             WHERE s.id = ? AND c.id = ?
+            """,
+            (run["source_id"], run["collection_id"]),
+        ).fetchone()
+        if current is None:
+            return
+        filter_changed = (
+            int(current["config_revision"]) == int(run["source_config_revision"])
+            and int(current["filter_revision"]) != int(run["collection_filter_revision"])
+        )
+        collection_excluded = conn.execute(
+            """
+            SELECT 1 FROM source_exclusion_rules
+             WHERE collection_id = ? AND target_type = 'collection'
+             LIMIT 1
+            """,
+            (run["collection_id"],),
+        ).fetchone()
+        eligible = (
+            current["state"] == "active"
+            and current["selected"]
+            and current["registration_state"] == "active"
+            and current["validation_state"] == "valid"
+            and current["lifecycle_state"] not in ("missing", "access_revoked")
+            and current["deleted_at"] is None
+            and not collection_excluded
+        )
+        if filter_changed and eligible:
+            self._queue_sync_run_in_connection(
+                conn,
+                str(run["source_id"]),
+                str(run["collection_id"]),
+                int(current["config_revision"]),
+                str(run.get("trigger_kind") or "manual"),
+            )
 
     def _fail_sync_run(self, run: dict[str, object], error: Exception) -> None:
         now = iso_now()
@@ -1201,7 +1510,9 @@ class SourceWorkerEngine:
     ) -> bool:
         row = conn.execute(
             """
-            SELECT s.config_revision, s.state, c.selected, c.lifecycle_state
+            SELECT s.config_revision, s.state, c.filter_revision, c.selected,
+                   c.lifecycle_state, c.registration_state, c.validation_state,
+                   c.deleted_at
               FROM corpus_sources s JOIN source_collections c ON c.source_id = s.id
              WHERE s.id = ? AND c.id = ?
             """,
@@ -1210,9 +1521,21 @@ class SourceWorkerEngine:
         return bool(
             row
             and row["config_revision"] == run["source_config_revision"]
+            and row["filter_revision"] == run["collection_filter_revision"]
             and row["state"] == "active"
             and row["selected"]
-            and row["lifecycle_state"] != "missing"
+            and row["registration_state"] == "active"
+            and row["validation_state"] == "valid"
+            and row["lifecycle_state"] not in ("missing", "access_revoked")
+            and row["deleted_at"] is None
+            and not conn.execute(
+                """
+                SELECT 1 FROM source_exclusion_rules
+                 WHERE collection_id = ? AND target_type = 'collection'
+                 LIMIT 1
+                """,
+                (run["collection_id"],),
+            ).fetchone()
         )
 
     @staticmethod

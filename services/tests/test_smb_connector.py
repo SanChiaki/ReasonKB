@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from services.source_worker.connectors.smb import SmbConnector
-from services.source_worker.models import CollectionDescriptor
+from services.source_worker.models import CollectionDescriptor, ExclusionPlan
 
 
 class Entry:
@@ -126,3 +126,26 @@ def test_fetches_the_expected_smb_revision_with_a_size_bound(tmp_path):
     connector.fetch_item(item, destination, item.source_revision or "", 10)
 
     assert destination.read_bytes() == b"hello"
+
+
+def test_excluded_smb_folder_is_observed_without_remote_descent():
+    client = FakeSmbClient()
+    connector = SmbConnector(
+        host="server",
+        share="share",
+        base_path="base",
+        smbclient_module=client,
+    )
+    collection = CollectionDescriptor("path:ProjectA", "ProjectA", "ProjectA")
+
+    items = list(
+        connector.scan_collection(
+            collection,
+            ExclusionPlan(folder_external_ids=frozenset({"ProjectA/folder"})),
+        )
+    )
+
+    assert [(item.item_type, item.external_id) for item in items] == [
+        ("document", "ProjectA/archive.zip"),
+        ("folder", "ProjectA/folder"),
+    ]

@@ -208,6 +208,7 @@ CREATE TABLE IF NOT EXISTS source_collections (
   validation_state TEXT NOT NULL DEFAULT 'unvalidated',
   lifecycle_state TEXT NOT NULL DEFAULT 'inactive',
   selected INTEGER NOT NULL DEFAULT 0,
+  filter_revision INTEGER NOT NULL DEFAULT 1,
   validation_error TEXT,
   last_discovered_at TEXT,
   last_discovery_run_id TEXT,
@@ -237,6 +238,7 @@ CREATE TABLE IF NOT EXISTS sync_runs (
   source_id TEXT NOT NULL,
   collection_id TEXT NOT NULL,
   source_config_revision INTEGER NOT NULL,
+  collection_filter_revision INTEGER NOT NULL DEFAULT 1,
   trigger_kind TEXT NOT NULL,
   status TEXT NOT NULL,
   follow_up_requested INTEGER NOT NULL DEFAULT 0,
@@ -296,6 +298,19 @@ CREATE TABLE IF NOT EXISTS source_items (
   FOREIGN KEY(last_seen_run_id) REFERENCES sync_runs(id),
   FOREIGN KEY(document_id) REFERENCES documents(id),
   UNIQUE(source_id, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS source_exclusion_rules (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  collection_id TEXT NOT NULL,
+  target_type TEXT NOT NULL CHECK (target_type IN ('collection', 'folder', 'document')),
+  target_external_id TEXT NOT NULL,
+  display_path TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE,
+  FOREIGN KEY(collection_id) REFERENCES source_collections(id) ON DELETE CASCADE,
+  UNIQUE(collection_id, target_type, target_external_id)
 );
 
 CREATE TABLE IF NOT EXISTS admin_credentials (
@@ -396,6 +411,10 @@ CREATE INDEX IF NOT EXISTS idx_source_items_collection_parent
 CREATE INDEX IF NOT EXISTS idx_source_items_last_seen
   ON source_items(collection_id, last_seen_run_id)
   WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_source_exclusion_rules_source
+  ON source_exclusion_rules(source_id, collection_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_source_exclusion_rules_target
+  ON source_exclusion_rules(collection_id, target_type, target_external_id);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expiry
   ON admin_sessions(expires_at)
   WHERE revoked_at IS NULL;

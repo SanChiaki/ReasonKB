@@ -77,11 +77,19 @@ describe("Corpus Source lifecycle", () => {
     expect(
       db
         .prepare(
-          `SELECT status, trigger_kind, follow_up_requested
+          `SELECT status, trigger_kind, follow_up_requested,
+                  collection_filter_revision
              FROM sync_runs WHERE source_id = ?`,
         )
         .all(sourceId),
-    ).toEqual([{ status: "queued", trigger_kind: "manual", follow_up_requested: 1 }]);
+    ).toEqual([
+      {
+        status: "queued",
+        trigger_kind: "manual",
+        follow_up_requested: 1,
+        collection_filter_revision: 1,
+      },
+    ]);
     expect(
       db.prepare("SELECT next_sync_at FROM corpus_sources WHERE id = ?").get(sourceId),
     ).toMatchObject({ next_sync_at: expect.any(String) });

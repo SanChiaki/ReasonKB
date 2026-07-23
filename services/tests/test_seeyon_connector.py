@@ -14,7 +14,11 @@ from services.source_worker.connectors.seeyon import (
     SeeyonHttpError,
     SeeyonTokenCache,
 )
-from services.source_worker.models import CollectionDescriptor, SourceAccessDenied
+from services.source_worker.models import (
+    CollectionDescriptor,
+    ExclusionPlan,
+    SourceAccessDenied,
+)
 
 
 class FakeResponse:
@@ -146,6 +150,34 @@ def test_recursively_maps_verified_seeyon_81sp2_fields_to_source_items():
     assert items[1].fetch_locator == "-1082062512454808173"
     assert items[2].source_revision == "seeyon:6951434855901449788:5"
     assert isinstance(items[2].external_id, str)
+
+
+def test_excluded_seeyon_folder_is_observed_without_listing_its_children():
+    source = connector()
+    collection = CollectionDescriptor(
+        identity_key="seeyon:1001:1002",
+        external_id="1001",
+        root_external_id="1002",
+        display_name="Documents",
+    )
+
+    items = list(
+        source.scan_collection(
+            collection,
+            ExclusionPlan(folder_external_ids=frozenset({"3833864781257523919"})),
+        )
+    )
+
+    assert [(item.item_type, item.external_id) for item in items] == [
+        ("folder", "3833864781257523919"),
+        ("document", "5594372999647937129"),
+    ]
+    search_requests = [
+        request
+        for request in source.opener.requests
+        if request.full_url.endswith("/rest/docs/search")
+    ]
+    assert len(search_requests) == 1
 
 
 def test_missing_file_id_is_retained_as_unsupported_without_aborting_scan(monkeypatch):

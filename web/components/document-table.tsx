@@ -11,6 +11,9 @@ export type DocumentTableRow = {
   fileName: string;
   pageCount: number;
   status: string;
+  lifecycleState?: string;
+  retrievalEligible?: boolean;
+  statusReason?: string | null;
   errorMessage?: string | null;
   importError?: string | null;
   createdAt: string;
@@ -199,14 +202,16 @@ export function DocumentTable({
                   </td>
                 </tr>
               ) : (
-                documents.map((document) => (
+                documents.map((document) => {
+                  const excluded = document.lifecycleState === "excluded";
+                  return (
                   <tr key={document.id} className="border-b border-[var(--pi-border)]/70 last:border-0">
                     <td className="px-5 py-4 font-medium text-[var(--pi-ink)]">
                       <div className="flex max-w-[24rem] flex-col gap-1">
                         <span>{document.fileName}</span>
-                        {document.errorMessage || document.importError ? (
-                          <span className="line-clamp-2 text-xs font-normal text-[var(--pi-danger,#b91c1c)]">
-                            {document.errorMessage ?? document.importError}
+                        {document.statusReason || document.errorMessage || document.importError ? (
+                          <span className={`line-clamp-2 text-xs font-normal ${excluded ? "text-[var(--pi-muted)]" : "text-[var(--pi-danger,#b91c1c)]"}`}>
+                            {document.statusReason ?? document.errorMessage ?? document.importError}
                           </span>
                         ) : null}
                       </div>
@@ -219,7 +224,9 @@ export function DocumentTable({
                     <td className="px-5 py-4 text-[var(--pi-ink)]/90">{document.pageCount}</td>
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center rounded-md border border-[var(--pi-border)] bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[var(--pi-ink)]">
-                        {formatStatus(document.status, t("documents.statusUnknown"))}
+                        {excluded
+                          ? t("documents.excluded")
+                          : formatStatus(document.status, t("documents.statusUnknown"))}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-xs text-[var(--pi-muted)]">
@@ -243,14 +250,16 @@ export function DocumentTable({
                         <button
                           type="button"
                           onClick={() => void handleOpenIndexTree(document)}
-                          disabled={!document.hasIndexTree}
+                          disabled={excluded || !document.hasIndexTree}
                           aria-label={
-                            document.hasIndexTree
+                            !excluded && document.hasIndexTree
                               ? t("documents.viewTreeFor", { name: document.fileName })
                               : t("documents.treeUnavailableFor", { name: document.fileName })
                           }
                           title={
-                            document.hasIndexTree
+                            excluded
+                              ? t("documents.excludedAction")
+                              : document.hasIndexTree
                               ? typeof document.indexNodeCount === "number"
                                 ? t("documents.viewNodeCount", { count: document.indexNodeCount })
                                 : t("documents.viewTree")
@@ -263,8 +272,9 @@ export function DocumentTable({
                         <button
                           type="button"
                           onClick={() => void handleReindex(document)}
-                          disabled={pendingReindexId === document.id}
+                          disabled={excluded || pendingReindexId === document.id}
                           aria-label={t("documents.reindex", { name: document.fileName })}
+                          title={excluded ? t("documents.excludedAction") : undefined}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <RefreshCcw className={`h-4 w-4 ${pendingReindexId === document.id ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -272,7 +282,8 @@ export function DocumentTable({
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

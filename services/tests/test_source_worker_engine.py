@@ -12,6 +12,7 @@ from services.source_worker.engine import (
 )
 from services.source_worker.models import (
     CollectionDescriptor,
+    ExclusionPlan,
     SourceAccessDenied,
     SourceItemMetadata,
 )
@@ -26,6 +27,32 @@ def _create_db(tmp_path: Path) -> Path:
     db_path = tmp_path / "app.db"
     conn = sqlite3.connect(db_path)
     conn.executescript(_schema_sql())
+    columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(source_collections)").fetchall()
+    }
+    if "filter_revision" not in columns:
+        conn.execute(
+            "ALTER TABLE source_collections ADD COLUMN filter_revision INTEGER NOT NULL DEFAULT 1"
+        )
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(sync_runs)").fetchall()}
+    if "collection_filter_revision" not in columns:
+        conn.execute(
+            "ALTER TABLE sync_runs ADD COLUMN collection_filter_revision INTEGER NOT NULL DEFAULT 1"
+        )
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS source_exclusion_rules (
+          id TEXT PRIMARY KEY,
+          source_id TEXT NOT NULL,
+          collection_id TEXT NOT NULL,
+          target_type TEXT NOT NULL,
+          target_external_id TEXT NOT NULL,
+          display_path TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE(collection_id, target_type, target_external_id)
+        );
+        """
+    )
     conn.close()
     return db_path
 
@@ -72,6 +99,52 @@ def _run_until_idle(engine: SourceWorkerEngine, limit: int = 10) -> None:
         if not any(summary.values()):
             return
     raise AssertionError("Source worker did not become idle")
+
+
+def _queue_sync(
+    conn: sqlite3.Connection,
+    collection_id: str,
+    run_id: str,
+    filter_revision: int,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO sync_runs (
+          id, source_id, collection_id, source_config_revision,
+          collection_filter_revision, trigger_kind, status, started_at
+        ) VALUES (?, 'src_local', ?, 1, ?, 'manual', 'queued', ?)
+        """,
+        (run_id, collection_id, filter_revision, "2026-01-02T00:00:00+00:00"),
+    )
+
+
+def _add_current_index(
+    conn: sqlite3.Connection,
+    document_id: str,
+    source_revision: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO document_indexes (
+          id, document_id, doc_name, doc_description, structure_json,
+          pages_json, index_version, indexed_at, source_revision, is_current
+        ) VALUES (?, ?, 'report.md', '', '[]', '[]', 'v1', ?, ?, 1)
+        """,
+        (
+            f"index_{document_id}",
+            document_id,
+            "2026-01-01T00:00:00+00:00",
+            source_revision,
+        ),
+    )
+    conn.execute(
+        "UPDATE documents SET status = 'ready', retrieval_eligible = 1 WHERE id = ?",
+        (document_id,),
+    )
+    conn.execute(
+        "UPDATE jobs SET status = 'completed' WHERE document_id = ?",
+        (document_id,),
+    )
 
 
 def test_validates_discovers_and_synchronizes_local_collections(tmp_path):
@@ -168,6 +241,299 @@ def test_only_a_complete_scan_marks_an_unseen_document_missing(tmp_path):
     conn.close()
 
 
+def test_excluded_folder_marks_known_descendants_seen_and_prunes_new_descendants(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    project = access_root / "Engineering"
+    archive = project / "archive"
+    archive.mkdir(parents=True)
+    (archive / "old.md").write_text("old", encoding="utf-8")
+    (archive / "purged.md").write_text("purged", encoding="utf-8")
+    (project / "current.md").write_text("current", encoding="utf-8")
+    _insert_local_source(db_path, access_root)
+    engine = SourceWorkerEngine(str(db_path), access_root)
+    _run_until_idle(engine)
+
+    conn = sqlite3.connect(db_path)
+    collection_id = conn.execute(
+        "SELECT id FROM source_collections WHERE external_id = 'Engineering'"
+    ).fetchone()[0]
+    conn.execute(
+        """
+        UPDATE source_items SET lifecycle_state = 'missing', deleted_at = ?
+         WHERE external_id = 'Engineering/archive/purged.md'
+        """,
+        ("2026-01-01T12:00:00+00:00",),
+    )
+    conn.execute(
+        """
+        UPDATE documents SET lifecycle_state = 'missing', retrieval_eligible = 0,
+               status = 'deleted', deleted_at = ?
+         WHERE source_item_external_id = 'Engineering/archive/purged.md'
+        """,
+        ("2026-01-01T12:00:00+00:00",),
+    )
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_archive', 'src_local', ?, 'folder',
+                  'Engineering/archive', 'archive', ?)
+        """,
+        (collection_id, "2026-01-02T00:00:00+00:00"),
+    )
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 2 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_excluded_folder", 2)
+    conn.commit()
+    conn.close()
+
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    known = conn.execute(
+        """
+        SELECT external_id, lifecycle_state, last_seen_run_id
+          FROM source_items WHERE collection_id = ? AND deleted_at IS NULL
+         ORDER BY external_id
+        """,
+        (collection_id,),
+    ).fetchall()
+    run = conn.execute(
+        "SELECT status, missing_item_count FROM sync_runs WHERE id = 'sync_excluded_folder'"
+    ).fetchone()
+    document = conn.execute(
+        """
+        SELECT lifecycle_state, retrieval_eligible
+          FROM documents WHERE source_item_external_id = 'Engineering/archive/old.md'
+        """
+    ).fetchone()
+    job = conn.execute(
+        """
+        SELECT status FROM jobs
+         WHERE document_id = (
+           SELECT id FROM documents
+            WHERE source_item_external_id = 'Engineering/archive/old.md'
+         )
+        """
+    ).fetchone()
+    purged = conn.execute(
+        """
+        SELECT si.lifecycle_state, si.deleted_at, d.lifecycle_state, d.deleted_at
+          FROM source_items si JOIN documents d ON d.source_item_id = si.id
+         WHERE si.external_id = 'Engineering/archive/purged.md'
+        """
+    ).fetchone()
+    conn.close()
+    assert known == [
+        ("Engineering/archive", "excluded", "sync_excluded_folder"),
+        ("Engineering/archive/old.md", "excluded", "sync_excluded_folder"),
+        ("Engineering/current.md", "active", "sync_excluded_folder"),
+    ]
+    assert run == ("completed", 0)
+    assert document == ("excluded", 0)
+    assert job == ("superseded",)
+    assert purged[0] == "missing"
+    assert purged[1] is not None
+    assert purged[2] == "missing"
+    assert purged[3] is not None
+
+    (archive / "new.md").write_text("new", encoding="utf-8")
+    conn = sqlite3.connect(db_path)
+    _queue_sync(conn, collection_id, "sync_still_excluded", 2)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+    conn = sqlite3.connect(db_path)
+    assert conn.execute(
+        "SELECT COUNT(*) FROM source_items WHERE external_id = 'Engineering/archive/new.md'"
+    ).fetchone() == (0,)
+
+    conn.execute("DELETE FROM source_exclusion_rules WHERE id = 'exclude_archive'")
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 3 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_restored_folder", 3)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+    conn = sqlite3.connect(db_path)
+    restored = conn.execute(
+        """
+        SELECT external_id, lifecycle_state FROM source_items
+         WHERE external_id LIKE 'Engineering/archive/%' ORDER BY external_id
+        """
+    ).fetchall()
+    conn.close()
+    assert restored == [
+        ("Engineering/archive/new.md", "active"),
+        ("Engineering/archive/old.md", "active"),
+        ("Engineering/archive/purged.md", "active"),
+    ]
+
+
+def test_unchanged_excluded_document_restores_retained_index_without_new_job(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    project = access_root / "Engineering"
+    project.mkdir(parents=True)
+    (project / "report.md").write_text("unchanged", encoding="utf-8")
+    _insert_local_source(db_path, access_root)
+    engine = SourceWorkerEngine(str(db_path), access_root)
+    _run_until_idle(engine)
+
+    conn = sqlite3.connect(db_path)
+    collection_id = conn.execute(
+        "SELECT id FROM source_collections WHERE external_id = 'Engineering'"
+    ).fetchone()[0]
+    document_id, source_revision = conn.execute(
+        "SELECT id, source_revision FROM documents WHERE source_item_external_id = 'Engineering/report.md'"
+    ).fetchone()
+    _add_current_index(conn, document_id, source_revision)
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_unchanged', 'src_local', ?, 'document',
+                  'Engineering/report.md', 'report.md', ?)
+        """,
+        (collection_id, "2026-01-02T00:00:00+00:00"),
+    )
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 2 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_exclude_unchanged", 2)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    conn.execute("DELETE FROM source_exclusion_rules WHERE id = 'exclude_unchanged'")
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 3 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_restore_unchanged", 3)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    document = conn.execute(
+        "SELECT lifecycle_state, retrieval_eligible, status FROM documents WHERE id = ?",
+        (document_id,),
+    ).fetchone()
+    index_state = conn.execute(
+        "SELECT is_current, retired_at FROM document_indexes WHERE document_id = ?",
+        (document_id,),
+    ).fetchone()
+    jobs = conn.execute(
+        "SELECT status FROM jobs WHERE document_id = ? ORDER BY created_at",
+        (document_id,),
+    ).fetchall()
+    conn.close()
+    assert document == ("active", 1, "ready")
+    assert index_state == (1, None)
+    assert jobs == [("completed",)]
+
+
+def test_document_changed_while_excluded_reindexes_when_rule_is_removed(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    project = access_root / "Engineering"
+    project.mkdir(parents=True)
+    report = project / "report.md"
+    report.write_text("old", encoding="utf-8")
+    _insert_local_source(db_path, access_root)
+    engine = SourceWorkerEngine(str(db_path), access_root)
+    _run_until_idle(engine)
+
+    conn = sqlite3.connect(db_path)
+    collection_id = conn.execute(
+        "SELECT id FROM source_collections WHERE external_id = 'Engineering'"
+    ).fetchone()[0]
+    document_id, original_revision = conn.execute(
+        "SELECT id, source_revision FROM documents WHERE source_item_external_id = 'Engineering/report.md'"
+    ).fetchone()
+    _add_current_index(conn, document_id, original_revision)
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_report', 'src_local', ?, 'document',
+                  'Engineering/report.md', 'report.md', ?)
+        """,
+        (collection_id, "2026-01-02T00:00:00+00:00"),
+    )
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 2 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_excluded_document", 2)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+
+    report.write_text("new revision with another size", encoding="utf-8")
+    conn = sqlite3.connect(db_path)
+    _queue_sync(conn, collection_id, "sync_excluded_changed", 2)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    excluded = conn.execute(
+        "SELECT lifecycle_state, retrieval_eligible, source_revision FROM documents WHERE id = ?",
+        (document_id,),
+    ).fetchone()
+    retained_index = conn.execute(
+        "SELECT is_current, source_revision FROM document_indexes WHERE document_id = ?",
+        (document_id,),
+    ).fetchone()
+    assert excluded[0:2] == ("excluded", 0)
+    assert excluded[2] != original_revision
+    assert retained_index == (1, original_revision)
+
+    conn.execute("DELETE FROM source_exclusion_rules WHERE id = 'exclude_report'")
+    conn.execute(
+        "UPDATE source_collections SET filter_revision = 3 WHERE id = ?",
+        (collection_id,),
+    )
+    _queue_sync(conn, collection_id, "sync_restored_document", 3)
+    conn.commit()
+    conn.close()
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    restored = conn.execute(
+        "SELECT lifecycle_state, retrieval_eligible, status, source_revision FROM documents WHERE id = ?",
+        (document_id,),
+    ).fetchone()
+    old_index = conn.execute(
+        "SELECT is_current, retired_at FROM document_indexes WHERE document_id = ?",
+        (document_id,),
+    ).fetchone()
+    queued = conn.execute(
+        """
+        SELECT status, expected_source_revision FROM jobs
+         WHERE document_id = ? ORDER BY created_at DESC LIMIT 1
+        """,
+        (document_id,),
+    ).fetchone()
+    conn.close()
+    assert restored[0:3] == ("active", 0, "uploaded")
+    assert old_index[0] == 0
+    assert old_index[1] is not None
+    assert queued == ("queued", restored[3])
+
+
 def test_failed_scan_preserves_previously_known_document_state(tmp_path):
     db_path = _create_db(tmp_path)
     access_root = tmp_path / "sources"
@@ -253,7 +619,9 @@ def test_stale_configuration_discards_staged_observations(tmp_path, monkeypatch)
     conn.close()
 
     class StaleConnector:
-        def scan_collection(self, collection: CollectionDescriptor):
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
             yield SourceItemMetadata(
                 external_id="A/report.md",
                 parent_external_id=None,
@@ -290,6 +658,378 @@ def test_stale_configuration_discards_staged_observations(tmp_path, monkeypatch)
     conn.close()
 
 
+def test_filter_revision_change_supersedes_run_and_queues_clean_follow_up(
+    tmp_path, monkeypatch
+):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    access_root.mkdir()
+    _insert_local_source(db_path, access_root, selection_policy="none")
+    now = "2026-01-01T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        UPDATE corpus_sources SET state = 'active', health_state = 'normal',
+               schedule_mode = 'manual', next_sync_at = NULL,
+               validation_requested_at = NULL WHERE id = 'src_local'
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, display_name, origin,
+          registration_state, validation_state, lifecycle_state, selected,
+          filter_revision, created_at, updated_at
+        ) VALUES ('collection_a', 'src_local', 'path:A', 'A', 'A', 'discovered',
+                  'active', 'valid', 'pending', 1, 1, ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO projects (
+          id, owner_user_id, name, source_id, source_collection_id,
+          lifecycle_state, retrieval_eligible, created_at, updated_at
+        ) VALUES ('proj_a', 'deployment', 'A', 'src_local', 'collection_a',
+                  'pending', 0, ?, ?)
+        """,
+        (now, now),
+    )
+    _queue_sync(conn, "collection_a", "sync_filter_stale", 1)
+    conn.commit()
+    conn.close()
+
+    class FilterChangingConnector:
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
+            assert exclusions == ExclusionPlan()
+            yield SourceItemMetadata(
+                external_id="A/report.md",
+                parent_external_id=None,
+                item_type="document",
+                name="report.md",
+                relative_path="report.md",
+                mime_type="text/markdown",
+                size_bytes=10,
+                source_revision="local:1:10",
+                fetch_locator="/tmp/report.md",
+                media_type="markdown",
+            )
+            connection = sqlite3.connect(db_path)
+            connection.execute(
+                "UPDATE source_collections SET filter_revision = 2 WHERE id = 'collection_a'"
+            )
+            connection.commit()
+            connection.close()
+
+    monkeypatch.setattr(
+        "services.source_worker.engine.build_connector",
+        lambda source, local_access_root, credentials=None: FilterChangingConnector(),
+    )
+    result = SourceWorkerEngine(str(db_path), access_root).run_once()
+
+    conn = sqlite3.connect(db_path)
+    runs = conn.execute(
+        """
+        SELECT status, collection_filter_revision FROM sync_runs
+         WHERE collection_id = 'collection_a' ORDER BY started_at, id
+        """
+    ).fetchall()
+    source = conn.execute(
+        "SELECT health_state, consecutive_failure_count FROM corpus_sources WHERE id = 'src_local'"
+    ).fetchone()
+    observations = conn.execute("SELECT COUNT(*) FROM sync_run_observations").fetchone()
+    documents = conn.execute("SELECT COUNT(*) FROM documents").fetchone()
+    conn.close()
+    assert result["failed"] == 0
+    assert runs == [("superseded", 1), ("queued", 2)]
+    assert source == ("normal", 0)
+    assert observations == (0,)
+    assert documents == (0,)
+
+
+def test_collection_exclusion_supersedes_queued_sync_without_claiming_it(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    (access_root / "A").mkdir(parents=True)
+    _insert_local_source(db_path, access_root, selection_policy="none")
+    now = "2026-01-01T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE corpus_sources SET state = 'active', validation_requested_at = NULL WHERE id = 'src_local'"
+    )
+    conn.execute(
+        """
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, display_name, origin,
+          registration_state, validation_state, lifecycle_state, selected,
+          filter_revision, created_at, updated_at
+        ) VALUES ('collection_excluded', 'src_local', 'path:A', 'A', 'A',
+                  'discovered', 'active', 'valid', 'excluded', 1, 2, ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_collection', 'src_local', 'collection_excluded',
+                  'collection', 'A', 'A', ?)
+        """,
+        (now,),
+    )
+    conn.execute(
+        """
+        INSERT INTO projects (
+          id, owner_user_id, name, source_id, source_collection_id,
+          lifecycle_state, retrieval_eligible, created_at, updated_at
+        ) VALUES ('project_excluded', 'deployment', 'A', 'src_local',
+                  'collection_excluded', 'excluded', 0, ?, ?)
+        """,
+        (now, now),
+    )
+    _queue_sync(conn, "collection_excluded", "sync_collection_excluded", 2)
+    conn.commit()
+    conn.close()
+
+    result = SourceWorkerEngine(str(db_path), access_root).run_once()
+
+    conn = sqlite3.connect(db_path)
+    run = conn.execute(
+        "SELECT status, error_summary FROM sync_runs WHERE id = 'sync_collection_excluded'"
+    ).fetchone()
+    run_count = conn.execute("SELECT COUNT(*) FROM sync_runs").fetchone()
+    conn.close()
+    assert result["synchronized"] == 0
+    assert result["failed"] == 0
+    assert run == ("superseded", None)
+    assert run_count == (1,)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("DELETE FROM source_exclusion_rules WHERE id = 'exclude_collection'")
+    conn.execute(
+        """
+        UPDATE source_collections SET filter_revision = 3, lifecycle_state = 'pending'
+         WHERE id = 'collection_excluded'
+        """
+    )
+    SourceWorkerEngine(str(db_path), access_root)._queue_sync_run_in_connection(
+        conn,
+        "src_local",
+        "collection_excluded",
+        1,
+        "manual",
+    )
+    conn.commit()
+    restored_run = conn.execute(
+        """
+        SELECT status, collection_filter_revision FROM sync_runs
+         WHERE id <> 'sync_collection_excluded'
+        """
+    ).fetchone()
+    conn.close()
+    assert tuple(restored_run) == ("queued", 3)
+
+    result = SourceWorkerEngine(str(db_path), access_root).run_once()
+    conn = sqlite3.connect(db_path)
+    restored = conn.execute(
+        """
+        SELECT c.lifecycle_state, p.lifecycle_state, p.retrieval_eligible
+          FROM source_collections c
+          JOIN projects p ON p.source_collection_id = c.id
+         WHERE c.id = 'collection_excluded'
+        """
+    ).fetchone()
+    conn.close()
+    assert result["synchronized"] == 1
+    assert restored == ("active", "active", 1)
+
+
+def test_excluded_registered_collection_creates_project_before_restoration(
+    tmp_path, monkeypatch
+):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    access_root.mkdir()
+    _insert_local_source(db_path, access_root, selection_policy="all")
+    now = "2026-01-01T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        UPDATE corpus_sources
+           SET state = 'active', schedule_mode = 'manual', next_sync_at = NULL,
+               validation_requested_at = NULL
+         WHERE id = 'src_local'
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, root_external_id, display_name,
+          origin, registration_state, validation_state, lifecycle_state, selected,
+          filter_revision, created_at, updated_at
+        ) VALUES ('collection_registered', 'src_local', 'registered:A', 'A', 'A',
+                  'Registered A', 'registered', 'active', 'unvalidated', 'excluded',
+                  0, 2, ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_registered', 'src_local', 'collection_registered',
+                  'collection', 'A', 'Registered A', ?)
+        """,
+        (now,),
+    )
+    conn.commit()
+    conn.close()
+
+    class RegisteredConnector:
+        def validate_collection(self, collection: CollectionDescriptor) -> None:
+            assert collection.external_id == "A"
+
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
+            yield SourceItemMetadata(
+                external_id="A/report.md",
+                parent_external_id=None,
+                item_type="document",
+                name="report.md",
+                relative_path="report.md",
+                mime_type="text/markdown",
+                size_bytes=10,
+                source_revision="registered:1:10",
+                fetch_locator="/tmp/report.md",
+                media_type="markdown",
+            )
+
+    monkeypatch.setattr(
+        "services.source_worker.engine.build_connector",
+        lambda source, local_access_root, credentials=None: RegisteredConnector(),
+    )
+    engine = SourceWorkerEngine(str(db_path), access_root)
+
+    engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    excluded_state = conn.execute(
+        """
+        SELECT c.validation_state, c.selected, c.lifecycle_state,
+               p.lifecycle_state, p.retrieval_eligible
+          FROM source_collections c
+          JOIN projects p ON p.source_collection_id = c.id
+         WHERE c.id = 'collection_registered'
+        """
+    ).fetchone()
+    assert excluded_state == ("valid", 1, "excluded", "excluded", 0)
+
+    conn.row_factory = sqlite3.Row
+    conn.execute("DELETE FROM source_exclusion_rules WHERE id = 'exclude_registered'")
+    conn.execute(
+        """
+        UPDATE source_collections
+           SET filter_revision = 3, lifecycle_state = 'pending'
+         WHERE id = 'collection_registered'
+        """
+    )
+    engine._queue_sync_run_in_connection(
+        conn,
+        "src_local",
+        "collection_registered",
+        1,
+        "manual",
+    )
+    conn.commit()
+    conn.close()
+
+    result = engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    restored_state = conn.execute(
+        """
+        SELECT c.lifecycle_state, p.lifecycle_state, p.retrieval_eligible
+          FROM source_collections c
+          JOIN projects p ON p.source_collection_id = c.id
+         WHERE c.id = 'collection_registered'
+        """
+    ).fetchone()
+    document = conn.execute(
+        """
+        SELECT lifecycle_state, status
+          FROM documents WHERE source_item_external_id = 'A/report.md'
+        """
+    ).fetchone()
+    conn.close()
+
+    assert result["synchronized"] == 1
+    assert restored_state == ("active", "active", 1)
+    assert document == ("active", "uploaded")
+
+
+def test_excluded_discovered_collection_creates_selected_project(tmp_path):
+    db_path = _create_db(tmp_path)
+    access_root = tmp_path / "sources"
+    access_root.mkdir()
+    _insert_local_source(db_path, access_root, selection_policy="all")
+    now = "2026-01-01T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, display_name, origin,
+          registration_state, validation_state, lifecycle_state, selected,
+          filter_revision, created_at, updated_at
+        ) VALUES ('collection_discovered', 'src_local', 'path:A', 'A', 'A',
+                  'discovered', 'active', 'valid', 'inactive', 0, 2, ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO source_exclusion_rules (
+          id, source_id, collection_id, target_type, target_external_id,
+          display_path, created_at
+        ) VALUES ('exclude_discovered', 'src_local', 'collection_discovered',
+                  'collection', 'A', 'A', ?)
+        """,
+        (now,),
+    )
+    conn.commit()
+    conn.close()
+
+    SourceWorkerEngine(str(db_path), access_root)._upsert_discovered_collection(
+        {"id": "src_local", "selection_policy": "all"},
+        "discovery_1",
+        CollectionDescriptor(
+            identity_key="path:A",
+            external_id="A",
+            root_external_id=None,
+            display_name="A",
+        ),
+    )
+
+    conn = sqlite3.connect(db_path)
+    state = conn.execute(
+        """
+        SELECT c.selected, c.lifecycle_state,
+               p.lifecycle_state, p.retrieval_eligible
+          FROM source_collections c
+          JOIN projects p ON p.source_collection_id = c.id
+         WHERE c.id = 'collection_discovered'
+        """
+    ).fetchone()
+    conn.close()
+
+    assert state == (1, "excluded", "excluded", 0)
+
+
 def test_collection_access_denial_immediately_fences_project_and_queued_jobs(
     tmp_path, monkeypatch
 ):
@@ -323,7 +1063,9 @@ def test_collection_access_denial_immediately_fences_project_and_queued_jobs(
     conn.close()
 
     class DeniedConnector:
-        def scan_collection(self, collection: CollectionDescriptor):
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
             raise SourceAccessDenied(
                 "collection",
                 collection.external_id,
@@ -566,7 +1308,9 @@ def test_partial_traversal_failure_discards_observations_and_preserves_documents
     conn.close()
 
     class PartialConnector:
-        def scan_collection(self, collection: CollectionDescriptor):
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
             for index in range(OBSERVATION_BATCH_SIZE):
                 yield SourceItemMetadata(
                     external_id=f"partial-{index}",
@@ -658,7 +1402,9 @@ def test_seeyon_replacement_keeps_document_identity_and_queues_new_revision(
         file_id = "-97296373722364001"
         size = 11818
 
-        def scan_collection(self, collection: CollectionDescriptor):
+        def scan_collection(
+            self, collection: CollectionDescriptor, exclusions: ExclusionPlan
+        ):
             yield SourceItemMetadata(
                 external_id="5194972540313029554",
                 parent_external_id=None,

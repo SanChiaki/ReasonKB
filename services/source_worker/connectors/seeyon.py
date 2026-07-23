@@ -14,7 +14,9 @@ from typing import BinaryIO, Callable, Iterator
 
 from services.common.source_formats import media_type_for_name
 from services.source_worker.models import (
+    EMPTY_EXCLUSION_PLAN,
     CollectionDescriptor,
+    ExclusionPlan,
     SourceAccessDenied,
     SourceItemMetadata,
 )
@@ -145,7 +147,11 @@ class SeeyonConnector:
                 ) from error
             raise
 
-    def scan_collection(self, collection: CollectionDescriptor) -> Iterator[SourceItemMetadata]:
+    def scan_collection(
+        self,
+        collection: CollectionDescriptor,
+        exclusions: ExclusionPlan = EMPTY_EXCLUSION_PLAN,
+    ) -> Iterator[SourceItemMetadata]:
         if not collection.root_external_id:
             raise SeeyonError("Seeyon Collection Registration is missing rootArchiveId")
         yield from self._walk_archive(
@@ -153,6 +159,7 @@ class SeeyonConnector:
             None,
             PurePosixPath(),
             is_collection_root=True,
+            exclusions=exclusions,
         )
 
     def _walk_archive(
@@ -162,6 +169,7 @@ class SeeyonConnector:
         relative_root: PurePosixPath,
         *,
         is_collection_root: bool = False,
+        exclusions: ExclusionPlan = EMPTY_EXCLUSION_PLAN,
     ) -> Iterator[SourceItemMetadata]:
         page_number = 1
         while True:
@@ -194,7 +202,14 @@ class SeeyonConnector:
                         relative_path=relative_path.as_posix(),
                         metadata={"frType": raw.get("fr_type")},
                     )
-                    yield from self._walk_archive(item_id, item_id, relative_path)
+                    if exclusions.excludes(item_id, "folder"):
+                        continue
+                    yield from self._walk_archive(
+                        item_id,
+                        item_id,
+                        relative_path,
+                        exclusions=exclusions,
+                    )
                     continue
                 size = self._integer(raw.get("fr_size"), "fr_size")
                 if raw.get("file_id") is None:

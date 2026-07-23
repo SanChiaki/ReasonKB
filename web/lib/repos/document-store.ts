@@ -274,6 +274,8 @@ type DocumentListRow = {
   media_type: string;
   import_status: string;
   import_error: string | null;
+  lifecycle_state: string;
+  retrieval_eligible: number;
   last_index_duration_ms: number | null;
   last_index_total_tokens: number | null;
   last_index_llm_call_count: number | null;
@@ -285,7 +287,8 @@ const DOCUMENT_LIST_COLUMNS_SQL = `
   d.id, d.file_name, d.page_count, d.status, d.created_at, d.updated_at,
   d.error_message, d.source_kind, d.source_relative_path, d.project_relative_path,
   d.media_type, d.import_status, d.import_error, d.last_index_duration_ms,
-  d.last_index_total_tokens, d.last_index_llm_call_count, d.last_indexed_at
+  d.last_index_total_tokens, d.last_index_llm_call_count, d.last_indexed_at,
+  d.lifecycle_state, d.retrieval_eligible
 `;
 
 function documentListView(row: DocumentListRow) {
@@ -301,6 +304,12 @@ function documentListView(row: DocumentListRow) {
     mediaType: row.media_type,
     importStatus: row.import_status,
     importError: row.import_error,
+    lifecycleState: row.lifecycle_state,
+    retrievalEligible: Boolean(row.retrieval_eligible),
+    statusReason:
+      row.lifecycle_state === "excluded"
+        ? "Excluded by a source exclusion rule."
+        : row.import_error ?? row.error_message,
     lastIndexDurationMs: row.last_index_duration_ms,
     lastIndexTotalTokens: row.last_index_total_tokens,
     lastIndexLlmCallCount: row.last_index_llm_call_count,
