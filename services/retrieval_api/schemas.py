@@ -12,6 +12,9 @@ class Citation(BaseModel):
     projectName: str
     documentId: str
     documentName: str
+    documentUrl: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     sourceDisplayName: str | None = None
     sourceKind: str | None = None
     pages: str
@@ -29,6 +32,9 @@ class EvidenceItem(BaseModel):
     projectName: str
     documentId: str
     documentName: str
+    documentUrl: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     sourceDisplayName: str | None = None
     sourceKind: str | None = None
     sourceRelativePath: str | None = None

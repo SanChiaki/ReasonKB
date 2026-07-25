@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
+import { ExternalLink } from "lucide-react";
 import { CitationList, type CitationItem } from "@/components/citation-list";
+import { normalizeDocumentUrl } from "@/lib/document-url";
 import { useI18n } from "@/lib/i18n";
 import type { RetrievalEvidence } from "@/lib/retrieval-client";
 
@@ -10,6 +12,7 @@ export type RetrievalProgressDocument = {
   documentName?: string;
   projectName?: string;
   sourceRelativePath?: string | null;
+  documentUrl?: string | null;
 };
 
 export type ChatProgressLine = {
@@ -46,6 +49,7 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
       {evidence.map((item, index) => {
         const path =
           item.projectRelativePath ?? item.sourceRelativePath ?? item.documentName ?? t("chat.evidence");
+        const documentUrl = normalizeDocumentUrl(item.documentUrl);
         return (
           <section
             key={`${item.documentName}-${item.pages}-${index}`}
@@ -56,7 +60,22 @@ function EvidenceList({ evidence }: { evidence: RetrievalEvidence[] }) {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--pi-muted)]">
                   {t("chat.evidence")} · {item.evidenceKind}
                 </p>
-                <h3 className="mt-1 text-sm font-semibold text-[var(--pi-ink)]">{path}</h3>
+                <h3 className="mt-1 text-sm font-semibold text-[var(--pi-ink)]">
+                  {documentUrl ? (
+                    <a
+                      href={documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--pi-brand)] hover:underline"
+                      title={item.documentName}
+                    >
+                      {path}
+                      <ExternalLink className="ml-1 inline-block h-3 w-3" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    path
+                  )}
+                </h3>
                 <p className="mt-1 text-xs text-[var(--pi-muted)]">
                   {item.projectName} / {item.documentName} / {t("chat.pages")} {item.pages}
                 </p>
@@ -192,14 +211,28 @@ function RetrievalProgressMessage({
             {t("chat.progressSelectedDocuments")}
           </p>
           <div className="flex flex-wrap gap-2">
-            {progress.documents.map((document, index) => (
-              <span
-                key={`${document.documentId ?? document.documentName ?? "document"}-${index}`}
-                className="rounded-md bg-[var(--pi-bg)] px-2.5 py-1 text-xs text-[var(--pi-ink)]"
-              >
-                {documentLabel(document, t("common.unknown"))}
-              </span>
-            ))}
+            {progress.documents.map((document, index) => {
+              const key = `${document.documentId ?? document.documentName ?? "document"}-${index}`;
+              const documentUrl = normalizeDocumentUrl(document.documentUrl);
+              return documentUrl ? (
+                <a
+                  key={key}
+                  href={documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md bg-[var(--pi-bg)] px-2.5 py-1 text-xs text-[var(--pi-brand)] hover:underline"
+                >
+                  {documentLabel(document, t("common.unknown"))}
+                </a>
+              ) : (
+                <span
+                  key={key}
+                  className="rounded-md bg-[var(--pi-bg)] px-2.5 py-1 text-xs text-[var(--pi-ink)]"
+                >
+                  {documentLabel(document, t("common.unknown"))}
+                </span>
+              );
+            })}
           </div>
         </div>
       ) : null}

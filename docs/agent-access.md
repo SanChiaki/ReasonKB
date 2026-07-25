@@ -113,6 +113,15 @@ The source-checkout MCP configuration points directly to
 - `reasonkb_get_pages`
 - `reasonkb_get_structure`
 
+Query citations and evidence items may include an optional `documentUrl`. It
+is present only when an original-document link is available. For Seeyon
+sources, it points to the original document viewer and is built from the
+source endpoint and the document's stable `fr_id`. Local and SMB sources do
+not expose `file://` or server-only paths as browser links. The Seeyon viewer
+URL intentionally omits the `v` parameter because that value is
+session-dependent and is not returned by the document-list API; the viewer
+still applies its normal Seeyon login and permission checks.
+
 The Docker installer stores the API Key hash pepper at
 `~/.reasonkb/secrets/api_key_pepper`. Back it up with the SQLite database.
 Changing or losing it invalidates every existing API Key.

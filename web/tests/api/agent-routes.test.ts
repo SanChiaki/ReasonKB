@@ -147,7 +147,16 @@ describe("agent routes", () => {
     });
     const sendRetrievalQuery = vi.fn().mockResolvedValue({
       answer: "answer",
-      citations: [],
+      citations: [
+        {
+          projectId: alpha.id,
+          projectName: "Alpha",
+          documentId: "doc_seeyon",
+          documentName: "Seeyon.pdf",
+          documentUrl: "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon",
+          pages: "1",
+        },
+      ],
       selectedDocuments: [],
       evidence: [],
     });
@@ -174,10 +183,68 @@ describe("agent routes", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty(
+      "citations.0.documentUrl",
+      "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon",
+    );
     expect(sendRetrievalQuery).toHaveBeenCalledWith({
       query: "What changed?",
       projectIds: [alpha.id],
       mode: "answer",
+    });
+  });
+
+  it("preserves original-document links in evidence responses", async () => {
+    const dbPath = makeTempDb();
+    mockConfig(dbPath);
+    const alpha = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const documentUrl = "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon";
+    const sendRetrievalQuery = vi.fn().mockResolvedValue({
+      answer: "",
+      citations: [],
+      selectedDocuments: [{ documentId: "doc_seeyon" }],
+      evidence: [
+        {
+          projectId: alpha.id,
+          projectName: "Alpha",
+          documentId: "doc_seeyon",
+          documentName: "Seeyon.pdf",
+          documentUrl,
+          pages: "1",
+          evidenceKind: "pdf_text",
+          content: "Evidence",
+        },
+      ],
+    });
+    vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQuery }));
+    const key = createApiKey(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Evidence",
+      scopes: ["evidence"],
+      projectIds: [alpha.id],
+    });
+
+    const { POST } = await import("@/app/api/agent/evidence/route");
+    const response = await POST(
+      new Request("http://localhost/api/agent/evidence", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key.apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ query: "Show evidence" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty("evidence.0.documentUrl", documentUrl);
+    expect(sendRetrievalQuery).toHaveBeenCalledWith({
+      query: "Show evidence",
+      projectIds: [alpha.id],
+      mode: "evidence",
     });
   });
 

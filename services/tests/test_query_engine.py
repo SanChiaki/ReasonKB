@@ -7,7 +7,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from services.retrieval_api import query_engine
-from services.retrieval_api.query_engine import answer_question, build_citation
+from services.retrieval_api.query_engine import (
+    _build_seeyon_document_url,
+    answer_question,
+    build_citation,
+)
 from services.retrieval_api.schemas import QueryRequest
 
 
@@ -31,6 +35,24 @@ def test_build_citation_includes_project_and_pages():
     }
 
 
+def test_build_seeyon_document_url_uses_fr_id_and_omits_endpoint_credentials():
+    assert _build_seeyon_document_url(
+        "https://oa.example.test/seeyon/?ignored=secret#fragment",
+        "5194972540313029554",
+    ) == (
+        "https://oa.example.test/seeyon/doc.do?"
+        "method=knowledgeBrowse&docResId=5194972540313029554&entranceType=5&"
+        "docId=5194972540313029554"
+    )
+    assert _build_seeyon_document_url("https://oa.example.test", "fr id/1") == (
+        "https://oa.example.test/seeyon/doc.do?"
+        "method=knowledgeBrowse&docResId=fr+id%2F1&entranceType=5&docId=fr+id%2F1"
+    )
+    assert _build_seeyon_document_url("https://user:password@oa.example.test", "fr_1") is None
+    assert _build_seeyon_document_url("file:///tmp/seeyon", "fr_1") is None
+    assert _build_seeyon_document_url("https://oa.example.test", "") is None
+
+
 def _schema_sql() -> str:
     repo_root = Path(__file__).resolve().parents[2]
     schema_path = repo_root / "web" / "lib" / "db" / "schema.sql"
@@ -52,6 +74,32 @@ def _seed_retrieval_db(tmp_path: Path) -> Path:
     conn.commit()
     conn.close()
     return db_path
+
+
+def _seed_seeyon_source(db_path: Path) -> None:
+    now = "2026-07-25T00:00:00Z"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """INSERT INTO corpus_sources
+           (id, kind, display_name, state, scope_json, config_json,
+            config_revision, selection_policy, schedule_mode,
+            max_document_size_bytes, health_state, created_at, updated_at)
+           VALUES ('src_seeyon', 'seeyon', 'Seeyon', 'active', ?, '{}', 1,
+                   'explicit', 'scheduled', 104857600, 'normal', ?, ?)""",
+        (json.dumps({"endpoint": "http://oa.example.test/seeyon/"}), now, now),
+    )
+    conn.execute(
+        """INSERT INTO source_collections
+           (id, source_id, identity_key, external_id, root_external_id,
+            display_name, origin, registration_state, validation_state,
+            lifecycle_state, selected, created_at, updated_at)
+           VALUES ('collection_seeyon', 'src_seeyon', 'seeyon:lib:root',
+                   'lib', 'root', 'Seeyon', 'manual', 'active', 'valid',
+                   'active', 1, ?, ?)""",
+        (now, now),
+    )
+    conn.commit()
+    conn.close()
 
 
 def _insert_ready_document(
@@ -122,6 +170,70 @@ def test_query_request_allows_omitting_project_ids():
     request = QueryRequest(query="生成终验交付报告", mode="evidence")
 
     assert request.projectIds == []
+
+
+def test_answer_question_includes_seeyon_document_url_in_citations_and_evidence(
+    tmp_path, monkeypatch
+):
+    db_path = _seed_retrieval_db(tmp_path)
+    _seed_seeyon_source(db_path)
+    _insert_ready_document(
+        db_path,
+        document_id="doc_seeyon",
+        file_name="龙田设备档案模板.xlsx",
+        doc_description="Seeyon evidence",
+        structure_json=json.dumps([{"title": "Evidence"}]),
+        pages_json=json.dumps([{"page": 1, "content": "Seeyon content"}]),
+        source_relative_path="龙田设备档案模板.xlsx",
+        project_relative_path="龙田设备档案模板.xlsx",
+    )
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """UPDATE documents
+              SET source_kind = 'seeyon', source_id = 'src_seeyon',
+                  source_collection_id = 'collection_seeyon',
+                  source_item_external_id = '5194972540313029554'
+            WHERE id = 'doc_seeyon'""",
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.select_candidate_documents",
+        lambda _query, docs, limit=5, model=None: docs[:1],
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine.choose_page_window",
+        lambda _query, _doc: "1",
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine._load_page_excerpt",
+        lambda _document, _pages: [{"page": 1, "content": "Seeyon content"}],
+    )
+    monkeypatch.setattr(
+        "services.retrieval_api.query_engine._generate_answer",
+        lambda _query, _blocks: "Seeyon answer",
+    )
+
+    expected_url = (
+        "http://oa.example.test/seeyon/doc.do?"
+        "method=knowledgeBrowse&docResId=5194972540313029554&entranceType=5&"
+        "docId=5194972540313029554"
+    )
+    answer_result = answer_question(str(db_path), "find the document")
+    assert answer_result["citations"][0]["documentUrl"] == expected_url
+    assert answer_result["selectedDocuments"] == [{"documentId": "doc_seeyon"}]
+
+    evidence_result = answer_question(
+        str(db_path), "find the document", mode="evidence"
+    )
+    assert evidence_result["evidence"][0]["documentUrl"] == expected_url
+    assert evidence_result["selectedDocuments"] == [
+        {
+            "documentId": "doc_seeyon",
+            "sourceRelativePath": "龙田设备档案模板.xlsx",
+        }
+    ]
 
 
 def test_answer_question_searches_all_projects_when_project_ids_are_empty(
