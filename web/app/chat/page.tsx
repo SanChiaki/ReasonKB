@@ -17,10 +17,8 @@ import {
 import { getConversationDetail, listConversations } from "@/lib/repos/conversation-store";
 import { listProjects } from "@/lib/repos/project-store";
 import { getSystemSettings } from "@/lib/repos/system-settings-store";
-import {
-  isPersistedRetrievalProgress,
-  type RetrievalEvidence,
-} from "@/lib/retrieval-client";
+import { normalizeDocumentUrl } from "@/lib/document-url";
+import { isPersistedRetrievalProgress, type RetrievalEvidence } from "@/lib/retrieval-client";
 
 const demoUserId = "user_demo";
 const settingsDefaults = {
@@ -60,6 +58,7 @@ function toCitation(value: unknown): CitationItem | null {
     projectName: candidate.projectName,
     documentId: typeof candidate.documentId === "string" ? candidate.documentId : undefined,
     documentName: candidate.documentName,
+    documentUrl: normalizeDocumentUrl(candidate.documentUrl),
     sourceDisplayName:
       typeof candidate.sourceDisplayName === "string" ? candidate.sourceDisplayName : null,
     sourceKind: typeof candidate.sourceKind === "string" ? candidate.sourceKind : null,
@@ -97,6 +96,7 @@ function toEvidence(value: unknown): RetrievalEvidence | null {
     projectName: candidate.projectName,
     documentId: typeof candidate.documentId === "string" ? candidate.documentId : undefined,
     documentName: candidate.documentName,
+    documentUrl: normalizeDocumentUrl(candidate.documentUrl),
     sourceDisplayName:
       typeof candidate.sourceDisplayName === "string" ? candidate.sourceDisplayName : null,
     sourceKind: typeof candidate.sourceKind === "string" ? candidate.sourceKind : null,
@@ -131,7 +131,10 @@ function toProgressState(values: unknown[]): ChatProgressState | undefined {
   }));
   return {
     lines,
-    documents: progress.documents,
+    documents: progress.documents.map((document) => ({
+      ...document,
+      documentUrl: normalizeDocumentUrl(document.documentUrl),
+    })),
   };
 }
 

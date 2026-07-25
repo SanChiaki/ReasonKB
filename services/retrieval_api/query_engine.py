@@ -4,6 +4,7 @@ from functools import lru_cache
 import logging
 import re
 from typing import Any, Iterable
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from services.common.pageindex_runtime import configure_pageindex_runtime
 from services.common.sqlite_store import open_db
@@ -36,10 +37,62 @@ def _document_summary(document: dict[str, Any]) -> dict[str, Any]:
         "projectName": document["project_name"],
         "sourceRelativePath": document.get("source_relative_path"),
     }
+    if document.get("document_url"):
+        summary["documentUrl"] = document["document_url"]
     if document.get("source_display_name"):
         summary["sourceDisplayName"] = document["source_display_name"]
         summary["sourceKind"] = document.get("source_kind")
     return summary
+
+
+def _build_seeyon_document_url(
+    endpoint: object,
+    external_id: object,
+) -> str | None:
+    """Build a browser URL from the stable Seeyon document resource ID."""
+    if not isinstance(endpoint, str) or not endpoint.strip():
+        return None
+    if not isinstance(external_id, (str, int)) or not str(external_id).strip():
+        return None
+
+    try:
+        parsed = urlsplit(endpoint.strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return None
+        if parsed.username is not None or parsed.password is not None:
+            return None
+        port = parsed.port
+    except ValueError:
+        return None
+
+    hostname = parsed.hostname
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = f"[{hostname}]"
+    netloc = hostname if port is None else f"{hostname}:{port}"
+    path = parsed.path.rstrip("/")
+    if not path.endswith("/seeyon"):
+        path = f"{path}/seeyon" if path else "/seeyon"
+    path = f"{path}/doc.do"
+    base_url = urlunsplit((parsed.scheme, netloc, path, "", ""))
+    resource_id = str(external_id).strip()
+    query = urlencode(
+        {
+            "method": "knowledgeBrowse",
+            "docResId": resource_id,
+            "entranceType": "5",
+            "docId": resource_id,
+        }
+    )
+    return f"{base_url}?{query}"
+
+
+def _document_url(document: dict[str, Any]) -> str | None:
+    if document.get("source_kind") != "seeyon":
+        return None
+    return _build_seeyon_document_url(
+        document.get("source_endpoint"),
+        document.get("source_item_external_id"),
+    )
 
 
 @lru_cache(maxsize=1)
@@ -54,7 +107,7 @@ _LATIN_RE = re.compile(r"[a-z0-9]+")
 
 def build_citation(
     project: dict[str, str],
-    document: dict[str, str],
+    document: dict[str, Any],
     pages: str,
     *,
     focus_page: int | None = None,
@@ -70,6 +123,8 @@ def build_citation(
     if project.get("sourceDisplayName"):
         citation["sourceDisplayName"] = project["sourceDisplayName"]
         citation["sourceKind"] = project.get("sourceKind")
+    if document.get("document_url"):
+        citation["documentUrl"] = document["document_url"]
     if focus_page is not None:
         citation["focusPage"] = focus_page
     if excerpt:
@@ -405,7 +460,11 @@ def _build_document_evidence(
                     "sourceDisplayName": document.get("source_display_name"),
                     "sourceKind": document.get("source_kind"),
                 },
-                document={"id": document["id"], "file_name": document["file_name"]},
+                document={
+                    "id": document["id"],
+                    "file_name": document["file_name"],
+                    "document_url": document.get("document_url"),
+                },
                 pages=pages,
                 focus_page=focus_page,
                 excerpt=excerpt,
@@ -423,6 +482,8 @@ def _build_document_evidence(
             "content": _join_evidence_content(evidence),
             "visualAssets": document.get("visual_assets", []),
         }
+        if document.get("document_url"):
+            evidence_block["documentUrl"] = document["document_url"]
         if document.get("source_display_name"):
             evidence_block["sourceDisplayName"] = document["source_display_name"]
             evidence_block["sourceKind"] = document.get("source_kind")
@@ -472,7 +533,9 @@ def _load_ready_documents(
             f"""
             SELECT d.id, d.project_id, d.file_name, p.name AS project_name,
                    d.source_relative_path, d.project_relative_path,
+                   d.source_item_external_id,
                    s.display_name AS source_display_name, s.kind AS source_kind,
+                   s.scope_json AS source_scope_json,
                    di.doc_description, di.structure_json, di.pages_json,
                    di.evidence_kind, di.visual_assets_json
               FROM documents d
@@ -511,23 +574,32 @@ def _load_ready_documents(
             continue
         if not isinstance(structure, list) or not isinstance(pages, list):
             continue
-        docs.append(
-            {
-                "id": row["id"],
-                "project_id": row["project_id"],
-                "project_name": row["project_name"],
-                "source_display_name": row["source_display_name"],
-                "source_kind": row["source_kind"],
-                "file_name": row["file_name"],
-                "source_relative_path": row["source_relative_path"],
-                "project_relative_path": row["project_relative_path"],
-                "doc_description": row["doc_description"],
-                "evidence_kind": row["evidence_kind"],
-                "visual_assets": _parse_json_list(row["visual_assets_json"]),
-                "structure": structure,
-                "pages": pages,
-            }
-        )
+        document = {
+            "id": row["id"],
+            "project_id": row["project_id"],
+            "project_name": row["project_name"],
+            "source_display_name": row["source_display_name"],
+            "source_kind": row["source_kind"],
+            "source_item_external_id": row["source_item_external_id"],
+            "source_endpoint": None,
+            "file_name": row["file_name"],
+            "source_relative_path": row["source_relative_path"],
+            "project_relative_path": row["project_relative_path"],
+            "doc_description": row["doc_description"],
+            "evidence_kind": row["evidence_kind"],
+            "visual_assets": _parse_json_list(row["visual_assets_json"]),
+            "structure": structure,
+            "pages": pages,
+        }
+        if row["source_kind"] == "seeyon":
+            try:
+                source_scope = json.loads(row["source_scope_json"] or "{}")
+            except (json.JSONDecodeError, TypeError):
+                source_scope = {}
+            if isinstance(source_scope, dict):
+                document["source_endpoint"] = source_scope.get("endpoint")
+        document["document_url"] = _document_url(document)
+        docs.append(document)
     return docs
 
 
@@ -655,7 +727,11 @@ def _build_document_evidence_events(
                     "sourceDisplayName": document.get("source_display_name"),
                     "sourceKind": document.get("source_kind"),
                 },
-                document={"id": document["id"], "file_name": document["file_name"]},
+                document={
+                    "id": document["id"],
+                    "file_name": document["file_name"],
+                    "document_url": document.get("document_url"),
+                },
                 pages=pages,
                 focus_page=focus_page,
                 excerpt=excerpt,
@@ -673,6 +749,8 @@ def _build_document_evidence_events(
             "content": _join_evidence_content(evidence),
             "visualAssets": document.get("visual_assets", []),
         }
+        if document.get("document_url"):
+            evidence_block["documentUrl"] = document["document_url"]
         if document.get("source_display_name"):
             evidence_block["sourceDisplayName"] = document["source_display_name"]
             evidence_block["sourceKind"] = document.get("source_kind")

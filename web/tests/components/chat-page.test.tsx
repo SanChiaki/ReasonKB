@@ -570,6 +570,7 @@ describe("Chat page components", () => {
               projectName: "Alpha",
               documentId: "doc_1",
               documentName: "Q1 Summary.pdf",
+              documentUrl: "https://oa.example.test/seeyon/doc.do?docId=doc_1",
               pages: "2-3",
               focusPage: 3,
               excerpt: "Revenue increased after the migration completed.",
@@ -581,12 +582,16 @@ describe("Chat page components", () => {
     );
 
     expect(screen.getByText("The revenue summary appears in two places.")).toBeVisible();
-    expect(
-      screen.getByText(/\[Alpha\] Q1 Summary\.pdf - pages 2-3 · focus page 3/i),
-    ).toBeVisible();
+    expect(screen.getByRole("link", { name: /Q1 Summary\.pdf/i })).toBeVisible();
     expect(
       screen.getByText("Revenue increased after the migration completed."),
     ).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /Q1 Summary\.pdf/i }),
+    ).toHaveAttribute(
+      "href",
+      "https://oa.example.test/seeyon/doc.do?docId=doc_1",
+    );
   });
 
   it("uses document names instead of opaque source IDs in retrieval progress", () => {
@@ -595,6 +600,7 @@ describe("Chat page components", () => {
       documentName: "龙田设备档案模板.xlsx",
       projectName: "单位文档",
       sourceRelativePath: "5194972540313029554",
+      documentUrl: "https://oa.example.test/seeyon/doc.do?docId=5194972540313029554",
     };
 
     render(
@@ -628,6 +634,12 @@ describe("Chat page components", () => {
     expect(progress).toHaveTextContent("Selected pages 1-3 in 龙田设备档案模板.xlsx.");
     expect(progress).toHaveTextContent("Loaded evidence from 龙田设备档案模板.xlsx.");
     expect(progress).not.toHaveTextContent("5194972540313029554");
+    expect(
+      screen.getByRole("link", { name: "龙田设备档案模板.xlsx" }),
+    ).toHaveAttribute(
+      "href",
+      "https://oa.example.test/seeyon/doc.do?docId=5194972540313029554",
+    );
   });
 
   it("renders user messages as right-aligned bubbles", () => {
@@ -932,6 +944,7 @@ describe("Chat page components", () => {
               {
                 projectName: "Alpha",
                 documentName: "handover.md",
+                documentUrl: "https://oa.example.test/seeyon/doc.do?docId=doc_2",
                 sourceRelativePath: "Alpha/delivery/handover.md",
                 projectRelativePath: "delivery/handover.md",
                 pages: "1",
@@ -946,7 +959,10 @@ describe("Chat page components", () => {
     );
 
     expect(screen.getByText("Evidence mode returned 1 item.")).toBeVisible();
-    expect(screen.getByText("delivery/handover.md")).toBeVisible();
+    expect(screen.getByRole("link", { name: /delivery\/handover\.md/i })).toHaveAttribute(
+      "href",
+      "https://oa.example.test/seeyon/doc.do?docId=doc_2",
+    );
     expect(screen.getByText("Acceptance evidence and handover notes.")).toBeVisible();
     expect(screen.queryByText(/\[Alpha\] handover\.md - pages 1/i)).not.toBeInTheDocument();
   });
