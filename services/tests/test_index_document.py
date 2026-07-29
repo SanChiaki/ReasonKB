@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.common.sqlite_store import open_db
+from services.common.system_settings import get_index_worker_concurrency
 from services.index_worker.index_document import process_document_job
 from services.index_worker.remote_fetch import (
     RemoteFetchError,
@@ -845,6 +846,59 @@ def test_start_queued_jobs_respects_available_slots(monkeypatch):
     assert started == ["job_1", "job_2"]
 
 
+def test_start_queued_jobs_uses_updated_concurrency_for_same_source_queue(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = _seed_queued_document_jobs_db(tmp_path, 3)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE projects SET source_id = 'source_1'")
+    conn.execute("UPDATE documents SET source_id = 'source_1'")
+    conn.execute("UPDATE jobs SET source_id = 'source_1'")
+    conn.execute(
+        "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?)",
+        ("indexWorkerConcurrency", "1", "2026-04-19T00:01:00Z"),
+    )
+    conn.commit()
+
+    started = []
+
+    def fake_start(db_path, job_id):
+        started.append(job_id)
+        return SimpleNamespace(job_id=job_id)
+
+    monkeypatch.setattr("services.index_worker.worker.start_document_job", fake_start)
+
+    active_jobs = {}
+    initial_concurrency = get_index_worker_concurrency(str(db_path), default=1)
+
+    assert initial_concurrency == 1
+    assert start_queued_jobs(
+        str(db_path),
+        active_jobs,
+        concurrency=initial_concurrency,
+    ) == 1
+    assert list(active_jobs) == ["job_1"]
+
+    conn.execute(
+        "UPDATE system_settings SET value_json = ?, updated_at = ? WHERE key = ?",
+        ("3", "2026-04-19T00:02:00Z", "indexWorkerConcurrency"),
+    )
+    conn.commit()
+    conn.close()
+
+    runtime_concurrency = get_index_worker_concurrency(str(db_path), default=1)
+
+    assert runtime_concurrency == 3
+    assert start_queued_jobs(
+        str(db_path),
+        active_jobs,
+        concurrency=runtime_concurrency,
+    ) == 2
+    assert list(active_jobs) == ["job_1", "job_2", "job_3"]
+    assert started == ["job_1", "job_2", "job_3"]
+
+
 def test_collect_finished_jobs_records_child_exception_message(tmp_path):
     db_path = _seed_single_document_job_db(tmp_path)
 
@@ -1168,10 +1222,12 @@ def test_claim_next_job_rotates_across_sources_at_same_priority(tmp_path):
 
     assert claim_next_job(str(db_path)) == "job_1"
     assert claim_next_job(str(db_path)) == "job_4"
+    assert claim_next_job(str(db_path)) == "job_2"
+    assert claim_next_job(str(db_path)) == "job_3"
     assert claim_next_job(str(db_path)) is None
 
 
-def test_claim_next_job_limits_each_source_to_one_running_job(tmp_path):
+def test_claim_next_job_allows_one_source_to_use_available_slots(tmp_path):
     db_path = _seed_queued_document_jobs_db(tmp_path, 3)
     conn = sqlite3.connect(db_path)
     conn.execute("UPDATE jobs SET source_id = 'src_a'")
@@ -1179,6 +1235,8 @@ def test_claim_next_job_limits_each_source_to_one_running_job(tmp_path):
     conn.close()
 
     assert claim_next_job(str(db_path)) == "job_1"
+    assert claim_next_job(str(db_path)) == "job_2"
+    assert claim_next_job(str(db_path)) == "job_3"
     assert claim_next_job(str(db_path)) is None
 
 

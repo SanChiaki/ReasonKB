@@ -36,7 +36,7 @@ Exit criteria: local sources can be added, selected, synchronized, disabled, re-
 ## Phase 4: Revision-Safe Index Pipeline
 
 - Generalize jobs to carry source, collection, document, expected Source Revision, Source Configuration Revision, priority, retry schedule, and eligibility generation.
-- Implement atomic job claims, per-source/project fairness, configurable global concurrency, and default per-source concurrency one.
+- Implement atomic job claims, per-source/project fairness, and configurable global concurrency that can be fully used by one source when other sources are idle.
 - Fetch through the connector into bounded temporary storage, verify transfer metadata and size, then reuse the existing conversion/PageIndex pipeline.
 - Exclude old indexes when a new revision appears and publish with compare-and-swap only while every revision and lifecycle fence still matches.
 - Coalesce duplicate revision jobs, supersede stale work, implement five transient retries, and clean temporary files on all outcomes.

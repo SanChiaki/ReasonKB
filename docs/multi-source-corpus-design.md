@@ -134,7 +134,7 @@ Only regular supported documents are fetched. Folder metadata is retained for hi
 
 Unsupported and oversized documents retain identity and metadata without fetching. The default maximum is 100 MiB per document, configurable per source up to a hard 1 GiB maximum. Transfers stream to temporary disk and enforce actual as well as declared size.
 
-Index priority is administrator work, revision refresh, first indexing, then retry, with fairness across sources and Projects. Each source defaults to one in-flight index job. Transient failures retry with jitter at approximately 1 minute, 5 minutes, 15 minutes, 1 hour, and 6 hours.
+Index priority is administrator work, revision refresh, first indexing, then retry, with fairness across sources and Projects. Global worker concurrency is the only hard claim limit; a source may use idle capacity while sources and Projects with fewer in-flight jobs remain preferred. Transient failures retry with jitter at approximately 1 minute, 5 minutes, 15 minutes, 1 hour, and 6 hours.
 
 Retention rules:
 

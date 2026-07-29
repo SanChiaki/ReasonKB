@@ -38,13 +38,6 @@ def claim_next_job(db_path: str, worker_id: str = "index-worker"):
                WHERE type = 'document_index'
                  AND j.status = 'queued'
                  AND (j.available_at IS NULL OR j.available_at <= ?)
-                 AND (
-                   j.source_id IS NULL OR NOT EXISTS (
-                     SELECT 1 FROM jobs source_running
-                      WHERE source_running.status = 'running'
-                        AND source_running.source_id = j.source_id
-                   )
-                 )
                ORDER BY j.priority ASC,
                         (SELECT COUNT(*) FROM jobs running
                           WHERE running.status = 'running'
