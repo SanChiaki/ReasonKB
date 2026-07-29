@@ -19,6 +19,7 @@ def test_root_layout_keeps_product_boundary_small():
         "LICENSE",
         "patches",
         "services",
+        "tools",
         "vendor",
         "web",
     }
