@@ -397,6 +397,9 @@ def _is_transient_failure(error_message: str) -> bool:
         "http 502",
         "http 503",
         "http 504",
+        "keyerror: 'completed'",
+        "unsupported operand type(s) for +: 'int' and 'nonetype'",
+        "failed to complete toc transformation",
         "left running by a previous worker",
         "stopped before completion",
     )

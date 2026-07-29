@@ -104,6 +104,9 @@ def _merge_runtime_llm_options(user_opt, *, model: str, retrieve_model: str):
 
 
 def _patch_toc_fallback(page_index_module) -> None:
+    _patch_toc_completion_checks(page_index_module)
+    _patch_toc_processors(page_index_module)
+
     original_detect_page_index = page_index_module.detect_page_index
     if not getattr(original_detect_page_index, "_reasonkb_patched", False):
 
@@ -185,6 +188,127 @@ def _patch_toc_fallback(page_index_module) -> None:
     page_index_module.meta_processor = patched_meta_processor
 
 
+def _patch_toc_completion_checks(page_index_module) -> None:
+    for function_name in (
+        "check_if_toc_extraction_is_complete",
+        "check_if_toc_transformation_is_complete",
+    ):
+        original_check = getattr(page_index_module, function_name)
+        if getattr(original_check, "_reasonkb_patched", False):
+            continue
+
+        @wraps(original_check)
+        def patched_check(
+            content,
+            toc,
+            model=None,
+            _original=original_check,
+            _name=function_name,
+        ):
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    result = _original(content, toc, model=model)
+                except (KeyError, TypeError, ValueError) as exc:
+                    logging.warning(
+                        "PageIndex %s returned an invalid completion status on attempt %s/%s: %s",
+                        _name,
+                        attempt,
+                        max_attempts,
+                        exc,
+                    )
+                    continue
+                normalized = str(result).strip().lower()
+                if normalized in {"yes", "no"}:
+                    return normalized
+                logging.warning(
+                    "PageIndex %s returned an unsupported completion status on attempt %s/%s: %r",
+                    _name,
+                    attempt,
+                    max_attempts,
+                    result,
+                )
+            return "no"
+
+        patched_check._reasonkb_patched = True
+        setattr(page_index_module, function_name, patched_check)
+
+
+def _patch_toc_processors(page_index_module) -> None:
+    original_with_page_numbers = page_index_module.process_toc_with_page_numbers
+    if not getattr(original_with_page_numbers, "_reasonkb_patched", False):
+
+        @wraps(original_with_page_numbers)
+        def patched_with_page_numbers(
+            toc_content,
+            toc_page_list,
+            page_list,
+            toc_check_page_num=None,
+            model=None,
+            logger=None,
+        ):
+            try:
+                return original_with_page_numbers(
+                    toc_content,
+                    toc_page_list,
+                    page_list,
+                    toc_check_page_num=toc_check_page_num,
+                    model=model,
+                    logger=logger,
+                )
+            except Exception as exc:
+                logging.warning(
+                    "PageIndex TOC processing failed; falling back to document body: %s",
+                    exc,
+                )
+                return page_index_module.process_no_toc(
+                    page_list,
+                    start_index=1,
+                    model=model,
+                    logger=logger,
+                )
+
+        patched_with_page_numbers._reasonkb_patched = True
+        page_index_module.process_toc_with_page_numbers = patched_with_page_numbers
+
+    original_without_page_numbers = page_index_module.process_toc_no_page_numbers
+    if getattr(original_without_page_numbers, "_reasonkb_patched", False):
+        return
+
+    @wraps(original_without_page_numbers)
+    def patched_without_page_numbers(
+        toc_content,
+        toc_page_list,
+        page_list,
+        start_index=1,
+        model=None,
+        logger=None,
+    ):
+        try:
+            return original_without_page_numbers(
+                toc_content,
+                toc_page_list,
+                page_list,
+                start_index=start_index,
+                model=model,
+                logger=logger,
+            )
+        except Exception as exc:
+            logging.warning(
+                "PageIndex TOC processing failed; falling back to document body: %s",
+                exc,
+            )
+            return page_index_module.process_no_toc(
+                page_list,
+                start_index=start_index,
+                model=model,
+                logger=logger,
+            )
+
+    patched_without_page_numbers._reasonkb_patched = True
+    page_index_module.process_toc_no_page_numbers = patched_without_page_numbers
+
+
 def _toc_result_is_usable(result: Any) -> bool:
     if not isinstance(result, list) or not result:
         return False
@@ -234,6 +358,7 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     response=response,
                     elapsed_ms=int((perf_counter() - started_at) * 1000),
                 )
+                content = _normalize_toc_continuation(prompt, content)
                 if return_finish_reason:
                     finish_reason = (
                         "max_output_reached"
@@ -255,6 +380,23 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
 
     wrapped._reasonkb_patched = True
     return wrapped
+
+
+def _normalize_toc_continuation(prompt: str, content: str | None) -> str | None:
+    marker = "continue the table of contents json structure"
+    if marker not in prompt.lower() or not isinstance(content, str) or not content.strip():
+        return content
+
+    normalized = content.strip()
+    if normalized.startswith("```json"):
+        return normalized
+    if normalized.startswith("```"):
+        first_line_end = normalized.find("\n")
+        if first_line_end >= 0:
+            normalized = normalized[first_line_end + 1 :]
+        if normalized.endswith("```"):
+            normalized = normalized[:-3].rstrip()
+    return f"```json\n{normalized}\n```"
 
 
 def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callable[..., Any]:
