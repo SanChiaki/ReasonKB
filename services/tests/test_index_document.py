@@ -1455,3 +1455,31 @@ def test_operational_capacity_failures_are_retried(tmp_path, error_message):
     assert job[1] is not None
     assert job[2] == error_message
     assert document == ("uploaded", 1)
+
+
+@pytest.mark.parametrize(
+    "error_message",
+    [
+        "KeyError: 'completed'",
+        "TypeError: unsupported operand type(s) for +: 'int' and 'NoneType'",
+        "Exception: Failed to complete toc transformation after maximum retries",
+    ],
+)
+def test_pageindex_toc_failures_are_retried(tmp_path, error_message):
+    db_path = _seed_single_document_job_db(tmp_path)
+
+    fail_document_job(str(db_path), "job_1", error_message)
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute(
+        "SELECT status, available_at, error_message FROM jobs WHERE id = 'job_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, retrieval_eligible FROM documents WHERE id = 'doc_1'"
+    ).fetchone()
+    conn.close()
+
+    assert job[0] == "queued"
+    assert job[1] is not None
+    assert job[2] == error_message
+    assert document == ("uploaded", 1)
