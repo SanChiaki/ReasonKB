@@ -178,12 +178,12 @@ limited to 100 KiB.
 HTTP clients use stateful MCP sessions so protocol cancellation can stop the
 original tool call. A session remains bound to the API Key that initialized it.
 Every ordinary request revalidates that Key. Cancellation-only notifications
-may skip the remote verification call so cancellation remains available during
-authentication saturation, but they are accepted only when the supplied Bearer
-Key fingerprint matches the Key bound to that session. They do not invoke tools,
-extend session lifetime, or consume tool execution capacity. New sessions
-receive `503` when the session cap is full; idle sessions are closed after the
-configured timeout.
+may skip the remote verification call so cancellation remains available while
+the original request is waiting for or performing API Key verification, but
+they are accepted only when the supplied Bearer Key fingerprint matches the Key
+bound to that session. They do not invoke tools, extend session lifetime, or
+consume tool execution capacity. New sessions receive `503` when the session
+cap is full; idle sessions are closed after the configured timeout.
 Sessions are in memory, so a service restart invalidates them. Multi-replica
 deployments require sticky routing to the instance that created each session.
 Each POST accepts one JSON-RPC message. JSON-RPC batches receive `400`; this
