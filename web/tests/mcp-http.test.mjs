@@ -1,3 +1,4 @@
+import http from "node:http";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,11 +19,12 @@ afterEach(async () => {
   }
 });
 
-async function startApp(fetchImpl) {
+async function startApp(fetchImpl, options = {}) {
   const app = createReasonkbMcpHttpApp({
     reasonkbUrl: "http://reasonkb.test",
     fetchImpl,
     host: "127.0.0.1",
+    ...options,
   });
   const listener = await new Promise((resolve, reject) => {
     const server = app.listen(0, "127.0.0.1", () => resolve(server));
@@ -79,6 +81,48 @@ describe("Streamable HTTP MCP server", () => {
 
     expect(missing.status).toBe(401);
     expect(invalid.status).toBe(401);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects untrusted Origins before API key verification", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl);
+    const initialize = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "test", version: "1.0.0" },
+      },
+    };
+
+    const rejected = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+        origin: "https://evil.example",
+      },
+      body: JSON.stringify(initialize),
+    });
+    const accepted = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+        origin: baseUrl,
+      },
+      body: JSON.stringify(initialize),
+    });
+
+    expect(rejected.status).toBe(403);
+    expect(accepted.status).toBe(200);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
@@ -165,5 +209,63 @@ describe("Streamable HTTP MCP server", () => {
         String(url).endsWith("/api/agent/query"),
       ),
     ).toBe(false);
+  });
+
+  it("aborts an upstream Agent request when the client disconnects", async () => {
+    let resolveUpstreamStarted;
+    let resolveUpstreamAborted;
+    const upstreamStarted = new Promise((resolve) => {
+      resolveUpstreamStarted = resolve;
+    });
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const url = new URL(baseUrl);
+    const request = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      method: "POST",
+      path: "/",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+      },
+    });
+    request.on("error", () => {});
+    request.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      }),
+    );
+
+    await upstreamStarted;
+    request.destroy();
+    await upstreamAborted;
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

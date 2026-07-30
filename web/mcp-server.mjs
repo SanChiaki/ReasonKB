@@ -24,6 +24,17 @@ function toolResult(payload) {
   };
 }
 
+function combineAbortSignals(...signals) {
+  const activeSignals = signals.filter(Boolean);
+  if (activeSignals.length === 0) {
+    return undefined;
+  }
+  if (activeSignals.length === 1) {
+    return activeSignals[0];
+  }
+  return AbortSignal.any(activeSignals);
+}
+
 async function reasonkbRequest(pathname, init, context) {
   const { apiKey, baseUrl, fetchImpl } = context;
   const response = await fetchImpl(normalizedBaseUrl(baseUrl) + pathname, {
@@ -45,13 +56,21 @@ export function createReasonkbMcpServer({
   apiKey,
   baseUrl,
   fetchImpl = fetch,
+  abortSignal,
 }) {
   if (!apiKey) {
     throw new Error("REASONKB_API_KEY is required.");
   }
   const server = new McpServer(SERVER_INFO);
-  const request = (pathname, init = {}) =>
-    reasonkbRequest(pathname, init, { apiKey, baseUrl, fetchImpl });
+  const request = (pathname, init = {}, toolSignal) =>
+    reasonkbRequest(
+      pathname,
+      {
+        ...init,
+        signal: combineAbortSignals(abortSignal, toolSignal),
+      },
+      { apiKey, baseUrl, fetchImpl },
+    );
 
   server.registerTool(
     "reasonkb_list_projects",
@@ -59,7 +78,8 @@ export function createReasonkbMcpServer({
       description: "List ReasonKB projects visible to the configured API key.",
       inputSchema: z.object({}).strict(),
     },
-    async () => toolResult(await request("/api/agent/projects")),
+    async (_arguments, { signal }) =>
+      toolResult(await request("/api/agent/projects", {}, signal)),
   );
 
   server.registerTool(
@@ -68,12 +88,14 @@ export function createReasonkbMcpServer({
       description: "List documents in a ReasonKB project.",
       inputSchema: z.object({ projectId: z.string().trim().min(1) }).strict(),
     },
-    async ({ projectId }) =>
+    async ({ projectId }, { signal }) =>
       toolResult(
         await request(
           "/api/agent/projects/" +
             encodeURIComponent(projectId) +
             "/documents",
+          {},
+          signal,
         ),
       ),
   );
@@ -104,12 +126,16 @@ export function createReasonkbMcpServer({
           })
           .strict(),
       },
-      async ({ query, projectIds }) =>
+      async ({ query, projectIds }, { signal }) =>
         toolResult(
-          await request("/api/agent/" + route, {
-            method: "POST",
-            body: JSON.stringify({ query, projectIds }),
-          }),
+          await request(
+            "/api/agent/" + route,
+            {
+              method: "POST",
+              body: JSON.stringify({ query, projectIds }),
+            },
+            signal,
+          ),
         ),
     );
   }
@@ -126,7 +152,7 @@ export function createReasonkbMcpServer({
         })
         .strict(),
     },
-    async ({ documentId, pages }) => {
+    async ({ documentId, pages }, { signal }) => {
       const suffix = pages ? "?pages=" + encodeURIComponent(pages) : "";
       return toolResult(
         await request(
@@ -134,6 +160,8 @@ export function createReasonkbMcpServer({
             encodeURIComponent(documentId) +
             "/pages" +
             suffix,
+          {},
+          signal,
         ),
       );
     },
@@ -145,12 +173,14 @@ export function createReasonkbMcpServer({
       description: "Read the PageIndex tree structure for a document.",
       inputSchema: z.object({ documentId: z.string().trim().min(1) }).strict(),
     },
-    async ({ documentId }) =>
+    async ({ documentId }, { signal }) =>
       toolResult(
         await request(
           "/api/agent/documents/" +
             encodeURIComponent(documentId) +
             "/structure",
+          {},
+          signal,
         ),
       ),
   );
@@ -183,11 +213,39 @@ function jsonRpcError(response, status, message) {
   });
 }
 
-async function verifyApiKey(apiKey, { reasonkbUrl, fetchImpl }) {
+async function verifyApiKey(apiKey, { reasonkbUrl, fetchImpl, signal }) {
   return fetchImpl(reasonkbUrl + "/api/agent/auth/verify", {
     method: "POST",
     headers: { Authorization: "Bearer " + apiKey },
+    signal,
   });
+}
+
+function normalizeAllowedOrigins(values) {
+  return values.map((value) => {
+    const origin = new URL(value);
+    if (!["http:", "https:"].includes(origin.protocol)) {
+      throw new Error("MCP allowed origins must use HTTP or HTTPS.");
+    }
+    return origin.origin;
+  });
+}
+
+function originIsAllowed(request, allowedOrigins) {
+  const originHeader = request.headers.origin;
+  if (!originHeader) {
+    return true;
+  }
+  try {
+    const origin = new URL(originHeader);
+    return (
+      ["http:", "https:"].includes(origin.protocol) &&
+      (origin.host === request.headers.host ||
+        allowedOrigins.includes(origin.origin))
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function createReasonkbMcpHttpApp({
@@ -198,9 +256,14 @@ export function createReasonkbMcpHttpApp({
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean),
+  allowedOrigins = (process.env.REASONKB_MCP_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
 } = {}) {
   const effectiveAllowedHosts =
     allowedHosts.length > 0 ? allowedHosts : DEFAULT_ALLOWED_HOSTS;
+  const effectiveAllowedOrigins = normalizeAllowedOrigins(allowedOrigins);
   const app = createMcpExpressApp({
     host,
     allowedHosts: effectiveAllowedHosts,
@@ -210,7 +273,25 @@ export function createReasonkbMcpHttpApp({
     response.json({ status: "ok" });
   });
 
+  app.all("/", (request, response, next) => {
+    if (!originIsAllowed(request, effectiveAllowedOrigins)) {
+      jsonRpcError(response, 403, "Invalid Origin header.");
+      return;
+    }
+    next();
+  });
+
   app.post("/", async (request, response) => {
+    const abortController = new AbortController();
+    let server;
+    request.once("aborted", () => abortController.abort());
+    response.once("close", () => {
+      abortController.abort();
+      if (server) {
+        void server.close();
+      }
+    });
+
     const apiKey = bearerToken(request);
     if (!apiKey) {
       response.set("WWW-Authenticate", "Bearer");
@@ -220,8 +301,15 @@ export function createReasonkbMcpHttpApp({
 
     let authResponse;
     try {
-      authResponse = await verifyApiKey(apiKey, { reasonkbUrl, fetchImpl });
+      authResponse = await verifyApiKey(apiKey, {
+        reasonkbUrl,
+        fetchImpl,
+        signal: abortController.signal,
+      });
     } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
       console.error(
         "[reasonkb-mcp-http] authentication service unavailable:",
         error instanceof Error ? error.message : error,
@@ -246,20 +334,21 @@ export function createReasonkbMcpHttpApp({
     }
 
     try {
-      const server = createReasonkbMcpServer({
+      server = createReasonkbMcpServer({
         apiKey,
         baseUrl: reasonkbUrl,
         fetchImpl,
+        abortSignal: abortController.signal,
       });
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
       });
       await server.connect(transport);
-      response.on("close", () => {
-        void server.close();
-      });
       await transport.handleRequest(request, response, request.body);
     } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
       console.error(
         "[reasonkb-mcp-http] request failed:",
         error instanceof Error ? error.message : error,

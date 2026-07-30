@@ -99,7 +99,13 @@ IP in `REASONKB_MCP_ALLOWED_HOSTS`:
 MCP_BIND_ADDRESS=0.0.0.0
 MCP_PORT=43173
 REASONKB_MCP_ALLOWED_HOSTS=kb.example.com,192.0.2.10
+REASONKB_MCP_ALLOWED_ORIGINS=https://agent.example.com
 ```
+
+Requests without an `Origin` header and requests whose Origin matches the MCP
+Host are accepted. Browser-based clients on another Origin must be listed in
+`REASONKB_MCP_ALLOWED_ORIGINS`; other Origins are rejected before API Key
+verification.
 
 Do not expose the plain HTTP port directly to the public Internet. Put it
 behind an HTTPS reverse proxy, retain Bearer authentication, and configure

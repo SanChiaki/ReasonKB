@@ -467,6 +467,7 @@ def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
         assert service["environment"]["REASONKB_URL"] == "http://web:3000"
         assert service["environment"]["REASONKB_MCP_HOST"] == "0.0.0.0"
         assert service["environment"]["REASONKB_MCP_PORT"] == 3002
+        assert service["environment"]["REASONKB_MCP_ALLOWED_ORIGINS"] == ""
         assert service["ports"] == [
             "${MCP_BIND_ADDRESS:-127.0.0.1}:"
             "${MCP_PORT:-43173}:3002"
