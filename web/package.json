@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "mcp:http": "node mcp-server.mjs --http",
+    "mcp:http": "node ../tools/reasonkb-mcp.mjs --http",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",

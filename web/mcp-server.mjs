@@ -1,5 +1,3 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -299,27 +297,4 @@ export function startReasonkbMcpHttpServer() {
     process.exitCode = 1;
   });
   return listener;
-}
-
-async function runEntrypoint() {
-  const mode = process.argv[2] || "--stdio";
-  if (mode === "--http") {
-    startReasonkbMcpHttpServer();
-    return;
-  }
-  if (mode === "--stdio") {
-    await startReasonkbMcpStdioServer();
-    return;
-  }
-  throw new Error("Unknown MCP transport option: " + mode);
-}
-
-const isEntrypoint =
-  process.argv[1] &&
-  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1]);
-if (isEntrypoint) {
-  runEntrypoint().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  });
 }

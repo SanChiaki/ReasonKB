@@ -78,7 +78,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    command: ["node", "./web/mcp-server.mjs", "--http"]
+    command: ["node", "./tools/reasonkb-mcp.mjs", "--http"]
     ports:
       - "${MCP_BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-43173}:3002"
     environment:
