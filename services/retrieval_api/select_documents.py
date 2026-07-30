@@ -12,8 +12,18 @@ from typing import Any, Literal
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 _CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 _LATIN_RE = re.compile(r"[a-z0-9]+")
+_HARD_NUMBER_RE = re.compile(r"(?<![a-z0-9])\d+(?:\.\d+)?(?![a-z0-9])", re.I)
+_HARD_ACRONYM_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?![A-Za-z0-9])")
+_HARD_CODE_TOKEN_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
+)
+_DEALER_TIER_RE = re.compile(
+    r"([\u3400-\u4dbf\u4e00-\u9fff]{1,12}"
+    r"(?:[/、或和与及][\u3400-\u4dbf\u4e00-\u9fff]{1,12})*)经销商"
+)
 DEFAULT_PREFILTER_LIMIT = 50
 STRUCTURE_SEARCH_TEXT_LIMIT = 30000
+FALLBACK_PAGE_SEARCH_TEXT_LIMIT = 200000
 MIN_STRONG_PREFILTER_SCORE = 3
 ANSWER_FALLBACK_LIMIT = 2
 EVIDENCE_FALLBACK_LIMIT = 3
@@ -102,6 +112,18 @@ _FALLBACK_CJK_STOP_TERMS = {
     "信息",
     "查询",
 }
+_DEALER_TIER_MARKERS = (
+    ("钻石", "diamond"),
+    ("铂金", "platinum"),
+    ("白金", "platinum"),
+    ("黄金", "gold"),
+    ("金牌", "gold"),
+    ("银牌", "silver"),
+    ("铜牌", "bronze"),
+    ("金", "gold"),
+    ("银", "silver"),
+    ("铜", "bronze"),
+)
 
 
 def _tokenize_query(text: str) -> list[str]:
@@ -264,6 +286,8 @@ def _strong_keyword_select_documents(
     query: str,
     docs: list[dict],
     limit: int,
+    *,
+    include_page_text: bool = True,
 ) -> list[dict]:
     if limit <= 0:
         return []
@@ -271,11 +295,23 @@ def _strong_keyword_select_documents(
     query_terms = _fallback_query_terms(query)
     if len(query_terms) < MIN_FALLBACK_QUERY_TERMS:
         return []
-    return [
-        doc
-        for _score, _strong_score, _file_name, doc in _rank_documents_by_keyword(query, docs)
-        if _passes_strong_fallback_coverage(query_terms, doc)
-    ][:limit]
+    hard_term_groups = _hard_fallback_term_groups(query)
+    selected: list[dict] = []
+    for _score, _strong_score, _file_name, doc in _rank_documents_by_keyword(query, docs):
+        if not _passes_hard_fallback_constraints(
+            hard_term_groups,
+            doc,
+            include_page_text=include_page_text,
+        ) or not _passes_strong_fallback_coverage(
+            query_terms,
+            doc,
+            include_page_text=include_page_text,
+        ):
+            continue
+        selected.append(doc)
+        if len(selected) >= limit:
+            break
+    return selected
 
 
 def _fallback_query_terms(query: str) -> set[str]:
@@ -316,8 +352,8 @@ def _matched_fallback_terms(terms: set[str], text: str) -> set[str]:
     }
 
 
-def _passes_strong_fallback_coverage(terms: set[str], doc: dict) -> bool:
-    summary_text = " ".join(
+def _fallback_summary_text(doc: dict) -> str:
+    return " ".join(
         str(doc.get(key) or "")
         for key in (
             "project_name",
@@ -327,18 +363,174 @@ def _passes_strong_fallback_coverage(terms: set[str], doc: dict) -> bool:
             "doc_description",
         )
     )
+
+
+def _iter_hard_search_texts(doc: dict, *, include_page_text: bool):
+    yield _fallback_summary_text(doc)
+    yield _structure_search_text(doc.get("structure", []))
+    if not include_page_text:
+        return
+    pages = doc.get("pages", [])
+    if not isinstance(pages, list):
+        return
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        content = page.get("content")
+        if isinstance(content, str) and content:
+            yield content
+
+
+def _pages_search_text(
+    pages: Any,
+    limit: int = FALLBACK_PAGE_SEARCH_TEXT_LIMIT,
+) -> str:
+    if not isinstance(pages, list) or limit <= 0:
+        return ""
+    parts: list[str] = []
+    remaining = limit
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        content = page.get("content")
+        if not isinstance(content, str) or not content:
+            continue
+        parts.append(content[:remaining])
+        remaining -= min(len(content), remaining)
+        if remaining <= 0:
+            break
+    return " ".join(parts)
+
+
+def _dealer_tier_marker(term: str) -> str | None:
+    return next(
+        (
+            f"tier:{canonical}"
+            for marker, canonical in _DEALER_TIER_MARKERS
+            if term.endswith(marker)
+        ),
+        None,
+    )
+
+
+def _iter_dealer_tier_markers(text: str):
+    for match in _DEALER_TIER_RE.finditer(text):
+        for term in re.split(r"[/、或和与及]", match.group(1)):
+            marker = _dealer_tier_marker(term)
+            if marker:
+                yield marker
+
+
+def _hard_fallback_term_groups(query: str) -> tuple[frozenset[str], ...]:
+    groups: list[frozenset[str]] = [
+        frozenset({match.group(0).lower()}) for match in _HARD_NUMBER_RE.finditer(query)
+    ]
+    groups.extend(
+        frozenset({match.group(0).lower()}) for match in _HARD_ACRONYM_RE.finditer(query)
+    )
+    for match in _DEALER_TIER_RE.finditer(query):
+        alternatives = {
+            marker
+            for term in re.split(r"[/、或和与及]", match.group(1))
+            if term
+            for marker in [_dealer_tier_marker(term)]
+            if marker
+        }
+        if alternatives:
+            groups.append(frozenset(alternatives))
+    return tuple(dict.fromkeys(groups))
+
+
+def _passes_hard_fallback_constraints(
+    groups: tuple[frozenset[str], ...],
+    doc: dict,
+    *,
+    include_page_text: bool,
+) -> bool:
+    if not groups:
+        return True
+    remaining = set(groups)
+    for search_text in _iter_hard_search_texts(
+        doc,
+        include_page_text=include_page_text,
+    ):
+        remaining = {
+            group
+            for group in remaining
+            if not any(_hard_term_matches(term, search_text) for term in group)
+        }
+        if not remaining:
+            return True
+    return False
+
+
+def _hard_term_matches(term: str, text: str) -> bool:
+    if term.startswith("tier:"):
+        return any(marker == term for marker in _iter_dealer_tier_markers(text))
+    if _HARD_NUMBER_RE.fullmatch(term):
+        return any(
+            match.group(0).lower() == term for match in _HARD_NUMBER_RE.finditer(text)
+        )
+    if _HARD_CODE_TOKEN_RE.fullmatch(term):
+        return any(
+            match.group(0).lower() == term
+            for match in _HARD_CODE_TOKEN_RE.finditer(text)
+        )
+    return term in text.lower()
+
+
+def _passes_strong_fallback_coverage(
+    terms: set[str],
+    doc: dict,
+    *,
+    include_page_text: bool,
+) -> bool:
+    summary_text = _fallback_summary_text(doc)
     summary_matches = _matched_fallback_terms(terms, summary_text)
     structure_matches = _matched_fallback_terms(
         terms,
         _structure_search_text(doc.get("structure", [])),
     )
     total_terms = len(terms)
+    if len(summary_matches) / total_terms < MIN_FALLBACK_SUMMARY_COVERAGE:
+        return False
     total_matches = summary_matches | structure_matches
-    return (
+    if (
         len(total_matches) >= MIN_FALLBACK_QUERY_TERMS
-        and len(summary_matches) / total_terms >= MIN_FALLBACK_SUMMARY_COVERAGE
         and len(total_matches) / total_terms >= MIN_FALLBACK_TOTAL_COVERAGE
+    ):
+        return True
+    if not include_page_text:
+        return False
+    page_matches = _matched_fallback_terms(
+        terms,
+        _pages_search_text(doc.get("pages", [])),
     )
+    total_matches |= page_matches
+    return len(total_matches) >= MIN_FALLBACK_QUERY_TERMS and (
+        len(total_matches) / total_terms >= MIN_FALLBACK_TOTAL_COVERAGE
+    )
+
+
+def _ordered_candidate_documents(query: str, docs: list[dict]) -> list[dict]:
+    ranked = _rank_documents_by_keyword(query, docs)
+    positives = [
+        doc
+        for score, strong_score, _file_name, doc in ranked
+        if _passes_prefilter(query, score, strong_score)
+    ]
+    positive_object_ids = {id(doc) for doc in positives}
+    weak_matches = [
+        doc
+        for score, _strong_score, _file_name, doc in ranked
+        if score > 0 and id(doc) not in positive_object_ids
+    ]
+    unmatched = [
+        doc
+        for score, _strong_score, _file_name, doc in ranked
+        if score <= 0
+    ]
+    return [*positives, *weak_matches, *unmatched]
 
 
 def prefilter_candidate_documents(
@@ -349,24 +541,15 @@ def prefilter_candidate_documents(
 ) -> list[dict]:
     if limit <= 0 or not docs:
         return []
-    ranked = _rank_documents_by_keyword(query, docs)
-    positives = [
-        doc
-        for score, strong_score, _file_name, doc in ranked
-        if _passes_prefilter(query, score, strong_score)
-    ]
-    if positives:
-        return positives[:limit]
+    return _ordered_candidate_documents(query, docs)[:limit]
 
-    weak_matches = [
-        doc
-        for score, _strong_score, _file_name, doc in ranked
-        if score > 0
-    ]
-    if weak_matches:
-        return weak_matches[:limit]
 
-    return [doc for _score, _strong_score, _file_name, doc in ranked[:limit]]
+def _candidate_document_batches(query: str, docs: list[dict]) -> list[list[dict]]:
+    ordered = _ordered_candidate_documents(query, docs)
+    return [
+        ordered[index : index + DEFAULT_PREFILTER_LIMIT]
+        for index in range(0, len(ordered), DEFAULT_PREFILTER_LIMIT)
+    ]
 
 
 def _candidate_alias(index: int) -> str:
@@ -494,6 +677,7 @@ def _llm_select_documents(
         raw, finish_reason = completion_result, None
     if finish_reason == "error" or not isinstance(raw, str) or not raw.strip():
         return _LlmSelection((), "provider_error")
+    output_truncated = finish_reason == "max_output_reached"
 
     parsed_selection = _extract_selected_doc_ids(raw)
     if parsed_selection is None:
@@ -502,6 +686,8 @@ def _llm_select_documents(
     if not selected_identifiers:
         if parsed_selection.invalid_item_count:
             return _LlmSelection((), "malformed")
+        if output_truncated:
+            return _LlmSelection((), "partial")
         return _LlmSelection((), "explicit_empty")
 
     docs_by_identifier: dict[str, dict] = {}
@@ -529,8 +715,135 @@ def _llm_select_documents(
             break
     if not selected_docs:
         return _LlmSelection((), "invalid_ids")
-    outcome: _LlmSelectionOutcome = "partial" if invalid_id_count else "selected"
+    outcome: _LlmSelectionOutcome = (
+        "partial" if invalid_id_count or output_truncated else "selected"
+    )
     return _LlmSelection(tuple(selected_docs), outcome)
+
+
+_TECHNICAL_SELECTION_OUTCOMES = frozenset(
+    {"provider_error", "malformed", "invalid_ids", "partial"}
+)
+
+
+def _empty_batch_outcome(outcomes: list[_LlmSelectionOutcome]) -> _LlmSelectionOutcome:
+    for outcome in ("provider_error", "partial", "malformed", "invalid_ids"):
+        if outcome in outcomes:
+            return outcome
+    return "explicit_empty"
+
+
+def _deduplicate_documents(documents: list[dict]) -> list[dict]:
+    deduplicated: list[dict] = []
+    seen_doc_ids: set[str] = set()
+    for document in documents:
+        doc_id = str(document.get("id") or "").strip()
+        if not doc_id or doc_id in seen_doc_ids:
+            continue
+        deduplicated.append(document)
+        seen_doc_ids.add(doc_id)
+    return deduplicated
+
+
+def _rerank_batch_selections(
+    query: str,
+    documents: list[dict],
+    *,
+    limit: int,
+    model: str | None,
+    mode: str,
+    partial: bool,
+) -> _LlmSelection:
+    current = _deduplicate_documents(documents)
+    while len(current) > DEFAULT_PREFILTER_LIMIT:
+        reduced: list[dict] = []
+        round_partial = partial
+        for index in range(0, len(current), DEFAULT_PREFILTER_LIMIT):
+            batch = current[index : index + DEFAULT_PREFILTER_LIMIT]
+            selection = _llm_select_documents(
+                query,
+                batch,
+                limit=limit,
+                model=model,
+                mode=mode,
+            )
+            if selection.documents:
+                reduced.extend(selection.documents)
+            elif selection.outcome in _TECHNICAL_SELECTION_OUTCOMES:
+                reduced.extend(batch[:limit])
+            round_partial = round_partial or (
+                selection.outcome in _TECHNICAL_SELECTION_OUTCOMES
+            )
+        reduced = _deduplicate_documents(reduced)
+        if not reduced or len(reduced) >= len(current):
+            return _LlmSelection(tuple(current[:limit]), "partial")
+        current = reduced
+        partial = round_partial
+
+    if len(current) <= limit:
+        return _LlmSelection(tuple(current), "partial" if partial else "selected")
+
+    selection = _llm_select_documents(
+        query,
+        current,
+        limit=limit,
+        model=model,
+        mode=mode,
+    )
+    if not selection.documents:
+        return _LlmSelection(tuple(current[:limit]), "partial")
+    outcome: _LlmSelectionOutcome = (
+        "partial"
+        if partial or selection.outcome in _TECHNICAL_SELECTION_OUTCOMES
+        else "selected"
+    )
+    return _LlmSelection(selection.documents, outcome)
+
+
+def _llm_select_document_batches(
+    query: str,
+    batches: list[list[dict]],
+    *,
+    limit: int,
+    model: str | None,
+    mode: str,
+) -> tuple[_LlmSelection, int]:
+    outcomes: list[_LlmSelectionOutcome] = []
+    selected_documents: list[dict] = []
+    attempted_batches = 0
+    for batch in batches:
+        selection = _llm_select_documents(
+            query,
+            batch,
+            limit=limit,
+            model=model,
+            mode=mode,
+        )
+        attempted_batches += 1
+        outcomes.append(selection.outcome)
+        selected_documents.extend(selection.documents)
+        if selection.outcome == "provider_error":
+            break
+        if mode != "evidence" and selection.documents:
+            break
+
+    if not selected_documents:
+        return _LlmSelection((), _empty_batch_outcome(outcomes)), attempted_batches
+
+    partial = any(
+        outcome in _TECHNICAL_SELECTION_OUTCOMES for outcome in outcomes
+    )
+    return (
+        _rerank_batch_selections(
+            query,
+            selected_documents,
+            limit=limit,
+            model=model,
+            mode=mode,
+            partial=partial,
+        ),
+        attempted_batches,
+    )
 
 
 def _merge_documents(*groups: list[dict], limit: int) -> list[dict]:
@@ -564,31 +877,39 @@ def select_candidate_documents(
     if mode not in SELECTION_MODES:
         raise ValueError(f"unsupported document selection mode: {mode}")
 
-    llm_candidates = prefilter_candidate_documents(
+    candidate_batches = _candidate_document_batches(query, docs)
+    llm_candidates = candidate_batches[0]
+    is_batched = len(candidate_batches) > 1
+    llm_selection, attempted_batches = _llm_select_document_batches(
         query,
-        docs,
-        limit=DEFAULT_PREFILTER_LIMIT,
-    )
-
-    strong_deterministic = _strong_keyword_select_documents(
-        query,
-        llm_candidates,
-        limit,
-    )
-    llm_selection = _llm_select_documents(
-        query,
-        llm_candidates,
+        candidate_batches,
         limit=limit,
         model=model,
         mode=mode,
     )
+    strong_deterministic: list[dict] = []
 
     if llm_selection.documents:
         model_documents = list(llm_selection.documents)
-        if limit == 1:
+        if limit == 1 or len(model_documents) >= limit:
             selected = _merge_documents(model_documents, limit=limit)
-            strategy = "model_only_single_slot"
+            strategy = (
+                "batched_model_selection"
+                if is_batched
+                else "model_only_single_slot"
+                if limit == 1
+                else "model_only_full_budget"
+            )
+        elif is_batched:
+            selected = _merge_documents(model_documents, limit=limit)
+            strategy = "batched_model_selection"
         else:
+            strong_deterministic = _strong_keyword_select_documents(
+                query,
+                llm_candidates,
+                1,
+                include_page_text=False,
+            )
             selected = _merge_documents(
                 strong_deterministic[:1],
                 model_documents,
@@ -604,6 +925,12 @@ def select_candidate_documents(
             else:
                 document[EVIDENCE_VALIDATION_REASON_KEY] = "model_selection"
     elif llm_selection.outcome == "explicit_empty":
+        strong_deterministic = _strong_keyword_select_documents(
+            query,
+            llm_candidates,
+            1,
+            include_page_text=True,
+        )
         selected = [
             {
                 **document,
@@ -620,6 +947,12 @@ def select_candidate_documents(
         fallback_limit = min(
             limit,
             EVIDENCE_FALLBACK_LIMIT if mode == "evidence" else ANSWER_FALLBACK_LIMIT,
+        )
+        strong_deterministic = _strong_keyword_select_documents(
+            query,
+            llm_candidates,
+            fallback_limit,
+            include_page_text=True,
         )
         selected = [
             {
@@ -639,11 +972,12 @@ def select_candidate_documents(
     )
     log_selection(
         "Candidate document selection strategy=%s mode=%s model_outcome=%s "
-        "prefiltered=%d deterministic=%d selected=%d",
+        "prefiltered=%d batches=%d deterministic=%d selected=%d",
         strategy,
         mode,
         llm_selection.outcome,
         len(llm_candidates),
+        attempted_batches,
         len(strong_deterministic),
         len(selected),
     )
