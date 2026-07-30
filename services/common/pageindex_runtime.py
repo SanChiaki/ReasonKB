@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from functools import wraps
 import importlib
 import logging
@@ -17,6 +21,95 @@ from services.common.system_settings import get_llm_runtime_settings
 
 
 _CONFIGURED = False
+_LLM_RETRY_POLL_SECONDS = 0.05
+
+
+@dataclass(frozen=True)
+class _LlmCallContext:
+    cancellation_events: tuple[Any, ...] = ()
+    deadline: float | None = None
+
+
+_LLM_CALL_CONTEXT: ContextVar[_LlmCallContext] = ContextVar(
+    "pageindex_llm_call_context",
+    default=_LlmCallContext(),
+)
+
+
+@contextmanager
+def llm_request_scope(cancellation_event=None, *, timeout_seconds: float | None = None):
+    current = _LLM_CALL_CONTEXT.get()
+    cancellation_events = current.cancellation_events
+    if cancellation_event is not None:
+        cancellation_events = (*cancellation_events, cancellation_event)
+
+    deadline = current.deadline
+    if timeout_seconds is not None:
+        requested_deadline = perf_counter() + max(float(timeout_seconds), 0.001)
+        deadline = (
+            requested_deadline
+            if deadline is None
+            else min(requested_deadline, deadline)
+        )
+
+    token = _LLM_CALL_CONTEXT.set(
+        _LlmCallContext(
+            cancellation_events=cancellation_events,
+            deadline=deadline,
+        )
+    )
+    try:
+        yield
+    finally:
+        _LLM_CALL_CONTEXT.reset(token)
+
+
+def _llm_call_cancelled() -> bool:
+    return any(event.is_set() for event in _LLM_CALL_CONTEXT.get().cancellation_events)
+
+
+def _llm_time_remaining() -> float | None:
+    deadline = _LLM_CALL_CONTEXT.get().deadline
+    if deadline is None:
+        return None
+    return max(0.0, deadline - perf_counter())
+
+
+def _llm_retry_wait_slice(backoff_deadline: float) -> float | None:
+    remaining = _llm_time_remaining()
+    if _llm_call_cancelled() or remaining == 0:
+        return None
+
+    backoff_remaining = max(0.0, backoff_deadline - perf_counter())
+    if backoff_remaining == 0:
+        return 0.0
+
+    wait_seconds = min(_LLM_RETRY_POLL_SECONDS, backoff_remaining)
+    if remaining is not None:
+        wait_seconds = min(wait_seconds, remaining)
+    return wait_seconds
+
+
+def _wait_before_llm_retry(delay_seconds: float) -> bool:
+    backoff_deadline = perf_counter() + max(delay_seconds, 0.0)
+    while True:
+        wait_seconds = _llm_retry_wait_slice(backoff_deadline)
+        if wait_seconds is None:
+            return False
+        if wait_seconds == 0:
+            return True
+        time.sleep(wait_seconds)
+
+
+async def _wait_before_llm_retry_async(delay_seconds: float) -> bool:
+    backoff_deadline = perf_counter() + max(delay_seconds, 0.0)
+    while True:
+        wait_seconds = _llm_retry_wait_slice(backoff_deadline)
+        if wait_seconds is None:
+            return False
+        if wait_seconds == 0:
+            return True
+        await asyncio.sleep(wait_seconds)
 
 
 def configure_pageindex_runtime() -> None:
@@ -333,6 +426,9 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
     del original
 
     def wrapped(model, prompt, chat_history=None, return_finish_reason=False):
+        def cancelled_result():
+            return ("", "error") if return_finish_reason else ""
+
         normalized_model = model.removeprefix("litellm/") if model else model
         max_retries = 10
         messages = (
@@ -341,14 +437,27 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
             else [{"role": "user", "content": prompt}]
         )
         for attempt in range(max_retries):
+            remaining = _llm_time_remaining()
+            if _llm_call_cancelled() or remaining == 0:
+                return cancelled_result()
             try:
                 configure_litellm_environment()
+                remaining = _llm_time_remaining()
+                if _llm_call_cancelled() or remaining == 0:
+                    return cancelled_result()
                 started_at = perf_counter()
+                completion_options = {
+                    "model": normalized_model,
+                    "messages": messages,
+                    "temperature": 0,
+                }
+                if remaining is not None:
+                    completion_options["timeout"] = remaining
                 response = utils_module.litellm.completion(
-                    model=normalized_model,
-                    messages=messages,
-                    temperature=0,
+                    **completion_options,
                 )
+                if _llm_call_cancelled() or _llm_time_remaining() == 0:
+                    return cancelled_result()
                 content = response.choices[0].message.content
                 _record_llm_metrics(
                     utils_module,
@@ -368,10 +477,15 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     return content, finish_reason
                 return content
             except Exception as exc:
+                remaining = _llm_time_remaining()
+                if _llm_call_cancelled() or remaining == 0:
+                    return cancelled_result()
                 print("************* Retrying *************")
                 logging.error(f"Error: {exc}")
                 if attempt < max_retries - 1:
-                    time.sleep(1)
+                    retry_delay = 1 if remaining is None else min(1, remaining)
+                    if not _wait_before_llm_retry(retry_delay):
+                        return cancelled_result()
                 else:
                     logging.error("Max retries reached for prompt: " + prompt)
                     if return_finish_reason:
@@ -403,20 +517,31 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
     del original
 
     async def wrapped(model, prompt):
-        import asyncio
-
         normalized_model = model.removeprefix("litellm/") if model else model
         max_retries = 10
         messages = [{"role": "user", "content": prompt}]
         for attempt in range(max_retries):
+            remaining = _llm_time_remaining()
+            if _llm_call_cancelled() or remaining == 0:
+                return ""
             try:
                 configure_litellm_environment()
+                remaining = _llm_time_remaining()
+                if _llm_call_cancelled() or remaining == 0:
+                    return ""
                 started_at = perf_counter()
+                completion_options = {
+                    "model": normalized_model,
+                    "messages": messages,
+                    "temperature": 0,
+                }
+                if remaining is not None:
+                    completion_options["timeout"] = remaining
                 response = await utils_module.litellm.acompletion(
-                    model=normalized_model,
-                    messages=messages,
-                    temperature=0,
+                    **completion_options,
                 )
+                if _llm_call_cancelled() or _llm_time_remaining() == 0:
+                    return ""
                 content = response.choices[0].message.content
                 _record_llm_metrics(
                     utils_module,
@@ -428,10 +553,15 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                 )
                 return content
             except Exception as exc:
+                remaining = _llm_time_remaining()
+                if _llm_call_cancelled() or remaining == 0:
+                    return ""
                 print("************* Retrying *************")
                 logging.error(f"Error: {exc}")
                 if attempt < max_retries - 1:
-                    await asyncio.sleep(1)
+                    retry_delay = 1 if remaining is None else min(1, remaining)
+                    if not await _wait_before_llm_retry_async(retry_delay):
+                        return ""
                 else:
                     logging.error("Max retries reached for prompt: " + prompt)
                     return ""
