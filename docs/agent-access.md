@@ -49,13 +49,20 @@ Every retrieval response includes `retrievalStatus`:
   reliable complete result. `degradedReason` identifies the failed stage so the
   caller can retry instead of treating the response as a confirmed no-match.
 
+Candidate selection sends at most 50 ranked document summaries in each model
+prompt. `answer` mode continues to the next batch when a batch is empty or its
+output is recoverably malformed, then stops after finding candidates;
+`evidence` mode evaluates every batch and re-ranks combined selections when
+they exceed the configured document limit.
+This keeps every ready document reachable by semantic model selection without
+creating one unbounded prompt, at the cost of additional model calls for large
+retrieval scopes. Provider failures stop the cascade.
+
 Candidate-model failures use a bounded deterministic fallback only when file
 metadata, descriptions, the PageIndex tree, and exact constraints found while
-iterating page text provide a strong query-term match. The prefilter keeps the
-strongest lexical matches first but reserves part of its bounded candidate pool
-for evenly distributed exploration across every remaining document, so a large
-set of incidental keyword hits cannot hide the lexical tail or all
-cross-language candidates from model selection.
+iterating page text provide a strong query-term match. Page text is scanned
+lazily only after an explicit empty or technical model outcome; successful
+model selection does not pay that full-text fallback cost.
 An explicit empty model selection probes at most one strong candidate.
 Every selected document, including normal model selections, fallback probes,
 and the protected deterministic anchor, must pass a page-text support check

@@ -1,9 +1,25 @@
+import json
+
+from services.retrieval_api import select_documents as select_documents_module
 from services.retrieval_api.select_documents import (
     EVIDENCE_VALIDATION_REASON_KEY,
     keyword_score,
     prefilter_candidate_documents,
     select_candidate_documents,
 )
+
+
+def _candidate_id_for_name(prompt: str, document_name: str) -> str:
+    candidate_payload = prompt.split("Candidate Documents:\n", 1)[1].split(
+        "\n\nReturn valid JSON only:",
+        1,
+    )[0]
+    candidates = json.loads(candidate_payload)
+    return next(
+        candidate["candidate_id"]
+        for candidate in candidates
+        if candidate["doc_name"] == document_name
+    )
 
 
 def test_keyword_score_prefers_matching_description():
@@ -150,7 +166,7 @@ def test_prefilter_uses_remaining_budget_for_cross_language_exploration():
     assert [doc["id"] for doc in selected] == ["doc_directory", "doc_churn"]
 
 
-def test_prefilter_reserves_exploration_when_lexical_matches_fill_budget():
+def test_answer_selection_continues_after_explicit_empty_batch(monkeypatch):
     docs = [
         {
             "id": f"doc_directory_{index}",
@@ -169,13 +185,101 @@ def test_prefilter_reserves_exploration_when_lexical_matches_fill_budget():
         }
     )
 
-    selected = prefilter_candidate_documents("customer churn", docs, limit=50)
+    prompts: list[str] = []
 
-    assert len(selected) == 50
-    assert selected[-1]["id"] == "doc_churn"
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "客户流失预测与挽留方案.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(prompt, "客户流失预测与挽留方案.pdf")
+            return json.dumps({"thinking": "cross-language match", "answer": [candidate_id]})
+        return '{"thinking":"no churn evidence","answer":[]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "customer churn",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_churn"]
+    assert selected.strategy == "batched_model_selection"
+    assert len(prompts) == 2
 
 
-def test_prefilter_explores_low_score_lexical_tail():
+def test_answer_selection_recovers_from_malformed_batch(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_noise_{index}",
+            "project_id": "proj_1",
+            "file_name": f"customer-directory-{index:02d}.pdf",
+            "doc_description": "Customer contact directory.",
+        }
+        for index in range(60)
+    ]
+    docs.append(
+        {
+            "id": "doc_churn",
+            "project_id": "proj_1",
+            "file_name": "客户流失预测与挽留方案.pdf",
+            "doc_description": "客户流失预测、原因分析和挽留措施。",
+        }
+    )
+    prompts: list[str] = []
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "客户流失预测与挽留方案.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(prompt, "客户流失预测与挽留方案.pdf")
+            return json.dumps({"answer": [candidate_id]})
+        return "not-json"
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "customer churn",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_churn"]
+    assert selected.model_outcome == "partial"
+    assert len(prompts) == 2
+
+
+def test_provider_failure_stops_candidate_batch_cascade(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"document-{index:02d}.pdf",
+            "doc_description": "Unrelated material.",
+        }
+        for index in range(60)
+    ]
+    prompts: list[str] = []
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        return "", "error"
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "customer churn",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.model_outcome == "provider_error"
+    assert len(prompts) == 1
+
+
+def test_evidence_selection_searches_every_candidate_batch(monkeypatch):
     docs = [
         {
             "id": f"doc_directory_{index}",
@@ -194,10 +298,63 @@ def test_prefilter_explores_low_score_lexical_tail():
         }
     )
 
-    selected = prefilter_candidate_documents("2026 customer churn", docs, limit=50)
+    prompts: list[str] = []
 
-    assert len(selected) == 50
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "2026客户流失预测与挽留方案.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(
+                prompt,
+                "2026客户流失预测与挽留方案.pdf",
+            )
+            return json.dumps({"thinking": "cross-language match", "answer": [candidate_id]})
+        return '{"thinking":"possible directory context","answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "2026 customer churn",
+        docs,
+        limit=3,
+        mode="evidence",
+    )
+
+    assert len(selected) == 2
     assert any(doc["id"] == "doc_churn" for doc in selected)
+    assert selected.strategy == "batched_model_selection"
+    assert len(prompts) == 2
+
+
+def test_evidence_selection_reranks_batch_results_over_limit(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"topic-{index:02d}.pdf",
+            "doc_description": "Topic evidence.",
+        }
+        for index in range(60)
+    ]
+    prompts: list[str] = []
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if len(prompts) == 3:
+            assert prompt.count('"candidate_id"') == 4
+        return '{"answer":["D001","D002"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "topic",
+        docs,
+        limit=2,
+        mode="evidence",
+    )
+
+    assert len(selected) == 2
+    assert selected.strategy == "batched_model_selection"
+    assert len(prompts) == 3
 
 
 def test_select_candidate_documents_limits_results():
@@ -669,6 +826,41 @@ def test_model_full_budget_is_not_displaced_by_deterministic_anchor(monkeypatch)
     )
 
 
+def test_strong_anchor_runs_after_model_selection_without_page_scan(monkeypatch):
+    docs = _policy_candidate_documents()
+    events: list[tuple[str, object]] = []
+    original = select_documents_module._strong_keyword_select_documents
+
+    def tracking_strong_selection(query, candidates, limit, *, include_page_text=True):
+        events.append(("strong", include_page_text))
+        return original(
+            query,
+            candidates,
+            limit,
+            include_page_text=include_page_text,
+        )
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        events.append(("model", None))
+        return '{"answer":["doc_support"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+    monkeypatch.setattr(
+        "services.retrieval_api.select_documents._strong_keyword_select_documents",
+        tracking_strong_selection,
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected
+    assert events == [("model", None), ("strong", False)]
+
+
 def test_explicit_empty_does_not_probe_unrepresented_partner_tier(monkeypatch):
     docs = _policy_candidate_documents()
     monkeypatch.setattr(
@@ -761,6 +953,70 @@ def test_provider_failure_does_not_treat_all_dealers_as_a_tier(monkeypatch):
 
     assert [doc["id"] for doc in selected] == ["doc_capability"]
     assert selected.strategy == "technical_failure_strong_fallback"
+
+
+def test_provider_failure_requires_tier_next_to_dealer_entity(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_diamond_{index}",
+            "project_id": "proj_1",
+            "file_name": f"钻石经销商激励权益-{index}.pdf",
+            "doc_description": "钻石经销商激励和权益政策。",
+            "pages": [{"page": 1, "content": "奖金适用条件。"}],
+        }
+        for index in range(2)
+    ]
+    docs.append(
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "金牌经销商激励权益.pdf",
+            "doc_description": "金牌经销商激励和权益政策。",
+        }
+    )
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
+    )
+
+    selected = select_candidate_documents(
+        "金经销商有哪些激励和权益？",
+        docs,
+        limit=2,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+
+
+def test_provider_failure_recognizes_and_separated_dealer_tiers(monkeypatch):
+    docs = [
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "金牌经销商激励权益.pdf",
+            "doc_description": "金牌经销商激励和权益政策。",
+        },
+        {
+            "id": "doc_silver",
+            "project_id": "proj_1",
+            "file_name": "银牌经销商激励权益.pdf",
+            "doc_description": "银牌经销商激励和权益政策。",
+        },
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
+    )
+
+    selected = select_candidate_documents(
+        "金和银经销商有哪些激励和权益？",
+        docs,
+        limit=2,
+        mode="answer",
+    )
+
+    assert {doc["id"] for doc in selected} == {"doc_gold", "doc_silver"}
 
 
 def test_provider_failure_can_verify_numeric_constraint_in_page_text(monkeypatch):
