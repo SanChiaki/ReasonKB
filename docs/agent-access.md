@@ -77,7 +77,7 @@ as the ReasonKB Docker deployment.
 Docker also starts a stateless MCP Streamable HTTP endpoint:
 
 ```text
-http://localhost:43173/mcp
+http://localhost:43173
 ```
 
 The endpoint uses the same API Keys, scopes, project restrictions, and document
@@ -87,7 +87,7 @@ variable:
 
 ```toml
 [mcp_servers.reasonkb]
-url = "http://localhost:43173/mcp"
+url = "http://localhost:43173"
 bearer_token_env_var = "REASONKB_API_KEY"
 ```
 
@@ -145,7 +145,7 @@ export REASONKB_URL='http://localhost:3000'
 pnpm -C web mcp:http
 ```
 
-It listens on `http://127.0.0.1:43173/mcp` by default.
+It listens on `http://127.0.0.1:43173` by default.
 
 ## MCP Tools
 

@@ -63,12 +63,12 @@ describe("Streamable HTTP MCP server", () => {
       },
     };
 
-    const missing = await fetch(baseUrl + "/mcp", {
+    const missing = await fetch(baseUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(initialize),
     });
-    const invalid = await fetch(baseUrl + "/mcp", {
+    const invalid = await fetch(baseUrl, {
       method: "POST",
       headers: {
         authorization: "Bearer invalid",
@@ -98,7 +98,7 @@ describe("Streamable HTTP MCP server", () => {
     const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
     clients.push(client);
     const transport = new StreamableHTTPClientTransport(
-      new URL(baseUrl + "/mcp"),
+      new URL(baseUrl),
       {
         requestInit: {
           headers: { Authorization: "Bearer test-api-key" },
@@ -144,7 +144,7 @@ describe("Streamable HTTP MCP server", () => {
     const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
     clients.push(client);
     await client.connect(
-      new StreamableHTTPClientTransport(new URL(baseUrl + "/mcp"), {
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
         requestInit: {
           headers: { Authorization: "Bearer test-api-key" },
         },

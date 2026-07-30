@@ -210,7 +210,7 @@ export function createReasonkbMcpHttpApp({
     response.json({ status: "ok" });
   });
 
-  app.post("/mcp", async (request, response) => {
+  app.post("/", async (request, response) => {
     const apiKey = bearerToken(request);
     if (!apiKey) {
       response.set("WWW-Authenticate", "Bearer");
@@ -271,7 +271,7 @@ export function createReasonkbMcpHttpApp({
   });
 
   for (const method of ["get", "delete"]) {
-    app[method]("/mcp", (_request, response) => {
+    app[method]("/", (_request, response) => {
       response.set("Allow", "POST");
       jsonRpcError(response, 405, "Method not allowed.");
     });
@@ -289,7 +289,7 @@ export function startReasonkbMcpHttpServer() {
   const app = createReasonkbMcpHttpApp({ host });
   const listener = app.listen(port, host, () => {
     console.error(
-      "[reasonkb-mcp-http] listening on http://" + host + ":" + port + "/mcp",
+      "[reasonkb-mcp-http] listening on http://" + host + ":" + port,
     );
   });
   listener.on("error", (error) => {

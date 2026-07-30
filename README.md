@@ -211,7 +211,7 @@ For a same-host MCP client, configure the command as:
 URL-based MCP clients can instead connect to:
 
 ```text
-http://localhost:43173/mcp
+http://localhost:43173
 ```
 
 and send the ReasonKB API Key as a Bearer token. The endpoint binds to localhost
