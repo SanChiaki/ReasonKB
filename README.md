@@ -170,6 +170,7 @@ PAGEINDEX_LLM_API_KEY=your_key
 PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
 PAGEINDEX_LLM_MODEL=openai/model-name
 PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/model-name
+RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=120
 ```
 
 Image evidence extraction is disabled by default:

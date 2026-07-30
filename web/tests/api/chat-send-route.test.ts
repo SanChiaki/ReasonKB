@@ -172,6 +172,8 @@ describe("chat send route validation", () => {
       citations: [],
       selectedDocuments: [],
       evidence: [],
+      retrievalStatus: "degraded",
+      degradedReason: "retrieval_request_failed",
     });
     expect(detail.title).toBe("Summarize alpha revenue");
     expect(detail.messages).toHaveLength(2);
@@ -374,6 +376,7 @@ describe("chat send route validation", () => {
         mode: "answer",
       },
       expect.any(Function),
+      expect.any(AbortSignal),
     );
     expect(detail.messages).toHaveLength(2);
     expect(detail.messages[0].content).toBe("Stream this");
@@ -449,6 +452,8 @@ describe("chat send route validation", () => {
     expect(text).toContain('"type":"progress"');
     expect(text).toContain('"stage":"retrieval_failed"');
     expect(text).toContain('"type":"result"');
+    expect(text).toContain('"retrievalStatus":"degraded"');
+    expect(text).toContain('"degradedReason":"retrieval_request_failed"');
     expect(detail.messages[1].content).toBe(
       "I ran into a retrieval error. Please try again.",
     );
@@ -466,5 +471,174 @@ describe("chat send route validation", () => {
       "chat retrieval stream failed",
       expect.any(Error),
     );
+  });
+
+  it("persists the final assistant response when the stream is cancelled after result before EOF", async () => {
+    const { dbPath } = makeTempDb();
+    mockConfig(dbPath);
+    const conversation = createConversation(dbPath, "user_demo");
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+    const result = {
+      answer: "visible before disconnect",
+      citations: [],
+      selectedDocuments: [],
+      evidence: [],
+      retrievalStatus: "matched" as const,
+    };
+
+    let resolveResultSent!: () => void;
+    const resultSent = new Promise<void>((resolve) => {
+      resolveResultSent = resolve;
+    });
+    let resolveAborted!: () => void;
+    const aborted = new Promise<void>((resolve) => {
+      resolveAborted = resolve;
+    });
+    const sendRetrievalQueryStream = vi.fn(
+      async (_input, onEvent, signal?: AbortSignal) => {
+        onEvent({ type: "result", data: result });
+        resolveResultSent();
+        await new Promise<never>((_resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => {
+              resolveAborted();
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            },
+            { once: true },
+          );
+        });
+        throw new Error("unreachable");
+      },
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.doMock("@/lib/retrieval-client", () => ({
+      sendRetrievalQueryStream,
+    }));
+
+    const { POST } = await import("@/app/api/chat/send/route");
+    const response = await POST(
+      new Request("http://localhost/api/chat/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          projectIds: [project.id],
+          message: "Disconnect after result",
+          mode: "answer",
+          stream: true,
+        }),
+      }),
+    );
+    await resultSent;
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("Expected streaming response body.");
+    }
+    const finalEvent = await reader.read();
+
+    expect(new TextDecoder().decode(finalEvent.value)).toContain(
+      '"type":"result"',
+    );
+    await reader.cancel("client disconnected after result");
+    await aborted;
+
+    await vi.waitFor(() => {
+      expect(getConversationDetail(dbPath, conversation.id)?.messages).toHaveLength(2);
+    });
+    const detail = getConversationDetail(dbPath, conversation.id);
+    expect(detail?.messages[1].role).toBe("assistant");
+    expect(detail?.messages[1].content).toBe(result.answer);
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it("aborts retrieval and skips fallback persistence when the response stream is cancelled", async () => {
+    const { dbPath } = makeTempDb();
+    mockConfig(dbPath);
+    const conversation = createConversation(dbPath, "user_demo");
+    const project = createProject(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Alpha",
+    });
+
+    let retrievalSignal: AbortSignal | undefined;
+    let resolveStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    let resolveAborted!: () => void;
+    const aborted = new Promise<void>((resolve) => {
+      resolveAborted = resolve;
+    });
+    const sendRetrievalQueryStream = vi.fn(
+      async (_input, onEvent, signal?: AbortSignal) => {
+        retrievalSignal = signal;
+        onEvent({
+          type: "progress",
+          stage: "documents_loaded",
+          data: { documentCount: 2 },
+        });
+        resolveStarted();
+        await new Promise<never>((_resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => {
+              resolveAborted();
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            },
+            { once: true },
+          );
+        });
+        throw new Error("unreachable");
+      },
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const encode = vi.spyOn(TextEncoder.prototype, "encode");
+    vi.doMock("@/lib/retrieval-client", () => ({
+      sendRetrievalQueryStream,
+    }));
+
+    const { POST } = await import("@/app/api/chat/send/route");
+    const response = await POST(
+      new Request("http://localhost/api/chat/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          projectIds: [project.id],
+          message: "Cancel streaming",
+          mode: "answer",
+          stream: true,
+        }),
+      }),
+    );
+    await started;
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("Expected streaming response body.");
+    }
+    const firstEvent = await reader.read();
+
+    expect(new TextDecoder().decode(firstEvent.value)).toContain(
+      '"stage":"documents_loaded"',
+    );
+    const encodedEventCount = encode.mock.calls.length;
+    await reader.cancel("client disconnected");
+    await aborted;
+
+    expect(retrievalSignal?.aborted).toBe(true);
+    expect(encode).toHaveBeenCalledTimes(encodedEventCount);
+    expect(consoleError).not.toHaveBeenCalled();
+    const detail = getConversationDetail(dbPath, conversation.id);
+    if (!detail) {
+      throw new Error("Expected conversation detail to exist.");
+    }
+    expect(detail.messages).toHaveLength(1);
+    expect(detail.messages[0].role).toBe("user");
+    expect(detail.messages[0].content).toBe("Cancel streaming");
+    encode.mockRestore();
   });
 });

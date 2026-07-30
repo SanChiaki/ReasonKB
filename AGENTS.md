@@ -39,6 +39,34 @@ pnpm -C web dev
 ./.venv/bin/python -m services.index_worker.worker
 ```
 
+## ACR Release Tagging
+
+Every ACR publication must have a corresponding GitHub tag that points to the exact commit used to build the images.
+
+Before running `./docker/publish-acr.sh`:
+- use a clean, fully committed checkout
+- choose an explicit release version
+- create an annotated tag named `YYYYMMDD-vX.Y.Z`, using the Asia/Shanghai release date and the release version, for example `20260729-v1.4.0`
+- push the tag to GitHub and verify that the remote tag exists
+- only then build and push the ACR images from that tagged commit
+
+Example:
+
+```sh
+ACR_RELEASE_VERSION=1.4.0
+ACR_RELEASE_DATE="$(TZ=Asia/Shanghai date +%Y%m%d)"
+ACR_GIT_TAG="${ACR_RELEASE_DATE}-v${ACR_RELEASE_VERSION}"
+ACR_RELEASE_SHA="$(git rev-parse HEAD)"
+
+test -z "$(git status --porcelain)"
+git tag -a "$ACR_GIT_TAG" "$ACR_RELEASE_SHA" -m "ReasonKB ACR release $ACR_GIT_TAG"
+git push origin "$ACR_GIT_TAG"
+git ls-remote --exit-code --tags origin "refs/tags/$ACR_GIT_TAG"
+./docker/publish-acr.sh
+```
+
+Never move or reuse an existing release tag. After publishing, inspect the remote ACR manifest and verify that the app image's `org.opencontainers.image.revision` matches `git rev-list -n 1 "$ACR_GIT_TAG"`.
+
 ## Worktree Model
 
 This repository uses a worktree-first workflow.

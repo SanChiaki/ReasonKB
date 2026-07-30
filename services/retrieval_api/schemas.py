@@ -1,10 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
     query: str = Field(min_length=1)
     projectIds: list[str] = Field(default_factory=list)
-    mode: str = "answer"
+    mode: Literal["answer", "evidence"] = "answer"
 
 
 class Citation(BaseModel):
@@ -51,6 +53,11 @@ class QueryResponse(BaseModel):
     citations: list[Citation]
     selectedDocuments: list[SelectedDocument]
     evidence: list[EvidenceItem] = []
+    retrievalStatus: Literal["matched", "no_match", "degraded"] = "matched"
+    degradedReason: str | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
 
 
 class LlmTestRequest(BaseModel):

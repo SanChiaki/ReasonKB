@@ -22,6 +22,59 @@ projects restricts the key to those project IDs. An API Key or Agent query can
 name at most 100 project IDs; use separate Keys when larger explicit scopes are
 required.
 
+## Retrieval Modes
+
+`query` and `evidence` share the same document selection and bounded PageIndex
+tree search. For each selected document, ReasonKB asks the retrieval model for
+specific PageIndex nodes or physical pages, loads the stored page text, and
+checks whether more evidence is needed. The search may continue for up to three
+rounds, with at most eight new pages per round and sixteen pages per document.
+Invalid model output or an older index without navigable PageIndex nodes falls
+back to the original single-page-selection path.
+
+- `query` returns a match only when the collected pages can answer every material
+  part of the question accurately. It then generates an answer and returns page
+  citations while preserving the source's category hierarchy.
+- `evidence` favors recall across distinct relevant sections. It never generates
+  the final answer; it returns page-scoped evidence content and source metadata
+  so the caller can combine it with other information.
+
+Every retrieval response includes `retrievalStatus`:
+
+- `matched` means a `query` has sufficient evidence for a complete answer, or an
+  `evidence` request returned directly relevant page evidence.
+- `no_match` means retrieval completed normally but did not find enough direct
+  support for that mode in ReasonKB.
+- `degraded` means a provider, parsing, or validation failure prevented a
+  reliable complete result. `degradedReason` identifies the failed stage so the
+  caller can retry instead of treating the response as a confirmed no-match.
+
+Candidate selection sends at most 50 ranked document summaries in each model
+prompt. `answer` mode continues to the next batch when a batch is empty or its
+output is recoverably malformed, then stops after finding candidates;
+`evidence` mode evaluates every batch and re-ranks combined selections when
+they exceed the configured document limit.
+This keeps every ready document reachable by semantic model selection without
+creating one unbounded prompt, at the cost of additional model calls for large
+retrieval scopes. Provider failures stop the cascade.
+
+Candidate-model failures use a bounded deterministic fallback only when file
+metadata, descriptions, the PageIndex tree, and exact constraints found while
+iterating page text provide a strong query-term match. Page text is scanned
+lazily only after an explicit empty or technical model outcome; successful
+model selection does not pay that full-text fallback cost.
+An explicit empty model selection probes at most one strong candidate.
+Every selected document, including normal model selections, fallback probes,
+and the protected deterministic anchor, must pass a page-text support check
+before its pages can appear in the final citations or evidence list. This final
+check prevents a topically related document from being reported as a match when
+its retrieved pages do not directly support the query.
+
+Page selection, bounded tree continuation, page loading, final evidence
+validation, and answer generation also propagate technical failures as
+`degraded`. A response can therefore contain useful evidence and still be
+degraded when an upstream failure means the search may be incomplete.
+
 ## Docker CLI
 
 The one-command installer creates host launchers that execute the tools inside

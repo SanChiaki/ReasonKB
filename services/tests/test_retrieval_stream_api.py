@@ -1,6 +1,9 @@
+import asyncio
 import json
+import threading
 
 from fastapi.testclient import TestClient
+import pytest
 
 from services.retrieval_api import app as retrieval_app
 
@@ -79,7 +82,14 @@ def test_retrieve_query_only_serializes_document_url_when_present(monkeypatch):
 def test_retrieve_query_stream_returns_sse_progress_and_result(monkeypatch):
     document_url = "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon"
 
-    def fake_answer_question_events(db_path, query, project_ids=None, mode="answer"):
+    def fake_answer_question_events(
+        db_path,
+        query,
+        project_ids=None,
+        mode="answer",
+        cancellation_event=None,
+    ):
+        del cancellation_event
         yield {
             "type": "progress",
             "stage": "retrieval_started",
@@ -161,3 +171,115 @@ def test_retrieve_query_stream_returns_sse_progress_and_result(monkeypatch):
             },
         },
     ]
+
+
+def test_retrieve_query_stream_cancels_sync_generator_without_waiting(monkeypatch):
+    worker_blocked = threading.Event()
+    worker_finished = threading.Event()
+    release_worker = threading.Event()
+    captured_cancellation_event: list[threading.Event] = []
+
+    def fake_answer_question_events(
+        db_path,
+        query,
+        project_ids=None,
+        mode="answer",
+        cancellation_event=None,
+    ):
+        del db_path, query, project_ids, mode
+        assert cancellation_event is not None
+        captured_cancellation_event.append(cancellation_event)
+        yield {"type": "progress", "stage": "retrieval_started", "data": {}}
+        worker_blocked.set()
+        release_worker.wait(timeout=2)
+        worker_finished.set()
+        yield {"type": "progress", "stage": "should_not_arrive", "data": {}}
+
+    monkeypatch.setattr(
+        retrieval_app,
+        "answer_question_events",
+        fake_answer_question_events,
+    )
+
+    async def cancel_stream() -> None:
+        response = retrieval_app.retrieve_query_stream(
+            retrieval_app.QueryRequest(query="What changed?", mode="answer")
+        )
+        iterator = response.body_iterator
+        first_chunk = await anext(iterator)
+        assert "retrieval_started" in first_chunk
+
+        blocked_read = asyncio.create_task(anext(iterator))
+        assert await asyncio.to_thread(worker_blocked.wait, 1)
+        blocked_read.cancel()
+        try:
+            await blocked_read
+        except asyncio.CancelledError:
+            pass
+
+        assert captured_cancellation_event[0].is_set()
+        release_worker.set()
+        assert await asyncio.to_thread(worker_finished.wait, 1)
+
+    asyncio.run(cancel_stream())
+
+
+@pytest.mark.parametrize("llm_stage", ["document_selection", "answer_generation"])
+def test_retrieve_query_stream_cancellation_stops_llm_retries(monkeypatch, llm_stage):
+    from pageindex import utils
+
+    provider_started = threading.Event()
+    release_provider = threading.Event()
+    generator_finished = threading.Event()
+    provider_calls = 0
+
+    def blocking_failure(**_kwargs):
+        nonlocal provider_calls
+        provider_calls += 1
+        provider_started.set()
+        release_provider.wait(timeout=2)
+        raise TimeoutError("provider timed out")
+
+    def fake_answer_question_events(
+        db_path,
+        query,
+        project_ids=None,
+        mode="answer",
+        cancellation_event=None,
+    ):
+        del db_path, query, project_ids, mode, cancellation_event
+        yield {"type": "progress", "stage": "retrieval_started", "data": {}}
+        if llm_stage == "answer_generation":
+            yield {"type": "progress", "stage": "documents_selected", "data": {}}
+        utils.llm_completion(model="gpt-test", prompt="question")
+        generator_finished.set()
+        yield {"type": "progress", "stage": "should_not_arrive", "data": {}}
+
+    monkeypatch.setattr("litellm.completion", blocking_failure)
+    monkeypatch.setattr(
+        retrieval_app,
+        "answer_question_events",
+        fake_answer_question_events,
+    )
+
+    async def cancel_during_llm_call() -> None:
+        response = retrieval_app.retrieve_query_stream(
+            retrieval_app.QueryRequest(query="What changed?", mode="answer")
+        )
+        iterator = response.body_iterator
+        assert "retrieval_started" in await anext(iterator)
+        if llm_stage == "answer_generation":
+            assert "documents_selected" in await anext(iterator)
+
+        blocked_read = asyncio.create_task(anext(iterator))
+        assert await asyncio.to_thread(provider_started.wait, 1)
+        blocked_read.cancel()
+        try:
+            await blocked_read
+        except asyncio.CancelledError:
+            pass
+        release_provider.set()
+        assert await asyncio.to_thread(generator_finished.wait, 1)
+
+    asyncio.run(cancel_during_llm_call())
+    assert provider_calls == 1
