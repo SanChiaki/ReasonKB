@@ -37,6 +37,8 @@ export type RetrievalResult = {
   citations: RetrievalCitation[];
   selectedDocuments: Array<{ documentId: string; sourceRelativePath?: string | null }>;
   evidence: RetrievalEvidence[];
+  retrievalStatus?: "matched" | "no_match" | "degraded";
+  degradedReason?: string;
 };
 
 export type RetrievalProgressEvent = {
@@ -127,11 +129,13 @@ export async function sendRetrievalQueryStream(
     mode?: RetrievalMode;
   },
   onEvent: (event: RetrievalStreamEvent) => void,
+  signal?: AbortSignal,
 ) {
   const response = await fetch(`${appConfig.retrievalBaseUrl}/internal/retrieve/query/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    ...(signal ? { signal } : {}),
   });
   if (!response.ok || !response.body) {
     throw new Error(`retrieval stream failed with status ${response.status}`);
@@ -140,7 +144,6 @@ export async function sendRetrievalQueryStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let result: RetrievalResult | undefined;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -153,7 +156,8 @@ export async function sendRetrievalQueryStream(
     for (const event of parsed.events) {
       onEvent(event);
       if (event.type === "result") {
-        result = event.data;
+        void reader.cancel("retrieval result received").catch(() => {});
+        return event.data;
       }
     }
   }
@@ -164,13 +168,10 @@ export async function sendRetrievalQueryStream(
     for (const event of parsed.events) {
       onEvent(event);
       if (event.type === "result") {
-        result = event.data;
+        return event.data;
       }
     }
   }
 
-  if (!result) {
-    throw new Error("retrieval stream ended without a result event");
-  }
-  return result;
+  throw new Error("retrieval stream ended without a result event");
 }

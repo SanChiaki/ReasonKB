@@ -39,6 +39,8 @@ function fallbackRetrievalResult(): RetrievalResult {
     citations: [],
     selectedDocuments: [],
     evidence: [],
+    retrievalStatus: "degraded",
+    degradedReason: "retrieval_request_failed",
   };
 }
 
@@ -121,11 +123,35 @@ export async function POST(request: Request) {
 
   if (parsed.data.stream) {
     const encoder = new TextEncoder();
+    const retrievalAbortController = new AbortController();
+    let cancelled = false;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const progressLines: PersistedRetrievalProgress["lines"] = [];
         let progressDocuments: RetrievalProgressDocument[] = [];
+        let assistantPersisted = false;
+        const persistResultOnce = (result: RetrievalResult) => {
+          if (assistantPersisted) {
+            return;
+          }
+          persistAssistantResponse({
+            conversationId: parsed.data.conversationId,
+            mode: parsed.data.mode,
+            result,
+            progress: progressLines.length > 0 || progressDocuments.length > 0
+              ? {
+                  kind: "retrieval_progress",
+                  lines: progressLines,
+                  documents: progressDocuments,
+                }
+              : undefined,
+          });
+          assistantPersisted = true;
+        };
         const sendEvent = (event: RetrievalStreamEvent) => {
+          if (cancelled || retrievalAbortController.signal.aborted) {
+            return;
+          }
           if (event.type === "progress") {
             progressLines.push({
               stage: event.stage,
@@ -137,6 +163,9 @@ export async function POST(request: Request) {
                 ? documents as RetrievalProgressDocument[]
                 : [];
             }
+          } else {
+            // A result is terminal: persist it before making it visible downstream.
+            persistResultOnce(event.data);
           }
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
@@ -152,8 +181,12 @@ export async function POST(request: Request) {
               mode: parsed.data.mode,
             },
             sendEvent,
+            retrievalAbortController.signal,
           );
         } catch (error) {
+          if (cancelled || retrievalAbortController.signal.aborted) {
+            return;
+          }
           const message = retrievalErrorMessage(error);
           console.error("chat retrieval stream failed", error);
           sendEvent({
@@ -165,19 +198,15 @@ export async function POST(request: Request) {
           sendEvent({ type: "result", data: result });
         }
 
-        persistAssistantResponse({
-          conversationId: parsed.data.conversationId,
-          mode: parsed.data.mode,
-          result,
-          progress: progressLines.length > 0 || progressDocuments.length > 0
-            ? {
-                kind: "retrieval_progress",
-                lines: progressLines,
-                documents: progressDocuments,
-              }
-            : undefined,
-        });
+        if (cancelled || retrievalAbortController.signal.aborted) {
+          return;
+        }
+        persistResultOnce(result);
         controller.close();
+      },
+      cancel(reason) {
+        cancelled = true;
+        retrievalAbortController.abort(reason);
       },
     });
 

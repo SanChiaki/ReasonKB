@@ -1,4 +1,5 @@
 from services.retrieval_api.select_documents import (
+    EVIDENCE_VALIDATION_REASON_KEY,
     keyword_score,
     prefilter_candidate_documents,
     select_candidate_documents,
@@ -259,7 +260,7 @@ def test_select_candidate_documents_falls_back_to_keywords_when_llm_response_is_
     assert [doc["id"] for doc in selected] == ["doc_1"]
 
 
-def test_select_candidate_documents_falls_back_to_weak_matches_when_no_strong_match(
+def test_select_candidate_documents_does_not_fall_back_to_weak_matches_when_llm_fails(
     monkeypatch,
 ):
     docs = [
@@ -284,4 +285,325 @@ def test_select_candidate_documents_falls_back_to_weak_matches_when_no_strong_ma
         model="gpt-retrieval",
     )
 
-    assert [doc["id"] for doc in selected] == ["doc_annual"]
+    assert selected == []
+    assert selected.model_outcome == "malformed"
+    assert selected.strategy == "technical_failure_no_strong_match"
+
+
+def _policy_candidate_documents():
+    return [
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "附件3：中国政企钻石经销商伙伴成长指数评估标准.xlsx",
+            "doc_description": "钻石经销商PGI评估指标和评分规则。",
+        },
+        {
+            "id": "doc_support",
+            "project_id": "proj_1",
+            "file_name": "中国政企伙伴发展政策—钻石经销商.pdf",
+            "doc_description": "钻石经销商认证、业绩门槛和激励权益。",
+        },
+        {
+            "id": "doc_related",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商服务能力评估指引.pdf",
+            "doc_description": "钻石经销商服务能力评估指标。",
+        },
+    ]
+
+
+def test_select_candidate_documents_falls_back_when_llm_explicitly_selects_nothing(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"no match","answer":[]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+    assert selected[0]["_reasonkb_evidence_validation_reason"] == "explicit_empty_probe"
+    assert selected.model_outcome == "explicit_empty"
+    assert selected.strategy == "explicit_empty_strong_probe"
+
+
+def test_select_candidate_documents_falls_back_when_all_llm_ids_are_unknown(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"wrong identifiers","answer":["missing_1","missing_2"]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected
+    assert selected[0]["id"] == "doc_gold"
+
+
+def test_select_candidate_documents_salvages_valid_ids_and_protects_keyword_anchor(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"one useful document","answer":["doc_support","missing"]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold", "doc_support"]
+
+
+def test_evidence_selection_keeps_anchor_without_filling_the_document_budget(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"supporting policy","answer":["doc_support"]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="evidence",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold", "doc_support"]
+
+
+def test_single_document_budget_keeps_the_model_choice_instead_of_the_anchor(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"supporting policy","answer":["doc_support"]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=1,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_support"]
+    assert selected.strategy == "model_only_single_slot"
+    assert selected[0][EVIDENCE_VALIDATION_REASON_KEY] == "model_selection"
+
+
+def test_evidence_selection_uses_bounded_fallback_when_llm_selects_nothing(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"no match","answer":[]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=5,
+        mode="evidence",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+    assert selected[0]["_reasonkb_evidence_validation_reason"] == "explicit_empty_probe"
+
+
+def test_select_candidate_documents_accepts_short_candidate_aliases(monkeypatch):
+    docs = _policy_candidate_documents()
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        assert "D001" in prompt
+        return '{"thinking":"first candidate","answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+
+
+def test_select_candidate_documents_falls_back_when_provider_fails(monkeypatch):
+    docs = _policy_candidate_documents()
+
+    def failing_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        raise TimeoutError("provider timeout")
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", failing_llm_completion)
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected
+    assert selected[0]["id"] == "doc_gold"
+    assert all(
+        doc["_reasonkb_evidence_validation_reason"] == "technical_fallback"
+        for doc in selected
+    )
+    assert selected.model_outcome == "provider_error"
+    assert selected.strategy == "technical_failure_strong_fallback"
+
+
+def test_select_candidate_documents_recognizes_wrapped_provider_error(monkeypatch):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected.model_outcome == "provider_error"
+    assert selected.strategy == "technical_failure_strong_fallback"
+    assert selected[0]["id"] == "doc_gold"
+
+
+def test_select_candidate_documents_does_not_treat_invalid_items_as_explicit_empty(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"answer":[42,""]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected.model_outcome == "malformed"
+    assert selected.strategy == "technical_failure_strong_fallback"
+
+
+def test_select_candidate_documents_marks_mixed_valid_and_invalid_items_partial(
+    monkeypatch,
+):
+    docs = _policy_candidate_documents()
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"answer":["D001",42,"missing"]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+    assert selected.model_outcome == "partial"
+
+
+def test_explicit_empty_selection_stays_empty_without_deterministic_signal(monkeypatch):
+    docs = [
+        {
+            "id": "doc_unrelated",
+            "project_id": "proj_1",
+            "file_name": "员工通讯录.pdf",
+            "doc_description": "员工姓名和联系方式。",
+        }
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"unrelated","answer":[]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "quantum telemetry anomaly",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.model_outcome == "explicit_empty"
+    assert selected.strategy == "explicit_empty_no_strong_match"
+
+
+def test_explicit_empty_selection_rejects_weak_generic_overlap(monkeypatch):
+    docs = [
+        {
+            "id": "doc_annual",
+            "project_id": "proj_1",
+            "file_name": "annual-report.pdf",
+            "doc_description": "Annual business report and market discussion.",
+        }
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"no direct support","answer":[]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "生成终验交付报告",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.model_outcome == "explicit_empty"
+    assert selected.strategy == "explicit_empty_no_strong_match"
