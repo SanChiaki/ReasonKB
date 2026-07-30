@@ -6,7 +6,7 @@ import {
   requireAgentAuth,
 } from "@/lib/agent-auth";
 import { appConfig } from "@/lib/config";
-import { sendRetrievalQuery } from "@/lib/retrieval-client";
+import { sendRetrievalQueryStream } from "@/lib/retrieval-client";
 import { MAX_AGENT_PROJECT_IDS } from "@/lib/repos/api-key-store";
 import { findUnavailableProjectIds } from "@/lib/repos/project-store";
 
@@ -46,12 +46,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendRetrievalQuery(
+    const result = await sendRetrievalQueryStream(
       {
         query: parsed.data.query,
         projectIds,
         mode: "answer",
       },
+      () => {},
       request.signal,
     );
     return NextResponse.json(result);

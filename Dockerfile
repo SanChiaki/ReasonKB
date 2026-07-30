@@ -20,6 +20,7 @@ RUN python3 -m venv /opt/venv \
   && /opt/venv/bin/pip install -r services/requirements.txt
 
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
+COPY web/patches ./web/patches
 RUN pnpm -C web install --frozen-lockfile
 
 COPY . .
@@ -27,4 +28,4 @@ RUN find docker/entrypoints -type f -name "*.sh" -exec sed -i 's/\r$//' {} + \
   && chmod +x docker/entrypoints/*.sh
 RUN pnpm -C web build
 
-EXPOSE 3000 8001
+EXPOSE 3000 3002 8001

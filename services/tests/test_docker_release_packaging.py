@@ -470,6 +470,28 @@ def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
         assert service["environment"]["REASONKB_MCP_ALLOWED_ORIGINS"] == (
             "${REASONKB_MCP_ALLOWED_ORIGINS:-}"
         )
+        assert service["environment"]["NODE_ENV"] == "production"
+        assert service["environment"]["REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS"] == (
+            "${REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS:-30}"
+        )
+        assert service["environment"]["REASONKB_MCP_REQUEST_TIMEOUT_SECONDS"] == (
+            "${REASONKB_MCP_REQUEST_TIMEOUT_SECONDS:-600}"
+        )
+        assert service["environment"]["REASONKB_MCP_MAX_CONCURRENT_REQUESTS"] == (
+            "${REASONKB_MCP_MAX_CONCURRENT_REQUESTS:-8}"
+        )
+        assert service["environment"][
+            "REASONKB_MCP_MAX_CONCURRENT_AUTH_REQUESTS"
+        ] == "${REASONKB_MCP_MAX_CONCURRENT_AUTH_REQUESTS:-32}"
+        assert service["environment"][
+            "REASONKB_MCP_MAX_CONCURRENT_CONTROL_REQUESTS"
+        ] == "${REASONKB_MCP_MAX_CONCURRENT_CONTROL_REQUESTS:-32}"
+        assert service["environment"]["REASONKB_MCP_MAX_SESSIONS"] == (
+            "${REASONKB_MCP_MAX_SESSIONS:-128}"
+        )
+        assert service["environment"]["REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS"] == (
+            "${REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS:-900}"
+        )
         assert service["ports"] == [
             "${MCP_BIND_ADDRESS:-127.0.0.1}:"
             "${MCP_PORT:-43173}:3002"
@@ -521,6 +543,21 @@ def test_root_dockerfile_matches_compose_build_dockerfile_for_acr_auto_build():
     assert (ROOT / "Dockerfile").read_text(encoding="utf-8") == (
         ROOT / "docker" / "Dockerfile"
     ).read_text(encoding="utf-8")
+
+
+def test_dockerfile_copies_pnpm_patches_before_installing_dependencies():
+    dockerfile = (ROOT / "docker" / "Dockerfile").read_text(encoding="utf-8")
+    workspace = yaml.safe_load(
+        (ROOT / "web" / "pnpm-workspace.yaml").read_text(encoding="utf-8")
+    )
+
+    patch_copy = "COPY web/patches ./web/patches"
+    install = "RUN pnpm -C web install --frozen-lockfile"
+    assert patch_copy in dockerfile
+    assert dockerfile.index(patch_copy) < dockerfile.index(install)
+    patch_path = workspace["patchedDependencies"]["@modelcontextprotocol/sdk@1.30.0"]
+    assert patch_path == "patches/modelcontextprotocol-sdk@1.30.0.patch"
+    assert (ROOT / "web" / patch_path).is_file()
 
 
 def test_acr_publish_embeds_git_revision_label():

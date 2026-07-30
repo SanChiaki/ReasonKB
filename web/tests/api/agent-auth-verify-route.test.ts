@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import {
@@ -44,6 +45,12 @@ describe("agent API key verification route", () => {
     );
 
     expect(response.status).toBe(204);
+    const db = new Database(dbPath, { readonly: true });
+    const row = db
+      .prepare("SELECT last_used_at FROM api_keys WHERE id = ?")
+      .get(key.id) as { last_used_at: string | null };
+    db.close();
+    expect(row.last_used_at).toBeNull();
   });
 
   it("rejects missing and revoked keys", async () => {

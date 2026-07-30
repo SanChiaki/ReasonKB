@@ -8,7 +8,22 @@ import {
 async function main() {
   const mode = process.argv[2] || "--stdio";
   if (mode === "--http") {
-    startReasonkbMcpHttpServer();
+    const listener = startReasonkbMcpHttpServer();
+    let stopping = false;
+    const stop = () => {
+      if (stopping) {
+        return;
+      }
+      stopping = true;
+      listener.close((error) => {
+        if (error) {
+          console.error(error instanceof Error ? error.message : error);
+          process.exitCode = 1;
+        }
+      });
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
     return;
   }
   if (mode === "--stdio") {
