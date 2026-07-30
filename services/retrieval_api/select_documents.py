@@ -12,8 +12,16 @@ from typing import Any, Literal
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 _CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 _LATIN_RE = re.compile(r"[a-z0-9]+")
+_HARD_NUMBER_RE = re.compile(r"(?<![a-z0-9])\d+(?:\.\d+)?(?![a-z0-9])", re.I)
+_HARD_ACRONYM_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?![A-Za-z0-9])")
+_DEALER_TIER_RE = re.compile(
+    r"([\u3400-\u4dbf\u4e00-\u9fff]{1,12}"
+    r"(?:[/、或][\u3400-\u4dbf\u4e00-\u9fff]{1,12})*)经销商"
+)
 DEFAULT_PREFILTER_LIMIT = 50
+PREFILTER_EXPLORATION_RATIO = 0.2
 STRUCTURE_SEARCH_TEXT_LIMIT = 30000
+FALLBACK_PAGE_SEARCH_TEXT_LIMIT = 200000
 MIN_STRONG_PREFILTER_SCORE = 3
 ANSWER_FALLBACK_LIMIT = 2
 EVIDENCE_FALLBACK_LIMIT = 3
@@ -102,6 +110,18 @@ _FALLBACK_CJK_STOP_TERMS = {
     "信息",
     "查询",
 }
+_DEALER_TIER_MARKERS = (
+    "钻石",
+    "铂金",
+    "白金",
+    "黄金",
+    "金牌",
+    "银牌",
+    "铜牌",
+    "金",
+    "银",
+    "铜",
+)
 
 
 def _tokenize_query(text: str) -> list[str]:
@@ -271,10 +291,12 @@ def _strong_keyword_select_documents(
     query_terms = _fallback_query_terms(query)
     if len(query_terms) < MIN_FALLBACK_QUERY_TERMS:
         return []
+    hard_term_groups = _hard_fallback_term_groups(query)
     return [
         doc
         for _score, _strong_score, _file_name, doc in _rank_documents_by_keyword(query, docs)
-        if _passes_strong_fallback_coverage(query_terms, doc)
+        if _passes_hard_fallback_constraints(hard_term_groups, doc)
+        and _passes_strong_fallback_coverage(query_terms, doc)
     ][:limit]
 
 
@@ -316,6 +338,79 @@ def _matched_fallback_terms(terms: set[str], text: str) -> set[str]:
     }
 
 
+def _fallback_search_text(doc: dict) -> str:
+    summary_text = " ".join(
+        str(doc.get(key) or "")
+        for key in (
+            "project_name",
+            "file_name",
+            "project_relative_path",
+            "source_relative_path",
+            "doc_description",
+        )
+    )
+    pages_text = _pages_search_text(doc.get("pages", []))
+    return (
+        f"{summary_text} {_structure_search_text(doc.get('structure', []))} "
+        f"{pages_text}"
+    )
+
+
+def _pages_search_text(
+    pages: Any,
+    limit: int = FALLBACK_PAGE_SEARCH_TEXT_LIMIT,
+) -> str:
+    if not isinstance(pages, list) or limit <= 0:
+        return ""
+    parts: list[str] = []
+    remaining = limit
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        content = page.get("content")
+        if not isinstance(content, str) or not content:
+            continue
+        parts.append(content[:remaining])
+        remaining -= min(len(content), remaining)
+        if remaining <= 0:
+            break
+    return " ".join(parts)
+
+
+def _dealer_tier_marker(term: str) -> str | None:
+    return next((marker for marker in _DEALER_TIER_MARKERS if term.endswith(marker)), None)
+
+
+def _hard_fallback_term_groups(query: str) -> tuple[frozenset[str], ...]:
+    groups: list[frozenset[str]] = [
+        frozenset({match.group(0).lower()}) for match in _HARD_NUMBER_RE.finditer(query)
+    ]
+    groups.extend(
+        frozenset({match.group(0).lower()}) for match in _HARD_ACRONYM_RE.finditer(query)
+    )
+    for match in _DEALER_TIER_RE.finditer(query):
+        alternatives = {
+            marker
+            for term in re.split(r"[/、或]", match.group(1))
+            if term
+            for marker in [_dealer_tier_marker(term)]
+            if marker
+        }
+        if alternatives:
+            groups.append(frozenset(alternatives))
+    return tuple(dict.fromkeys(groups))
+
+
+def _passes_hard_fallback_constraints(
+    groups: tuple[frozenset[str], ...],
+    doc: dict,
+) -> bool:
+    if not groups:
+        return True
+    search_text = _fallback_search_text(doc).lower()
+    return all(any(term in search_text for term in group) for group in groups)
+
+
 def _passes_strong_fallback_coverage(terms: set[str], doc: dict) -> bool:
     summary_text = " ".join(
         str(doc.get(key) or "")
@@ -333,11 +428,21 @@ def _passes_strong_fallback_coverage(terms: set[str], doc: dict) -> bool:
         _structure_search_text(doc.get("structure", [])),
     )
     total_terms = len(terms)
+    if len(summary_matches) / total_terms < MIN_FALLBACK_SUMMARY_COVERAGE:
+        return False
     total_matches = summary_matches | structure_matches
-    return (
+    if (
         len(total_matches) >= MIN_FALLBACK_QUERY_TERMS
-        and len(summary_matches) / total_terms >= MIN_FALLBACK_SUMMARY_COVERAGE
         and len(total_matches) / total_terms >= MIN_FALLBACK_TOTAL_COVERAGE
+    ):
+        return True
+    page_matches = _matched_fallback_terms(
+        terms,
+        _pages_search_text(doc.get("pages", [])),
+    )
+    total_matches |= page_matches
+    return len(total_matches) >= MIN_FALLBACK_QUERY_TERMS and (
+        len(total_matches) / total_terms >= MIN_FALLBACK_TOTAL_COVERAGE
     )
 
 
@@ -355,18 +460,44 @@ def prefilter_candidate_documents(
         for score, strong_score, _file_name, doc in ranked
         if _passes_prefilter(query, score, strong_score)
     ]
-    if positives:
-        return positives[:limit]
-
+    positive_object_ids = {id(doc) for doc in positives}
     weak_matches = [
         doc
         for score, _strong_score, _file_name, doc in ranked
-        if score > 0
+        if score > 0 and id(doc) not in positive_object_ids
     ]
-    if weak_matches:
-        return weak_matches[:limit]
+    unmatched = [
+        doc
+        for score, _strong_score, _file_name, doc in ranked
+        if score <= 0
+    ]
+    lexical_matches = [*positives, *weak_matches]
+    if not unmatched:
+        return lexical_matches[:limit]
 
-    return [doc for _score, _strong_score, _file_name, doc in ranked[:limit]]
+    reserved_exploration = min(
+        len(unmatched),
+        max(1, int(limit * PREFILTER_EXPLORATION_RATIO)),
+        max(0, limit - 1),
+    )
+    exploration_count = min(
+        len(unmatched),
+        max(reserved_exploration, limit - len(lexical_matches)),
+    )
+    lexical_count = limit - exploration_count
+    exploration = _evenly_spaced_documents(unmatched, exploration_count)
+    return [*lexical_matches[:lexical_count], *exploration]
+
+
+def _evenly_spaced_documents(docs: list[dict], limit: int) -> list[dict]:
+    if limit <= 0:
+        return []
+    if len(docs) <= limit:
+        return docs
+    if limit == 1:
+        return [docs[len(docs) // 2]]
+    last_index = len(docs) - 1
+    return [docs[index * last_index // (limit - 1)] for index in range(limit)]
 
 
 def _candidate_alias(index: int) -> str:
@@ -494,6 +625,7 @@ def _llm_select_documents(
         raw, finish_reason = completion_result, None
     if finish_reason == "error" or not isinstance(raw, str) or not raw.strip():
         return _LlmSelection((), "provider_error")
+    output_truncated = finish_reason == "max_output_reached"
 
     parsed_selection = _extract_selected_doc_ids(raw)
     if parsed_selection is None:
@@ -502,6 +634,8 @@ def _llm_select_documents(
     if not selected_identifiers:
         if parsed_selection.invalid_item_count:
             return _LlmSelection((), "malformed")
+        if output_truncated:
+            return _LlmSelection((), "partial")
         return _LlmSelection((), "explicit_empty")
 
     docs_by_identifier: dict[str, dict] = {}
@@ -529,7 +663,9 @@ def _llm_select_documents(
             break
     if not selected_docs:
         return _LlmSelection((), "invalid_ids")
-    outcome: _LlmSelectionOutcome = "partial" if invalid_id_count else "selected"
+    outcome: _LlmSelectionOutcome = (
+        "partial" if invalid_id_count or output_truncated else "selected"
+    )
     return _LlmSelection(tuple(selected_docs), outcome)
 
 
@@ -585,9 +721,11 @@ def select_candidate_documents(
 
     if llm_selection.documents:
         model_documents = list(llm_selection.documents)
-        if limit == 1:
+        if limit == 1 or len(model_documents) >= limit:
             selected = _merge_documents(model_documents, limit=limit)
-            strategy = "model_only_single_slot"
+            strategy = (
+                "model_only_single_slot" if limit == 1 else "model_only_full_budget"
+            )
         else:
             selected = _merge_documents(
                 strong_deterministic[:1],

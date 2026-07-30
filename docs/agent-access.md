@@ -51,7 +51,11 @@ Every retrieval response includes `retrievalStatus`:
 
 Candidate-model failures use a bounded deterministic fallback only when file
 metadata, descriptions, and the PageIndex tree provide a strong query-term
-match. An explicit empty model selection probes at most one strong candidate.
+match. The prefilter keeps lexical matches first but reserves part of its bounded
+candidate pool for evenly distributed cross-language exploration, so a large
+set of incidental keyword hits cannot hide every other document from model
+selection.
+An explicit empty model selection probes at most one strong candidate.
 Every selected document, including normal model selections, fallback probes,
 and the protected deterministic anchor, must pass a page-text support check
 before its pages can appear in the final citations or evidence list. This final
