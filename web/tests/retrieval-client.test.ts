@@ -6,7 +6,37 @@ afterEach(() => {
   vi.unmock("@/lib/config");
 });
 
-describe("retrieval client streaming", () => {
+describe("retrieval client", () => {
+  it("forwards an abort signal to a retrieval request", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        answer: "answer",
+        citations: [],
+        selectedDocuments: [],
+        evidence: [],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { sendRetrievalQuery } = await import("@/lib/retrieval-client");
+    const abortController = new AbortController();
+    await sendRetrievalQuery(
+      { query: "Cancelable", projectIds: [], mode: "answer" },
+      abortController.signal,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://retrieval.test/internal/retrieve/query",
+      expect.objectContaining({ signal: abortController.signal }),
+    );
+  });
+
   it("parses retrieval progress events and returns the final result", async () => {
     vi.doMock("@/lib/config", () => ({
       appConfig: {

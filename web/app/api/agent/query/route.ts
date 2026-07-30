@@ -46,11 +46,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendRetrievalQuery({
-      query: parsed.data.query,
-      projectIds,
-      mode: "answer",
-    });
+    const result = await sendRetrievalQuery(
+      {
+        query: parsed.data.query,
+        projectIds,
+        mode: "answer",
+      },
+      request.signal,
+    );
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(
