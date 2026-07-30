@@ -1,0 +1,46 @@
+diff --git a/dist/cjs/server/webStandardStreamableHttp.js b/dist/cjs/server/webStandardStreamableHttp.js
+--- a/dist/cjs/server/webStandardStreamableHttp.js
++++ b/dist/cjs/server/webStandardStreamableHttp.js
+@@ -783,6 +783,7 @@ class WebStandardStreamableHTTPServerTransport {
+             cleanup();
+         });
+         this._streamMapping.clear();
++        this._requestToStreamMapping.clear();
+         // Clear any pending responses
+         this._requestResponseMap.clear();
+         this._resumableStreams.clear();
+diff --git a/dist/cjs/shared/protocol.js b/dist/cjs/shared/protocol.js
+--- a/dist/cjs/shared/protocol.js
++++ b/dist/cjs/shared/protocol.js
+@@ -171,7 +171,7 @@ class Protocol {
+         }
+     }
+     async _oncancel(notification) {
+-        if (!notification.params.requestId) {
++        if (notification.params.requestId === undefined) {
+             return;
+         }
+         // Handle request cancellation
+diff --git a/dist/esm/server/webStandardStreamableHttp.js b/dist/esm/server/webStandardStreamableHttp.js
+--- a/dist/esm/server/webStandardStreamableHttp.js
++++ b/dist/esm/server/webStandardStreamableHttp.js
+@@ -780,6 +780,7 @@ export class WebStandardStreamableHTTPServerTransport {
+             cleanup();
+         });
+         this._streamMapping.clear();
++        this._requestToStreamMapping.clear();
+         // Clear any pending responses
+         this._requestResponseMap.clear();
+         this._resumableStreams.clear();
+diff --git a/dist/esm/shared/protocol.js b/dist/esm/shared/protocol.js
+--- a/dist/esm/shared/protocol.js
++++ b/dist/esm/shared/protocol.js
+@@ -167,7 +167,7 @@ export class Protocol {
+         }
+     }
+     async _oncancel(notification) {
+-        if (!notification.params.requestId) {
++        if (notification.params.requestId === undefined) {
+             return;
+         }
+         // Handle request cancellation

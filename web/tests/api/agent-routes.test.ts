@@ -145,7 +145,7 @@ describe("agent routes", () => {
       ownerUserId: "user_demo",
       name: "Alpha",
     });
-    const sendRetrievalQuery = vi.fn().mockResolvedValue({
+    const sendRetrievalQueryStream = vi.fn().mockResolvedValue({
       answer: "answer",
       citations: [
         {
@@ -161,7 +161,7 @@ describe("agent routes", () => {
       evidence: [],
     });
     vi.doMock("@/lib/retrieval-client", () => ({
-      sendRetrievalQuery,
+      sendRetrievalQueryStream,
     }));
     const key = createApiKey(dbPath, {
       ownerUserId: "user_demo",
@@ -187,12 +187,13 @@ describe("agent routes", () => {
       "citations.0.documentUrl",
       "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon",
     );
-    expect(sendRetrievalQuery).toHaveBeenCalledWith(
+    expect(sendRetrievalQueryStream).toHaveBeenCalledWith(
       {
         query: "What changed?",
         projectIds: [alpha.id],
         mode: "answer",
       },
+      expect.any(Function),
       expect.any(AbortSignal),
     );
   });
@@ -205,7 +206,7 @@ describe("agent routes", () => {
       name: "Alpha",
     });
     const documentUrl = "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon";
-    const sendRetrievalQuery = vi.fn().mockResolvedValue({
+    const sendRetrievalQueryStream = vi.fn().mockResolvedValue({
       answer: "",
       citations: [],
       selectedDocuments: [{ documentId: "doc_seeyon" }],
@@ -222,7 +223,7 @@ describe("agent routes", () => {
         },
       ],
     });
-    vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQuery }));
+    vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQueryStream }));
     const key = createApiKey(dbPath, {
       ownerUserId: "user_demo",
       name: "Evidence",
@@ -244,12 +245,13 @@ describe("agent routes", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toHaveProperty("evidence.0.documentUrl", documentUrl);
-    expect(sendRetrievalQuery).toHaveBeenCalledWith(
+    expect(sendRetrievalQueryStream).toHaveBeenCalledWith(
       {
         query: "Show evidence",
         projectIds: [alpha.id],
         mode: "evidence",
       },
+      expect.any(Function),
       expect.any(AbortSignal),
     );
   });
@@ -259,8 +261,8 @@ describe("agent routes", () => {
     async (routeName) => {
       const dbPath = makeTempDb();
       mockConfig(dbPath);
-      const sendRetrievalQuery = vi.fn();
-      vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQuery }));
+      const sendRetrievalQueryStream = vi.fn();
+      vi.doMock("@/lib/retrieval-client", () => ({ sendRetrievalQueryStream }));
       const key = createApiKey(dbPath, {
         ownerUserId: "user_demo",
         name: "Bounded request",
@@ -289,7 +291,7 @@ describe("agent routes", () => {
       );
 
       expect(response.status).toBe(400);
-      expect(sendRetrievalQuery).not.toHaveBeenCalled();
+      expect(sendRetrievalQueryStream).not.toHaveBeenCalled();
     },
   );
 

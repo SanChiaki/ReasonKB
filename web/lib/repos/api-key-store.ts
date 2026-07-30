@@ -313,7 +313,11 @@ export function revokeApiKey(
   }
 }
 
-export function verifyApiKey(dbPath: string, apiKey: string): ApiKeyRecord | null {
+export function verifyApiKey(
+  dbPath: string,
+  apiKey: string,
+  { recordUsage = true }: { recordUsage?: boolean } = {},
+): ApiKeyRecord | null {
   const normalized = apiKey.trim();
   if (!normalized) {
     return null;
@@ -333,11 +337,12 @@ export function verifyApiKey(dbPath: string, apiKey: string): ApiKeyRecord | nul
     if (!row) {
       return null;
     }
-    db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(
-      new Date().toISOString(),
-      row.id,
-    );
-    return toApiKeyRecord(row);
+    if (!recordUsage) {
+      return toApiKeyRecord(row);
+    }
+    const lastUsedAt = new Date().toISOString();
+    db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(lastUsedAt, row.id);
+    return toApiKeyRecord({ ...row, last_used_at: lastUsedAt });
   } finally {
     db.close();
   }

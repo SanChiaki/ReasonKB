@@ -52,6 +52,7 @@ describe("api key store", () => {
       scopes: ["read:projects", "query"],
       projectIds: ["proj_1"],
     });
+    expect(listApiKeys(dbPath, "user_demo")[0].lastUsedAt).not.toBeNull();
     expect(verifyApiKey(dbPath, "wrong")).toBeNull();
 
     expect(revokeApiKey(dbPath, {
@@ -94,6 +95,24 @@ describe("api key store", () => {
 
     fs.writeFileSync(secretPath, "different-pepper\n");
     expect(verifyApiKey(dbPath, created.apiKey)).toBeNull();
+  });
+
+  it("verifies a key without a telemetry write while another writer is active", () => {
+    const dbPath = makeTempDb();
+    const created = createApiKey(dbPath, {
+      ownerUserId: "user_demo",
+      name: "Read-only verification",
+    });
+    const writer = new Database(dbPath);
+    writer.exec("BEGIN IMMEDIATE");
+    try {
+      expect(
+        verifyApiKey(dbPath, created.apiKey, { recordUsage: false })?.id,
+      ).toBe(created.id);
+    } finally {
+      writer.exec("ROLLBACK");
+      writer.close();
+    }
   });
 
   it("rejects API keys with an excessive project scope", () => {

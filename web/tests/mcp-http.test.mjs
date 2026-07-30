@@ -1,8 +1,12 @@
 import http from "node:http";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createReasonkbMcpHttpApp } from "../mcp-server.mjs";
+import {
+  createReasonkbMcpHttpApp,
+  createReasonkbMcpServer,
+} from "../mcp-server.mjs";
 
 const listeners = [];
 const clients = [];
@@ -19,7 +23,7 @@ afterEach(async () => {
   }
 });
 
-async function startApp(fetchImpl, options = {}) {
+async function startAppInstance(fetchImpl, options = {}) {
   const app = createReasonkbMcpHttpApp({
     reasonkbUrl: "http://reasonkb.test",
     fetchImpl,
@@ -32,13 +36,56 @@ async function startApp(fetchImpl, options = {}) {
   });
   listeners.push(listener);
   const address = listener.address();
-  return "http://127.0.0.1:" + address.port;
+  return { app, baseUrl: "http://127.0.0.1:" + address.port };
+}
+
+async function startApp(fetchImpl, options = {}) {
+  return (await startAppInstance(fetchImpl, options)).baseUrl;
 }
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { "content-type": "application/json" },
+  });
+}
+
+async function initializeSession(baseUrl, apiKey = "test-api-key") {
+  const response = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      authorization: "Bearer " + apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "test", version: "1.0.0" },
+      },
+    }),
+  });
+  await response.text();
+  if (!response.ok || !response.headers.get("mcp-session-id")) {
+    throw new Error("Failed to initialize MCP test session.");
+  }
+  return response.headers.get("mcp-session-id");
+}
+
+function postToSession(baseUrl, sessionId, apiKey, body) {
+  return fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      authorization: "Bearer " + apiKey,
+      "content-type": "application/json",
+      "mcp-session-id": sessionId,
+    },
+    body: JSON.stringify(body),
   });
 }
 
@@ -51,8 +98,108 @@ describe("Streamable HTTP MCP server", () => {
     expect(await response.json()).toEqual({ status: "ok" });
   });
 
+  it("rejects request timeout values beyond the Node timer limit", () => {
+    expect(() =>
+      createReasonkbMcpHttpApp({
+        reasonkbUrl: "http://reasonkb.test",
+        fetchImpl: vi.fn(),
+        requestTimeoutMs: 2_147_483_648,
+      }),
+    ).toThrow(/MCP request timeout must be at most 2147483647/);
+
+    const original = process.env.REASONKB_MCP_REQUEST_TIMEOUT_SECONDS;
+    process.env.REASONKB_MCP_REQUEST_TIMEOUT_SECONDS = "2147484";
+    try {
+      expect(() =>
+        createReasonkbMcpHttpApp({
+          reasonkbUrl: "http://reasonkb.test",
+          fetchImpl: vi.fn(),
+        }),
+      ).toThrow(/REASONKB_MCP_REQUEST_TIMEOUT_SECONDS must be at most 2147483/);
+    } finally {
+      if (original === undefined) {
+        delete process.env.REASONKB_MCP_REQUEST_TIMEOUT_SECONDS;
+      } else {
+        process.env.REASONKB_MCP_REQUEST_TIMEOUT_SECONDS = original;
+      }
+    }
+  });
+
+  it.each([0, ""])(
+    "propagates SDK cancellation for falsy request id %j",
+    async (requestId) => {
+      let requestSignal;
+      let resolveUpstreamStarted;
+      const upstreamStarted = new Promise((resolve) => {
+        resolveUpstreamStarted = resolve;
+      });
+      const fetchImpl = vi.fn(async (_url, init = {}) => {
+        requestSignal = init.signal;
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          requestSignal.addEventListener(
+            "abort",
+            () => reject(requestSignal.reason),
+            { once: true },
+          );
+        });
+      });
+      const transport = {
+        async start() {},
+        async send() {},
+        async close() {
+          this.onclose?.();
+        },
+        receive(message) {
+          this.onmessage?.(message);
+        },
+      };
+      const server = createReasonkbMcpServer({
+        apiKey: "test-api-key",
+        baseUrl: "http://reasonkb.test",
+        fetchImpl,
+      });
+
+      try {
+        await server.connect(transport);
+        transport.receive({
+          jsonrpc: "2.0",
+          id: requestId,
+          method: "tools/call",
+          params: { name: "reasonkb_list_projects", arguments: {} },
+        });
+        await upstreamStarted;
+        transport.receive({
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: { requestId, reason: "test cancellation" },
+        });
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(requestSignal.aborted).toBe(true);
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
+  it("releases SDK request correlations when a transport closes", async () => {
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    transport._webStandardTransport._requestToStreamMapping.set(0, "stream-id");
+
+    await transport.close();
+
+    expect(transport._webStandardTransport._requestToStreamMapping.size).toBe(
+      0,
+    );
+  });
+
   it("rejects missing and invalid Bearer API keys", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 401 }));
     const baseUrl = await startApp(fetchImpl);
     const initialize = {
       jsonrpc: "2.0",
@@ -84,6 +231,47 @@ describe("Streamable HTTP MCP server", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["malformed", "{", 400, "Malformed JSON request body."],
+    [
+      "oversized",
+      JSON.stringify({ payload: "x".repeat(110 * 1024) }),
+      413,
+      "Request body is too large.",
+    ],
+  ])(
+    "returns a sanitized JSON-RPC error for %s JSON",
+    async (_name, body, expectedStatus, expectedMessage) => {
+      const fetchImpl = vi.fn();
+      const baseUrl = await startApp(fetchImpl);
+
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          authorization: "Bearer test-api-key",
+          "content-type": "application/json",
+        },
+        body,
+      });
+      const text = await response.text();
+
+      expect(response.status).toBe(expectedStatus);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(JSON.parse(text)).toEqual({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: expectedMessage },
+        id: null,
+      });
+      expect(text).not.toContain("SyntaxError");
+      expect(text).not.toContain("PayloadTooLargeError");
+      expect(text).not.toContain("/Users/");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    },
+  );
+
   it("rejects untrusted Origins before API key verification", async () => {
     const fetchImpl = vi
       .fn()
@@ -110,6 +298,16 @@ describe("Streamable HTTP MCP server", () => {
       },
       body: JSON.stringify(initialize),
     });
+    const rejectedBeforeParsing = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+        origin: "https://evil.example",
+      },
+      body: "{",
+    });
     const accepted = await fetch(baseUrl, {
       method: "POST",
       headers: {
@@ -122,6 +320,12 @@ describe("Streamable HTTP MCP server", () => {
     });
 
     expect(rejected.status).toBe(403);
+    expect(rejectedBeforeParsing.status).toBe(403);
+    expect(await rejectedBeforeParsing.json()).toEqual({
+      jsonrpc: "2.0",
+      error: { code: -32000, message: "Invalid Origin header." },
+      id: null,
+    });
     expect(accepted.status).toBe(200);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -134,21 +338,20 @@ describe("Streamable HTTP MCP server", () => {
         return new Response(null, { status: 204 });
       }
       if (String(url).endsWith("/api/agent/projects")) {
-        return jsonResponse({ projects: [{ id: "proj_alpha", name: "Alpha" }] });
+        return jsonResponse({
+          projects: [{ id: "proj_alpha", name: "Alpha" }],
+        });
       }
       return jsonResponse({ error: "Not found." }, 404);
     });
     const baseUrl = await startApp(fetchImpl);
     const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
     clients.push(client);
-    const transport = new StreamableHTTPClientTransport(
-      new URL(baseUrl),
-      {
-        requestInit: {
-          headers: { Authorization: "Bearer test-api-key" },
-        },
+    const transport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+      requestInit: {
+        headers: { Authorization: "Bearer test-api-key" },
       },
-    );
+    });
 
     await client.connect(transport);
     const tools = await client.listTools();
@@ -175,6 +378,189 @@ describe("Streamable HTTP MCP server", () => {
           "Bearer test-api-key",
       ),
     ).toBe(true);
+  });
+
+  it("binds each stateful session to the API key that initialized it", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl, "key-a");
+    const listTools = {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+      params: {},
+    };
+
+    const missing = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+        "mcp-session-id": sessionId,
+      },
+      body: JSON.stringify(listTools),
+    });
+    const wrongKey = await postToSession(
+      baseUrl,
+      sessionId,
+      "key-b",
+      listTools,
+    );
+    const unknownSession = await postToSession(
+      baseUrl,
+      "unknown-session",
+      "key-a",
+      listTools,
+    );
+    const accepted = await postToSession(
+      baseUrl,
+      sessionId,
+      "key-a",
+      listTools,
+    );
+    const acceptedBody = await accepted.text();
+
+    expect(missing.status).toBe(401);
+    expect(wrongKey.status).toBe(404);
+    expect(unknownSession.status).toBe(404);
+    expect(accepted.status).toBe(200);
+    expect(acceptedBody).toContain('"tools"');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("closes a session when its bound API key is revoked", async () => {
+    let revoked = false;
+    const fetchImpl = vi.fn(
+      async () => new Response(null, { status: revoked ? 401 : 204 }),
+    );
+    const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl);
+    const listTools = {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+      params: {},
+    };
+
+    revoked = true;
+    const rejected = await postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      listTools,
+    );
+    revoked = false;
+    const afterRevocation = await postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      listTools,
+    );
+
+    expect(rejected.status).toBe(401);
+    expect(afterRevocation.status).toBe(404);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects duplicate request IDs that race through authentication", async () => {
+    let holdAuthentication = false;
+    const releaseAuthentication = [];
+    const fetchImpl = vi.fn(async () => {
+      if (!holdAuthentication) {
+        return new Response(null, { status: 204 });
+      }
+      return new Promise((resolve) => {
+        releaseAuthentication.push(() =>
+          resolve(new Response(null, { status: 204 })),
+        );
+      });
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl);
+    holdAuthentication = true;
+    const request = {
+      jsonrpc: "2.0",
+      id: "duplicate",
+      method: "tools/list",
+      params: {},
+    };
+
+    const responsesPromise = Promise.all([
+      postToSession(baseUrl, sessionId, "test-api-key", request),
+      postToSession(baseUrl, sessionId, "test-api-key", request),
+    ]);
+    while (releaseAuthentication.length < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
+    releaseAuthentication.splice(0).forEach((release) => release());
+
+    const responses = await responsesPromise;
+    await Promise.all(responses.map((response) => response.text()));
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      200,
+      400,
+    ]);
+  });
+
+  it("releases bounded session capacity after DELETE and idle expiry", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl, {
+      maxSessions: 1,
+      sessionIdleTimeoutMs: 25,
+    });
+    const firstSessionId = await initializeSession(baseUrl);
+
+    const capacityResponse = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(capacityResponse.status).toBe(503);
+
+    const deleted = await fetch(baseUrl, {
+      method: "DELETE",
+      headers: {
+        authorization: "Bearer test-api-key",
+        "mcp-session-id": firstSessionId,
+      },
+    });
+    expect(deleted.status).toBe(200);
+
+    const secondSessionId = await initializeSession(baseUrl);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    const expired = await postToSession(
+      baseUrl,
+      secondSessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      },
+    );
+
+    expect(expired.status).toBe(404);
+    await expect(initializeSession(baseUrl)).resolves.toEqual(
+      expect.any(String),
+    );
   });
 
   it("rejects excessive project filters before calling the Agent API", async () => {
@@ -240,6 +626,7 @@ describe("Streamable HTTP MCP server", () => {
       return jsonResponse({ error: "Not found." }, 404);
     });
     const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl);
     const url = new URL(baseUrl);
     const request = http.request({
       hostname: url.hostname,
@@ -250,6 +637,7 @@ describe("Streamable HTTP MCP server", () => {
         accept: "application/json, text/event-stream",
         authorization: "Bearer test-api-key",
         "content-type": "application/json",
+        "mcp-session-id": sessionId,
       },
     });
     request.on("error", () => {});
@@ -266,6 +654,704 @@ describe("Streamable HTTP MCP server", () => {
     request.destroy();
     await upstreamAborted;
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns a JSON-RPC timeout and aborts the upstream Agent request", async () => {
+    let resolveUpstreamAborted;
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, { requestTimeoutMs: 50 });
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_list_projects",
+      arguments: {},
+    });
+    expect(result).toMatchObject({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: expect.stringContaining("MCP request timed out."),
+        },
+      ],
+    });
+    await upstreamAborted;
+  });
+
+  it("cancels upstream work when an official MCP client times out", async () => {
+    let resolveUpstreamStarted;
+    let resolveUpstreamAborted;
+    const upstreamStarted = new Promise((resolve) => {
+      resolveUpstreamStarted = resolve;
+    });
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, { requestTimeoutMs: 1_000 });
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    const clientErrors = [];
+    client.onerror = (error) => clientErrors.push(error);
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const call = client.callTool(
+      {
+        name: "reasonkb_query",
+        arguments: { query: "Bound this request", projectIds: [] },
+      },
+      undefined,
+      { timeout: 25 },
+    );
+
+    await upstreamStarted;
+    await expect(call).rejects.toMatchObject({ code: -32001 });
+    await expect(
+      Promise.race([
+        upstreamAborted,
+        new Promise((_resolve, reject) =>
+          setTimeout(
+            () => reject(new Error("upstream request was not aborted")),
+            250,
+          ),
+        ),
+      ]),
+    ).resolves.toBeUndefined();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(clientErrors).toEqual([]);
+    await expect(client.listTools()).resolves.toHaveProperty("tools");
+  });
+
+  it.each([0, ""])(
+    "cancels falsy request id %j and keeps the session reusable",
+    async (requestId) => {
+      let resolveUpstreamStarted;
+      let resolveUpstreamAborted;
+      const upstreamStarted = new Promise((resolve) => {
+        resolveUpstreamStarted = resolve;
+      });
+      const upstreamAborted = new Promise((resolve) => {
+        resolveUpstreamAborted = resolve;
+      });
+      let projectRequestCount = 0;
+      const fetchImpl = vi.fn(async (url, init = {}) => {
+        if (String(url).endsWith("/api/agent/auth/verify")) {
+          return new Response(null, { status: 204 });
+        }
+        if (String(url).endsWith("/api/agent/projects")) {
+          projectRequestCount += 1;
+          if (projectRequestCount > 1) {
+            return jsonResponse({ projects: [] });
+          }
+          resolveUpstreamStarted();
+          return new Promise((_resolve, reject) => {
+            init.signal.addEventListener(
+              "abort",
+              () => {
+                resolveUpstreamAborted();
+                reject(init.signal.reason);
+              },
+              { once: true },
+            );
+          });
+        }
+        return jsonResponse({ error: "Not found." }, 404);
+      });
+      const baseUrl = await startApp(fetchImpl, { requestTimeoutMs: 1_000 });
+      const sessionId = await initializeSession(baseUrl);
+      const toolResponse = await postToSession(
+        baseUrl,
+        sessionId,
+        "test-api-key",
+        {
+          jsonrpc: "2.0",
+          id: requestId,
+          method: "tools/call",
+          params: { name: "reasonkb_list_projects", arguments: {} },
+        },
+      );
+
+      try {
+        await upstreamStarted;
+        const wrongKeyCancellation = await postToSession(
+          baseUrl,
+          sessionId,
+          "wrong-api-key",
+          {
+            jsonrpc: "2.0",
+            method: "notifications/cancelled",
+            params: { requestId, reason: "wrong key" },
+          },
+        );
+        expect(wrongKeyCancellation.status).toBe(404);
+        await expect(
+          Promise.race([
+            upstreamAborted.then(() => "aborted"),
+            new Promise((resolve) => setTimeout(() => resolve("active"), 25)),
+          ]),
+        ).resolves.toBe("active");
+
+        const cancellation = await postToSession(
+          baseUrl,
+          sessionId,
+          "test-api-key",
+          {
+            jsonrpc: "2.0",
+            method: "notifications/cancelled",
+            params: { requestId, reason: "test cancellation" },
+          },
+        );
+
+        expect(cancellation.status).toBe(202);
+        expect(
+          fetchImpl.mock.calls.filter(([url]) =>
+            String(url).endsWith("/api/agent/auth/verify"),
+          ),
+        ).toHaveLength(2);
+        await expect(
+          Promise.race([
+            upstreamAborted,
+            new Promise((_resolve, reject) =>
+              setTimeout(
+                () => reject(new Error("upstream request was not aborted")),
+                250,
+              ),
+            ),
+          ]),
+        ).resolves.toBeUndefined();
+        await expect(
+          Promise.race([
+            toolResponse.text(),
+            new Promise((_resolve, reject) =>
+              setTimeout(
+                () => reject(new Error("tool SSE did not close")),
+                250,
+              ),
+            ),
+          ]),
+        ).resolves.toEqual(expect.any(String));
+        const listTools = await postToSession(
+          baseUrl,
+          sessionId,
+          "test-api-key",
+          {
+            jsonrpc: "2.0",
+            id: "after-cancellation",
+            method: "tools/list",
+            params: {},
+          },
+        );
+        expect(listTools.status).toBe(200);
+        expect(await listTools.text()).toContain('"tools"');
+
+        const reused = await postToSession(baseUrl, sessionId, "test-api-key", {
+          jsonrpc: "2.0",
+          id: 0,
+          method: "tools/call",
+          params: { name: "reasonkb_list_projects", arguments: {} },
+        });
+        expect(reused.status).toBe(200);
+        expect(await reused.text()).toContain('"projects"');
+      } finally {
+        await fetch(baseUrl, {
+          method: "DELETE",
+          headers: {
+            authorization: "Bearer test-api-key",
+            "mcp-session-id": sessionId,
+          },
+        });
+      }
+    },
+  );
+
+  it("rejects JSON-RPC batches without cancelling active work", async () => {
+    let resolveUpstreamStarted;
+    let resolveUpstreamAborted;
+    const upstreamStarted = new Promise((resolve) => {
+      resolveUpstreamStarted = resolve;
+    });
+    let upstreamWasAborted = false;
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = () => {
+        upstreamWasAborted = true;
+        resolve();
+      };
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, { requestTimeoutMs: 1_000 });
+    const sessionId = await initializeSession(baseUrl);
+    const toolResponse = await postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: 7,
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      },
+    );
+
+    try {
+      await upstreamStarted;
+      const cancellation = await postToSession(
+        baseUrl,
+        sessionId,
+        "test-api-key",
+        [
+          {
+            jsonrpc: "2.0",
+            method: "notifications/cancelled",
+            params: { requestId: 7, reason: "batch cancellation" },
+          },
+        ],
+      );
+
+      expect(cancellation.status).toBe(400);
+      expect(await cancellation.json()).toMatchObject({
+        error: { code: -32600, message: "JSON-RPC batches are not supported." },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      expect(upstreamWasAborted).toBe(false);
+    } finally {
+      await fetch(baseUrl, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer test-api-key",
+          "mcp-session-id": sessionId,
+        },
+      });
+      await upstreamAborted;
+      await toolResponse.text();
+    }
+  });
+
+  it("ignores cancellation for an unknown request without synthesizing a response", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl);
+    const sendSpy = vi.spyOn(StreamableHTTPServerTransport.prototype, "send");
+
+    try {
+      const cancellation = await postToSession(
+        baseUrl,
+        sessionId,
+        "test-api-key",
+        {
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: { requestId: "unknown", reason: "already finished" },
+        },
+      );
+
+      expect(cancellation.status).toBe(202);
+      expect(sendSpy).not.toHaveBeenCalled();
+    } finally {
+      sendSpy.mockRestore();
+      await fetch(baseUrl, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer test-api-key",
+          "mcp-session-id": sessionId,
+        },
+      });
+    }
+  });
+
+  it("bounds concurrent API key verification independently of tool work", async () => {
+    let holdAuthentication = false;
+    let activeAuthentication = 0;
+    let maximumActiveAuthentication = 0;
+    const releaseAuthentication = [];
+    const fetchImpl = vi.fn(async (url) => {
+      if (!String(url).endsWith("/api/agent/auth/verify")) {
+        return jsonResponse({ error: "Unexpected upstream request." }, 500);
+      }
+      if (!holdAuthentication) {
+        return new Response(null, { status: 204 });
+      }
+      activeAuthentication += 1;
+      maximumActiveAuthentication = Math.max(
+        maximumActiveAuthentication,
+        activeAuthentication,
+      );
+      return new Promise((resolve) => {
+        releaseAuthentication.push(() => {
+          activeAuthentication -= 1;
+          resolve(new Response(null, { status: 204 }));
+        });
+      });
+    });
+    const baseUrl = await startApp(fetchImpl, {
+      maxConcurrentAuthRequests: 2,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    holdAuthentication = true;
+
+    const requests = Array.from({ length: 6 }, (_, index) =>
+      postToSession(baseUrl, sessionId, "test-api-key", {
+        jsonrpc: "2.0",
+        id: index + 10,
+        method: "tools/list",
+        params: {},
+      }),
+    );
+    while (releaseAuthentication.length < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    let concurrencyError;
+    try {
+      expect(maximumActiveAuthentication).toBeLessThanOrEqual(2);
+    } catch (error) {
+      concurrencyError = error;
+    } finally {
+      releaseAuthentication.splice(0).forEach((release) => release());
+    }
+    const responses = await Promise.all(requests);
+    await Promise.all(responses.map((response) => response.text()));
+    if (concurrencyError) {
+      throw concurrencyError;
+    }
+    expect(
+      responses.filter((response) => response.status === 503),
+    ).toHaveLength(4);
+  });
+
+  it("bounds authenticated control traffic independently of tool work", async () => {
+    let holdAuthentication = false;
+    let activeAuthentication = 0;
+    let maximumActiveAuthentication = 0;
+    const releaseAuthentication = [];
+    const fetchImpl = vi.fn(async (url) => {
+      if (!String(url).endsWith("/api/agent/auth/verify")) {
+        return jsonResponse({ error: "Unexpected upstream request." }, 500);
+      }
+      if (!holdAuthentication) {
+        return new Response(null, { status: 204 });
+      }
+      activeAuthentication += 1;
+      maximumActiveAuthentication = Math.max(
+        maximumActiveAuthentication,
+        activeAuthentication,
+      );
+      return new Promise((resolve) => {
+        releaseAuthentication.push(() => {
+          activeAuthentication -= 1;
+          resolve(new Response(null, { status: 204 }));
+        });
+      });
+    });
+    const baseUrl = await startApp(fetchImpl, {
+      maxConcurrentAuthRequests: 6,
+      maxConcurrentControlRequests: 2,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    holdAuthentication = true;
+
+    const requests = Array.from({ length: 6 }, () =>
+      postToSession(baseUrl, sessionId, "test-api-key", {
+        jsonrpc: "2.0",
+        method: "notifications/initialized",
+      }),
+    );
+    while (releaseAuthentication.length < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    releaseAuthentication.splice(0).forEach((release) => release());
+
+    const responses = await Promise.all(requests);
+    await Promise.all(responses.map((response) => response.text()));
+    expect(maximumActiveAuthentication).toBe(2);
+    expect(
+      responses.filter((response) => response.status === 202),
+    ).toHaveLength(2);
+    expect(
+      responses.filter((response) => response.status === 503),
+    ).toHaveLength(4);
+  });
+
+  it("closes active tool streams before application shutdown completes", async () => {
+    let resolveUpstreamStarted;
+    let resolveUpstreamAborted;
+    const upstreamStarted = new Promise((resolve) => {
+      resolveUpstreamStarted = resolve;
+    });
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const { app, baseUrl } = await startAppInstance(fetchImpl, {
+      requestTimeoutMs: 1_000,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    const toolResponse = await postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: 91,
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      },
+    );
+    await upstreamStarted;
+
+    await app.locals.closeMcpSessions();
+    await upstreamAborted;
+    await expect(toolResponse.text()).resolves.toEqual(expect.any(String));
+
+    const rejected = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer test-api-key",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(rejected.status).toBe(503);
+  });
+
+  it("does not let an unauthenticated slow upload occupy a work slot", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl, {
+      maxConcurrentRequests: 1,
+      requestTimeoutMs: 1_000,
+    });
+    const url = new URL(baseUrl);
+    const slowRequest = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      method: "POST",
+      path: "/",
+      headers: {
+        accept: "application/json, text/event-stream",
+        authorization: "Bearer fake-api-key",
+        "content-type": "application/json",
+      },
+    });
+    slowRequest.on("error", () => {});
+    slowRequest.write("{");
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    let validResponse;
+    try {
+      validResponse = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          authorization: "Bearer test-api-key",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: { name: "test", version: "1.0.0" },
+          },
+        }),
+      });
+    } finally {
+      slowRequest.destroy();
+    }
+
+    expect(validResponse.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects work above the configured request concurrency", async () => {
+    let resolveUpstreamStarted;
+    let resolveUpstreamAborted;
+    const upstreamStarted = new Promise((resolve) => {
+      resolveUpstreamStarted = resolve;
+    });
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        resolveUpstreamStarted();
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            "abort",
+            () => {
+              resolveUpstreamAborted();
+              reject(init.signal.reason);
+            },
+            { once: true },
+          );
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, {
+      maxConcurrentRequests: 1,
+      requestTimeoutMs: 1_000,
+    });
+    const firstClient = new Client({
+      name: "reasonkb-test-1",
+      version: "1.0.0",
+    });
+    const secondClient = new Client({
+      name: "reasonkb-test-2",
+      version: "1.0.0",
+    });
+    clients.push(firstClient, secondClient);
+    await firstClient.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+    await secondClient.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+    const firstController = new AbortController();
+    const firstRequest = firstClient.callTool(
+      { name: "reasonkb_list_projects", arguments: {} },
+      undefined,
+      { signal: firstController.signal },
+    );
+    firstRequest.catch(() => {});
+    await upstreamStarted;
+
+    const busyResult = await secondClient.callTool({
+      name: "reasonkb_list_projects",
+      arguments: {},
+    });
+    expect(busyResult).toMatchObject({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: expect.stringContaining("MCP server is busy."),
+        },
+      ],
+    });
+    expect(
+      fetchImpl.mock.calls.filter(([url]) =>
+        String(url).endsWith("/api/agent/projects"),
+      ),
+    ).toHaveLength(1);
+
+    firstController.abort();
+    await upstreamAborted;
   });
 });

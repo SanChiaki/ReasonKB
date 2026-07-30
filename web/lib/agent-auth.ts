@@ -19,9 +19,10 @@ function readApiKey(request: Request) {
 export function requireAgentAuth(
   request: Request,
   requiredScopes: AgentScope[],
+  { recordUsage = true }: { recordUsage?: boolean } = {},
 ): AgentAuthContext | NextResponse {
   const apiKey = readApiKey(request);
-  const record = verifyApiKey(appConfig.dbPath, apiKey);
+  const record = verifyApiKey(appConfig.dbPath, apiKey, { recordUsage });
   if (!record) {
     return NextResponse.json({ error: "Invalid or missing API key." }, { status: 401 });
   }

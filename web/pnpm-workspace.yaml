@@ -2,3 +2,5 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   sharp: true
+patchedDependencies:
+  '@modelcontextprotocol/sdk@1.30.0': patches/modelcontextprotocol-sdk@1.30.0.patch
