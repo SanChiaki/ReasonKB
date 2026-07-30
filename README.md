@@ -184,8 +184,9 @@ Office files are converted through Gotenberg. Runtime settings are stored in SQL
 ## Agent / CLI / MCP Access
 
 ReasonKB includes API-key protected agent routes under `/api/agent/*`, a Node
-CLI, and a stdio MCP server. Use these when an external coding agent needs to
-query indexed documents without writing chat history.
+CLI, a stdio MCP server, and a Streamable HTTP MCP endpoint. Use these when an
+external coding agent needs to query indexed documents without writing chat
+history.
 
 Docker users create and revoke API Keys from `Settings` > `API keys`. The
 installer also creates host launchers that run the bundled tools inside the Web
@@ -206,6 +207,15 @@ For a same-host MCP client, configure the command as:
   }
 }
 ```
+
+URL-based MCP clients can instead connect to:
+
+```text
+http://localhost:43173/mcp
+```
+
+and send the ReasonKB API Key as a Bearer token. The endpoint binds to localhost
+by default; use an HTTPS reverse proxy before exposing it outside the host.
 
 The installer keeps the stable API Key hash pepper in
 `~/.reasonkb/secrets/api_key_pepper`; back it up with the SQLite database.

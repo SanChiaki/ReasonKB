@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "mcp:http": "node mcp/http.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
     "db:migrate": "tsx lib/db/migrate.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^11.8.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",

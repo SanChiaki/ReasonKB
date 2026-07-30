@@ -733,6 +733,7 @@ fi
 ensure_port_env WEB_PORT 43170
 ensure_port_env RETRIEVAL_API_PORT 43171
 ensure_port_env GOTENBERG_PORT 43172
+ensure_port_env MCP_PORT 43173
 
 (
   cd "$REASONKB_HOME"
@@ -750,6 +751,7 @@ $corpus_summary_line
 运行数据目录：$REASONKB_HOME/var
 CLI：$REASONKB_HOME/bin/reasonkb
 MCP：$REASONKB_HOME/bin/reasonkb-mcp
+MCP HTTP：http://localhost:${MCP_PORT:-43173}/mcp
 EOF
 
 if [ -n "${GENERATED_ADMIN_PASSWORD:-}" ]; then
