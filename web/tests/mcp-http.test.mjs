@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createReasonkbMcpHttpApp } from "../mcp/http.mjs";
+import { createReasonkbMcpHttpApp } from "../mcp-server.mjs";
 
 const listeners = [];
 const clients = [];

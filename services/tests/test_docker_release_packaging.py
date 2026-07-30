@@ -463,7 +463,7 @@ def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
     for compose_name in ("compose.yml", "compose.release.yml"):
         compose = yaml.safe_load((ROOT / "docker" / compose_name).read_text())
         service = compose["services"]["mcp-server"]
-        assert service["command"] == ["node", "./web/mcp/http.mjs"]
+        assert service["command"] == ["node", "./web/mcp-server.mjs", "--http"]
         assert service["environment"]["REASONKB_URL"] == "http://web:3000"
         assert service["environment"]["REASONKB_MCP_HOST"] == "0.0.0.0"
         assert service["environment"]["REASONKB_MCP_PORT"] == 3002

@@ -80,7 +80,7 @@ services:
     image: ${REASONKB_IMAGE:-crpi-95tja6y49h58rco0.cn-shenzhen.personal.cr.aliyuncs.com/reasonkb/reasonkb:latest}
     pull_policy: always
     platform: ${REASONKB_PLATFORM:-linux/amd64}
-    command: ["node", "./web/mcp/http.mjs"]
+    command: ["node", "./web/mcp-server.mjs", "--http"]
     ports:
       - "${MCP_BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-43173}:3002"
     environment:
