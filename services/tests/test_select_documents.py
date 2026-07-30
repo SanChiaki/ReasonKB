@@ -175,6 +175,31 @@ def test_prefilter_reserves_exploration_when_lexical_matches_fill_budget():
     assert selected[-1]["id"] == "doc_churn"
 
 
+def test_prefilter_explores_low_score_lexical_tail():
+    docs = [
+        {
+            "id": f"doc_directory_{index}",
+            "project_id": "proj_1",
+            "file_name": f"2026-customer-directory-{index:02d}.pdf",
+            "doc_description": "2026 customer contact directory.",
+        }
+        for index in range(60)
+    ]
+    docs.append(
+        {
+            "id": "doc_churn",
+            "project_id": "proj_1",
+            "file_name": "2026客户流失预测与挽留方案.pdf",
+            "doc_description": "2026年客户流失预测、原因分析和挽留措施。",
+        }
+    )
+
+    selected = prefilter_candidate_documents("2026 customer churn", docs, limit=50)
+
+    assert len(selected) == 50
+    assert any(doc["id"] == "doc_churn" for doc in selected)
+
+
 def test_select_candidate_documents_limits_results():
     docs = [
         {
@@ -686,6 +711,33 @@ def test_explicit_empty_does_not_probe_unrepresented_uppercase_code(monkeypatch)
     assert selected.strategy == "explicit_empty_no_strong_match"
 
 
+def test_explicit_empty_rejects_longer_uppercase_code(monkeypatch):
+    docs = [
+        {
+            "id": "doc_xyz2",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商XYZ2评估标准.pdf",
+            "doc_description": "钻石经销商XYZ2评估指标和评分规则。",
+        }
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"thinking":"no match","answer":[]}'
+        ),
+    )
+
+    selected = select_candidate_documents(
+        "钻石经销商的XYZ评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.strategy == "explicit_empty_no_strong_match"
+
+
 def test_provider_failure_does_not_treat_all_dealers_as_a_tier(monkeypatch):
     docs = [
         {
@@ -734,6 +786,62 @@ def test_provider_failure_can_verify_numeric_constraint_in_page_text(monkeypatch
     )
 
     assert [doc["id"] for doc in selected] == ["doc_rewards"]
+    assert selected.strategy == "technical_failure_strong_fallback"
+
+
+def test_provider_failure_rejects_longer_numeric_value(monkeypatch):
+    docs = [
+        {
+            "id": "doc_rewards_130",
+            "project_id": "proj_1",
+            "file_name": "经销商权益说明.pdf",
+            "doc_description": "经销商达到业绩门槛后可获得权益。",
+            "pages": [{"page": 1, "content": "业绩达到130万元时，可获得专项权益。"}],
+        }
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
+    )
+
+    selected = select_candidate_documents(
+        "经销商达到30万元时有哪些权益？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.strategy == "technical_failure_no_strong_match"
+
+
+def test_provider_failure_scans_late_pages_for_exact_constraints(monkeypatch):
+    docs = [
+        {
+            "id": "doc_rewards_late",
+            "project_id": "proj_1",
+            "file_name": "经销商权益说明.pdf",
+            "doc_description": "经销商达到业绩门槛后可获得权益。",
+            "structure": [{"title": "经销商达到万元门槛时的专项权益"}],
+            "pages": [
+                {"page": 1, "content": "x" * 200001},
+                {"page": 2, "content": "业绩达到30万元时，可获得专项权益。"},
+            ],
+        }
+    ]
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
+    )
+
+    selected = select_candidate_documents(
+        "经销商达到30万元时有哪些权益？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_rewards_late"]
     assert selected.strategy == "technical_failure_strong_fallback"
 
 

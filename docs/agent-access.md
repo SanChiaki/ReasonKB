@@ -50,11 +50,12 @@ Every retrieval response includes `retrievalStatus`:
   caller can retry instead of treating the response as a confirmed no-match.
 
 Candidate-model failures use a bounded deterministic fallback only when file
-metadata, descriptions, and the PageIndex tree provide a strong query-term
-match. The prefilter keeps lexical matches first but reserves part of its bounded
-candidate pool for evenly distributed cross-language exploration, so a large
-set of incidental keyword hits cannot hide every other document from model
-selection.
+metadata, descriptions, the PageIndex tree, and exact constraints found while
+iterating page text provide a strong query-term match. The prefilter keeps the
+strongest lexical matches first but reserves part of its bounded candidate pool
+for evenly distributed exploration across every remaining document, so a large
+set of incidental keyword hits cannot hide the lexical tail or all
+cross-language candidates from model selection.
 An explicit empty model selection probes at most one strong candidate.
 Every selected document, including normal model selections, fallback probes,
 and the protected deterministic anchor, must pass a page-text support check

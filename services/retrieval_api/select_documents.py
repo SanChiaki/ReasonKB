@@ -14,6 +14,9 @@ _CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 _LATIN_RE = re.compile(r"[a-z0-9]+")
 _HARD_NUMBER_RE = re.compile(r"(?<![a-z0-9])\d+(?:\.\d+)?(?![a-z0-9])", re.I)
 _HARD_ACRONYM_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?![A-Za-z0-9])")
+_HARD_CODE_TOKEN_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
+)
 _DEALER_TIER_RE = re.compile(
     r"([\u3400-\u4dbf\u4e00-\u9fff]{1,12}"
     r"(?:[/、或][\u3400-\u4dbf\u4e00-\u9fff]{1,12})*)经销商"
@@ -338,8 +341,8 @@ def _matched_fallback_terms(terms: set[str], text: str) -> set[str]:
     }
 
 
-def _fallback_search_text(doc: dict) -> str:
-    summary_text = " ".join(
+def _fallback_summary_text(doc: dict) -> str:
+    return " ".join(
         str(doc.get(key) or "")
         for key in (
             "project_name",
@@ -349,11 +352,20 @@ def _fallback_search_text(doc: dict) -> str:
             "doc_description",
         )
     )
-    pages_text = _pages_search_text(doc.get("pages", []))
-    return (
-        f"{summary_text} {_structure_search_text(doc.get('structure', []))} "
-        f"{pages_text}"
-    )
+
+
+def _iter_hard_search_texts(doc: dict):
+    yield _fallback_summary_text(doc)
+    yield _structure_search_text(doc.get("structure", []))
+    pages = doc.get("pages", [])
+    if not isinstance(pages, list):
+        return
+    for page in pages:
+        if not isinstance(page, dict):
+            continue
+        content = page.get("content")
+        if isinstance(content, str) and content:
+            yield content
 
 
 def _pages_search_text(
@@ -407,21 +419,32 @@ def _passes_hard_fallback_constraints(
 ) -> bool:
     if not groups:
         return True
-    search_text = _fallback_search_text(doc).lower()
-    return all(any(term in search_text for term in group) for group in groups)
+    remaining = set(groups)
+    for search_text in _iter_hard_search_texts(doc):
+        remaining = {
+            group
+            for group in remaining
+            if not any(_hard_term_matches(term, search_text) for term in group)
+        }
+        if not remaining:
+            return True
+    return False
+
+
+def _hard_term_matches(term: str, text: str) -> bool:
+    if _HARD_NUMBER_RE.fullmatch(term):
+        return term in {
+            match.group(0).lower() for match in _HARD_NUMBER_RE.finditer(text)
+        }
+    if _HARD_CODE_TOKEN_RE.fullmatch(term):
+        return term in {
+            match.group(0).lower() for match in _HARD_CODE_TOKEN_RE.finditer(text)
+        }
+    return term in text.lower()
 
 
 def _passes_strong_fallback_coverage(terms: set[str], doc: dict) -> bool:
-    summary_text = " ".join(
-        str(doc.get(key) or "")
-        for key in (
-            "project_name",
-            "file_name",
-            "project_relative_path",
-            "source_relative_path",
-            "doc_description",
-        )
-    )
+    summary_text = _fallback_summary_text(doc)
     summary_matches = _matched_fallback_terms(terms, summary_text)
     structure_matches = _matched_fallback_terms(
         terms,
@@ -472,21 +495,22 @@ def prefilter_candidate_documents(
         if score <= 0
     ]
     lexical_matches = [*positives, *weak_matches]
-    if not unmatched:
-        return lexical_matches[:limit]
-
+    ordered = [*lexical_matches, *unmatched]
+    if len(ordered) <= limit:
+        return ordered
     reserved_exploration = min(
-        len(unmatched),
         max(1, int(limit * PREFILTER_EXPLORATION_RATIO)),
         max(0, limit - 1),
     )
-    exploration_count = min(
-        len(unmatched),
-        max(reserved_exploration, limit - len(lexical_matches)),
+    primary_count = min(len(lexical_matches), limit - reserved_exploration)
+    primary = lexical_matches[:primary_count]
+    primary_object_ids = {id(doc) for doc in primary}
+    exploration_pool = [doc for doc in ordered if id(doc) not in primary_object_ids]
+    exploration = _evenly_spaced_documents(
+        exploration_pool,
+        min(limit - len(primary), len(exploration_pool)),
     )
-    lexical_count = limit - exploration_count
-    exploration = _evenly_spaced_documents(unmatched, exploration_count)
-    return [*lexical_matches[:lexical_count], *exploration]
+    return [*primary, *exploration]
 
 
 def _evenly_spaced_documents(docs: list[dict], limit: int) -> list[dict]:
