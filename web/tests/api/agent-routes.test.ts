@@ -187,11 +187,14 @@ describe("agent routes", () => {
       "citations.0.documentUrl",
       "https://oa.example.test/seeyon/doc.do?docId=doc_seeyon",
     );
-    expect(sendRetrievalQuery).toHaveBeenCalledWith({
-      query: "What changed?",
-      projectIds: [alpha.id],
-      mode: "answer",
-    });
+    expect(sendRetrievalQuery).toHaveBeenCalledWith(
+      {
+        query: "What changed?",
+        projectIds: [alpha.id],
+        mode: "answer",
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it("preserves original-document links in evidence responses", async () => {
@@ -241,11 +244,14 @@ describe("agent routes", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toHaveProperty("evidence.0.documentUrl", documentUrl);
-    expect(sendRetrievalQuery).toHaveBeenCalledWith({
-      query: "Show evidence",
-      projectIds: [alpha.id],
-      mode: "evidence",
-    });
+    expect(sendRetrievalQuery).toHaveBeenCalledWith(
+      {
+        query: "Show evidence",
+        projectIds: [alpha.id],
+        mode: "evidence",
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it.each(["query", "evidence"] as const)(

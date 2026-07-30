@@ -125,6 +125,46 @@ The wrapper uses `docker compose exec -T`; the disabled TTY keeps MCP JSON-RPC
 stdin/stdout clean. This configuration is for an Agent running on the same host
 as the ReasonKB Docker deployment.
 
+## Streamable HTTP MCP
+
+Docker also starts a stateless MCP Streamable HTTP endpoint:
+
+```text
+http://localhost:43173
+```
+
+The endpoint uses the same API Keys, scopes, project restrictions, and document
+availability checks as `/api/agent/*`. Send the Key as a Bearer token; never put
+it in the URL. For example, Codex can read the token from an environment
+variable:
+
+```toml
+[mcp_servers.reasonkb]
+url = "http://localhost:43173"
+bearer_token_env_var = "REASONKB_API_KEY"
+```
+
+The Docker port binds to `127.0.0.1` by default. To accept connections on
+another interface, set `MCP_BIND_ADDRESS` and list every accepted hostname or
+IP in `REASONKB_MCP_ALLOWED_HOSTS`:
+
+```env
+MCP_BIND_ADDRESS=0.0.0.0
+MCP_PORT=43173
+REASONKB_MCP_ALLOWED_HOSTS=kb.example.com,192.0.2.10
+REASONKB_MCP_ALLOWED_ORIGINS=https://agent.example.com
+```
+
+Requests without an `Origin` header and requests whose Origin matches the MCP
+Host are accepted. Browser-based clients on another Origin must be listed in
+`REASONKB_MCP_ALLOWED_ORIGINS`; other Origins are rejected before API Key
+verification.
+
+Do not expose the plain HTTP port directly to the public Internet. Put it
+behind an HTTPS reverse proxy, retain Bearer authentication, and configure
+firewall and request limits. A same-host reverse proxy can leave
+`MCP_BIND_ADDRESS=127.0.0.1`.
+
 ## Source Development
 
 When running ReasonKB from a source checkout, configure the Web process before
@@ -156,6 +196,15 @@ node tools/reasonkb-cli.mjs projects
 
 The source-checkout MCP configuration points directly to
 `tools/reasonkb-mcp.mjs` and supplies the same URL and API Key.
+
+To run the HTTP transport from a source checkout:
+
+```sh
+export REASONKB_URL='http://localhost:3000'
+pnpm -C web mcp:http
+```
+
+It listens on `http://127.0.0.1:43173` by default.
 
 ## MCP Tools
 

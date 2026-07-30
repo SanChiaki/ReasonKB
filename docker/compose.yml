@@ -74,6 +74,33 @@ services:
       retrieval-api:
         condition: service_healthy
 
+  mcp-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["node", "./tools/reasonkb-mcp.mjs", "--http"]
+    ports:
+      - "${MCP_BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-43173}:3002"
+    environment:
+      REASONKB_URL: http://web:3000
+      REASONKB_MCP_HOST: 0.0.0.0
+      REASONKB_MCP_PORT: 3002
+      REASONKB_MCP_ALLOWED_HOSTS: ${REASONKB_MCP_ALLOWED_HOSTS:-localhost,127.0.0.1,[::1]}
+      REASONKB_MCP_ALLOWED_ORIGINS: ${REASONKB_MCP_ALLOWED_ORIGINS:-}
+    depends_on:
+      web:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3002/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+
   retrieval-api:
     build:
       context: ..

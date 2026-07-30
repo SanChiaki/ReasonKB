@@ -87,15 +87,19 @@ export function isPersistedRetrievalProgress(
   );
 }
 
-export async function sendRetrievalQuery(input: {
-  query: string;
-  projectIds?: string[];
-  mode?: RetrievalMode;
-}) {
+export async function sendRetrievalQuery(
+  input: {
+    query: string;
+    projectIds?: string[];
+    mode?: RetrievalMode;
+  },
+  signal?: AbortSignal,
+) {
   const response = await fetch(`${appConfig.retrievalBaseUrl}/internal/retrieve/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    ...(signal ? { signal } : {}),
   });
   if (!response.ok) {
     throw new Error(`retrieval failed with status ${response.status}`);

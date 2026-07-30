@@ -211,19 +211,22 @@ export function createApiKey(
     projectIds?: string[];
   },
 ): CreatedApiKey {
-  const db = open(dbPath);
+  const name = normalizeName(input.name);
+  const scopes = normalizeScopes(input.scopes);
+  const projectIds = normalizeProjectIds(input.projectIds);
   const now = new Date().toISOString();
   const { prefix, apiKey } = generateApiKey();
   const row = {
     id: `key_${crypto.randomUUID()}`,
     owner_user_id: input.ownerUserId,
-    name: normalizeName(input.name),
+    name,
     prefix,
     key_hash: hashApiKey(apiKey),
-    scopes_json: JSON.stringify(normalizeScopes(input.scopes)),
-    project_ids_json: JSON.stringify(normalizeProjectIds(input.projectIds)),
+    scopes_json: JSON.stringify(scopes),
+    project_ids_json: JSON.stringify(projectIds),
     created_at: now,
   };
+  const db = open(dbPath);
 
   try {
     ensureApiKeysTable(db);

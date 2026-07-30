@@ -314,7 +314,14 @@ def test_dockerignore_excludes_local_env_files_from_image_context():
 def test_release_compose_uses_acr_images_without_local_builds():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
-    app_services = ["migrate", "web", "retrieval-api", "index-worker", "source-worker"]
+    app_services = [
+        "migrate",
+        "web",
+        "mcp-server",
+        "retrieval-api",
+        "index-worker",
+        "source-worker",
+    ]
     for service_name in app_services:
         service = compose["services"][service_name]
         assert "build" not in service
@@ -452,6 +459,25 @@ def test_web_mounts_the_api_key_pepper_only_into_the_web_service():
                 assert pepper_mount not in service.get("volumes", [])
 
 
+def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
+    for compose_name in ("compose.yml", "compose.release.yml"):
+        compose = yaml.safe_load((ROOT / "docker" / compose_name).read_text())
+        service = compose["services"]["mcp-server"]
+        assert service["command"] == ["node", "./tools/reasonkb-mcp.mjs", "--http"]
+        assert service["environment"]["REASONKB_URL"] == "http://web:3000"
+        assert service["environment"]["REASONKB_MCP_HOST"] == "0.0.0.0"
+        assert service["environment"]["REASONKB_MCP_PORT"] == 3002
+        assert service["environment"]["REASONKB_MCP_ALLOWED_ORIGINS"] == (
+            "${REASONKB_MCP_ALLOWED_ORIGINS:-}"
+        )
+        assert service["ports"] == [
+            "${MCP_BIND_ADDRESS:-127.0.0.1}:"
+            "${MCP_PORT:-43173}:3002"
+        ]
+        assert not service.get("volumes")
+        assert service["depends_on"]["web"]["condition"] == "service_started"
+
+
 def test_release_web_exposes_current_host_projects_root_to_settings_ui():
     compose = yaml.safe_load((ROOT / "docker" / "compose.release.yml").read_text())
 
@@ -552,7 +578,7 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
         """
         #!/usr/bin/env sh
         case " $* " in
-          *":43170 "*|*":43171 "*|*":43172 "*)
+          *":43170 "*|*":43171 "*|*":43172 "*|*":43173 "*)
             exit 0
             ;;
         esac
@@ -597,7 +623,7 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
         "REASONKB_FAKE_COMPOSE_SOURCE": _shell_file_path(ROOT / "docker" / "compose.release.yml"),
         "REASONKB_INTERACTIVE": "0",
     }, fake_bin)
-    for key in ("WEB_PORT", "RETRIEVAL_API_PORT", "GOTENBERG_PORT"):
+    for key in ("WEB_PORT", "RETRIEVAL_API_PORT", "GOTENBERG_PORT", "MCP_PORT"):
         env.pop(key, None)
 
     result = _run_install(tmp_path, env)
@@ -613,6 +639,7 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
     assert configured_ports["WEB_PORT"] != "43170"
     assert configured_ports["RETRIEVAL_API_PORT"] != "43171"
     assert configured_ports["GOTENBERG_PORT"] != "43172"
+    assert configured_ports["MCP_PORT"] != "43173"
     assert _windows_path(configured_ports["REASONKB_PROJECTS_ROOT"]) == str(
         reasonkb_home / "projects"
     )
@@ -623,9 +650,11 @@ def test_install_script_assigns_available_ports_when_defaults_are_busy(tmp_path)
             configured_ports["WEB_PORT"],
             configured_ports["RETRIEVAL_API_PORT"],
             configured_ports["GOTENBERG_PORT"],
+            configured_ports["MCP_PORT"],
         }
-    ) == 3
+    ) == 4
     assert "Web 界面：http://localhost:" in result.stdout
+    assert "MCP HTTP：http://localhost:" in result.stdout
     master_key = (reasonkb_home / "secrets" / "master.key").read_text(encoding="utf-8").strip()
     admin_password = (
         reasonkb_home / "secrets" / "admin_password"

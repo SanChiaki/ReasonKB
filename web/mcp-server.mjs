@@ -1,0 +1,389 @@
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { z } from "zod";
+
+const DEFAULT_BASE_URL = "http://localhost:43170";
+const DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+const SERVER_INFO = { name: "reasonkb-mcp", version: "0.2.0" };
+const MAX_PROJECT_IDS = 100;
+
+function normalizedBaseUrl(value) {
+  return value.replace(/\/+$/, "");
+}
+
+function configuredBaseUrl() {
+  return normalizedBaseUrl(process.env.REASONKB_URL || DEFAULT_BASE_URL);
+}
+
+function toolResult(payload) {
+  return {
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    structuredContent: payload,
+  };
+}
+
+function combineAbortSignals(...signals) {
+  const activeSignals = signals.filter(Boolean);
+  if (activeSignals.length === 0) {
+    return undefined;
+  }
+  if (activeSignals.length === 1) {
+    return activeSignals[0];
+  }
+  return AbortSignal.any(activeSignals);
+}
+
+async function reasonkbRequest(pathname, init, context) {
+  const { apiKey, baseUrl, fetchImpl } = context;
+  const response = await fetchImpl(normalizedBaseUrl(baseUrl) + pathname, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + apiKey,
+      ...(init?.headers || {}),
+    },
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error || "ReasonKB returned " + response.status);
+  }
+  return payload;
+}
+
+export function createReasonkbMcpServer({
+  apiKey,
+  baseUrl,
+  fetchImpl = fetch,
+  abortSignal,
+}) {
+  if (!apiKey) {
+    throw new Error("REASONKB_API_KEY is required.");
+  }
+  const server = new McpServer(SERVER_INFO);
+  const request = (pathname, init = {}, toolSignal) =>
+    reasonkbRequest(
+      pathname,
+      {
+        ...init,
+        signal: combineAbortSignals(abortSignal, toolSignal),
+      },
+      { apiKey, baseUrl, fetchImpl },
+    );
+
+  server.registerTool(
+    "reasonkb_list_projects",
+    {
+      description: "List ReasonKB projects visible to the configured API key.",
+      inputSchema: z.object({}).strict(),
+    },
+    async (_arguments, { signal }) =>
+      toolResult(await request("/api/agent/projects", {}, signal)),
+  );
+
+  server.registerTool(
+    "reasonkb_list_documents",
+    {
+      description: "List documents in a ReasonKB project.",
+      inputSchema: z.object({ projectId: z.string().trim().min(1) }).strict(),
+    },
+    async ({ projectId }, { signal }) =>
+      toolResult(
+        await request(
+          "/api/agent/projects/" +
+            encodeURIComponent(projectId) +
+            "/documents",
+          {},
+          signal,
+        ),
+      ),
+  );
+
+  for (const [name, route, description] of [
+    [
+      "reasonkb_query",
+      "query",
+      "Ask ReasonKB for an answer grounded in indexed documents.",
+    ],
+    [
+      "reasonkb_evidence",
+      "evidence",
+      "Retrieve document evidence snippets without generating an answer.",
+    ],
+  ]) {
+    server.registerTool(
+      name,
+      {
+        description,
+        inputSchema: z
+          .object({
+            query: z.string().trim().min(1),
+            projectIds: z
+              .array(z.string().trim().min(1))
+              .max(MAX_PROJECT_IDS)
+              .default([]),
+          })
+          .strict(),
+      },
+      async ({ query, projectIds }, { signal }) =>
+        toolResult(
+          await request(
+            "/api/agent/" + route,
+            {
+              method: "POST",
+              body: JSON.stringify({ query, projectIds }),
+            },
+            signal,
+          ),
+        ),
+    );
+  }
+
+  server.registerTool(
+    "reasonkb_get_pages",
+    {
+      description:
+        "Read indexed page text for a document, optionally filtered by page range.",
+      inputSchema: z
+        .object({
+          documentId: z.string().trim().min(1),
+          pages: z.string().trim().min(1).optional(),
+        })
+        .strict(),
+    },
+    async ({ documentId, pages }, { signal }) => {
+      const suffix = pages ? "?pages=" + encodeURIComponent(pages) : "";
+      return toolResult(
+        await request(
+          "/api/agent/documents/" +
+            encodeURIComponent(documentId) +
+            "/pages" +
+            suffix,
+          {},
+          signal,
+        ),
+      );
+    },
+  );
+
+  server.registerTool(
+    "reasonkb_get_structure",
+    {
+      description: "Read the PageIndex tree structure for a document.",
+      inputSchema: z.object({ documentId: z.string().trim().min(1) }).strict(),
+    },
+    async ({ documentId }, { signal }) =>
+      toolResult(
+        await request(
+          "/api/agent/documents/" +
+            encodeURIComponent(documentId) +
+            "/structure",
+          {},
+          signal,
+        ),
+      ),
+  );
+
+  return server;
+}
+
+export async function startReasonkbMcpStdioServer() {
+  const server = createReasonkbMcpServer({
+    apiKey: process.env.REASONKB_API_KEY || "",
+    baseUrl: configuredBaseUrl(),
+  });
+  await server.connect(new StdioServerTransport());
+  if (process.env.REASONKB_MCP_DEBUG === "1") {
+    console.error("[reasonkb-mcp] stdio transport ready");
+  }
+  return server;
+}
+
+function bearerToken(request) {
+  const authorization = request.headers.authorization || "";
+  return authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || "";
+}
+
+function jsonRpcError(response, status, message) {
+  response.status(status).json({
+    jsonrpc: "2.0",
+    error: { code: -32000, message },
+    id: null,
+  });
+}
+
+async function verifyApiKey(apiKey, { reasonkbUrl, fetchImpl, signal }) {
+  return fetchImpl(reasonkbUrl + "/api/agent/auth/verify", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey },
+    signal,
+  });
+}
+
+function normalizeAllowedOrigins(values) {
+  return values.map((value) => {
+    const origin = new URL(value);
+    if (!["http:", "https:"].includes(origin.protocol)) {
+      throw new Error("MCP allowed origins must use HTTP or HTTPS.");
+    }
+    return origin.origin;
+  });
+}
+
+function originIsAllowed(request, allowedOrigins) {
+  const originHeader = request.headers.origin;
+  if (!originHeader) {
+    return true;
+  }
+  try {
+    const origin = new URL(originHeader);
+    return (
+      ["http:", "https:"].includes(origin.protocol) &&
+      (origin.host === request.headers.host ||
+        allowedOrigins.includes(origin.origin))
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function createReasonkbMcpHttpApp({
+  reasonkbUrl = configuredBaseUrl(),
+  fetchImpl = fetch,
+  host = process.env.REASONKB_MCP_HOST || "127.0.0.1",
+  allowedHosts = (process.env.REASONKB_MCP_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+  allowedOrigins = (process.env.REASONKB_MCP_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+} = {}) {
+  const effectiveAllowedHosts =
+    allowedHosts.length > 0 ? allowedHosts : DEFAULT_ALLOWED_HOSTS;
+  const effectiveAllowedOrigins = normalizeAllowedOrigins(allowedOrigins);
+  const app = createMcpExpressApp({
+    host,
+    allowedHosts: effectiveAllowedHosts,
+  });
+
+  app.get("/health", (_request, response) => {
+    response.json({ status: "ok" });
+  });
+
+  app.all("/", (request, response, next) => {
+    if (!originIsAllowed(request, effectiveAllowedOrigins)) {
+      jsonRpcError(response, 403, "Invalid Origin header.");
+      return;
+    }
+    next();
+  });
+
+  app.post("/", async (request, response) => {
+    const abortController = new AbortController();
+    let server;
+    request.once("aborted", () => abortController.abort());
+    response.once("close", () => {
+      abortController.abort();
+      if (server) {
+        void server.close();
+      }
+    });
+
+    const apiKey = bearerToken(request);
+    if (!apiKey) {
+      response.set("WWW-Authenticate", "Bearer");
+      jsonRpcError(response, 401, "Missing Bearer API key.");
+      return;
+    }
+
+    let authResponse;
+    try {
+      authResponse = await verifyApiKey(apiKey, {
+        reasonkbUrl,
+        fetchImpl,
+        signal: abortController.signal,
+      });
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      console.error(
+        "[reasonkb-mcp-http] authentication service unavailable:",
+        error instanceof Error ? error.message : error,
+      );
+      jsonRpcError(
+        response,
+        502,
+        "ReasonKB authentication service is unavailable.",
+      );
+      return;
+    }
+    if (!authResponse.ok) {
+      response.set("WWW-Authenticate", "Bearer");
+      jsonRpcError(
+        response,
+        authResponse.status === 401 ? 401 : 502,
+        authResponse.status === 401
+          ? "Invalid or revoked API key."
+          : "ReasonKB authentication service is unavailable.",
+      );
+      return;
+    }
+
+    try {
+      server = createReasonkbMcpServer({
+        apiKey,
+        baseUrl: reasonkbUrl,
+        fetchImpl,
+        abortSignal: abortController.signal,
+      });
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      await server.connect(transport);
+      await transport.handleRequest(request, response, request.body);
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      console.error(
+        "[reasonkb-mcp-http] request failed:",
+        error instanceof Error ? error.message : error,
+      );
+      if (!response.headersSent) {
+        jsonRpcError(response, 500, "Internal MCP server error.");
+      }
+    }
+  });
+
+  for (const method of ["get", "delete"]) {
+    app[method]("/", (_request, response) => {
+      response.set("Allow", "POST");
+      jsonRpcError(response, 405, "Method not allowed.");
+    });
+  }
+
+  return app;
+}
+
+export function startReasonkbMcpHttpServer() {
+  const host = process.env.REASONKB_MCP_HOST || "127.0.0.1";
+  const port = Number.parseInt(process.env.REASONKB_MCP_PORT || "43173", 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("REASONKB_MCP_PORT must be a valid TCP port.");
+  }
+  const app = createReasonkbMcpHttpApp({ host });
+  const listener = app.listen(port, host, () => {
+    console.error(
+      "[reasonkb-mcp-http] listening on http://" + host + ":" + port,
+    );
+  });
+  listener.on("error", (error) => {
+    console.error("[reasonkb-mcp-http] failed to start:", error);
+    process.exitCode = 1;
+  });
+  return listener;
+}
