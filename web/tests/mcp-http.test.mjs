@@ -487,21 +487,37 @@ describe("Streamable HTTP MCP server", () => {
       params: {},
     };
 
-    const responsesPromise = Promise.all([
-      postToSession(baseUrl, sessionId, "test-api-key", request),
-      postToSession(baseUrl, sessionId, "test-api-key", request),
-    ]);
-    while (releaseAuthentication.length < 2) {
+    const firstResponsePromise = postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      request,
+    );
+    while (releaseAuthentication.length < 1) {
       await new Promise((resolve) => setTimeout(resolve, 1));
     }
-    releaseAuthentication.splice(0).forEach((release) => release());
+    let duplicateResponse;
+    try {
+      duplicateResponse = await Promise.race([
+        postToSession(baseUrl, sessionId, "test-api-key", request),
+        new Promise((_resolve, reject) =>
+          setTimeout(
+            () => reject(new Error("duplicate request was not rejected")),
+            250,
+          ),
+        ),
+      ]);
+    } finally {
+      releaseAuthentication.splice(0).forEach((release) => release());
+    }
 
-    const responses = await responsesPromise;
+    const responses = [await firstResponsePromise, duplicateResponse];
     await Promise.all(responses.map((response) => response.text()));
     expect(responses.map((response) => response.status).sort()).toEqual([
       200,
       400,
     ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("releases bounded session capacity after DELETE and idle expiry", async () => {
@@ -916,6 +932,264 @@ describe("Streamable HTTP MCP server", () => {
       }
     },
   );
+
+  it("cancels a request while API key verification is still pending", async () => {
+    let authenticationCount = 0;
+    let projectRequestCount = 0;
+    let releaseAuthentication;
+    let resolveAuthenticationStarted;
+    let resolveAuthenticationAborted;
+    const authenticationStarted = new Promise((resolve) => {
+      resolveAuthenticationStarted = resolve;
+    });
+    const authenticationAborted = new Promise((resolve) => {
+      resolveAuthenticationAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        authenticationCount += 1;
+        if (authenticationCount !== 2) {
+          return new Response(null, { status: 204 });
+        }
+        resolveAuthenticationStarted();
+        return new Promise((resolve, reject) => {
+          releaseAuthentication = () => {
+            resolve(new Response(null, { status: 204 }));
+          };
+          const abort = () => {
+            resolveAuthenticationAborted();
+            reject(init.signal.reason);
+          };
+          if (init.signal.aborted) {
+            abort();
+          } else {
+            init.signal.addEventListener("abort", abort, { once: true });
+          }
+        });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        projectRequestCount += 1;
+        return jsonResponse({ projects: [] });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, {
+      preAuthTimeoutMs: 1_000,
+      requestTimeoutMs: 1_000,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    const originalResponsePromise = postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: "during-authentication",
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      },
+    );
+
+    try {
+      await authenticationStarted;
+      const cancellation = await postToSession(
+        baseUrl,
+        sessionId,
+        "test-api-key",
+        {
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: {
+            requestId: "during-authentication",
+            reason: "cancel during authentication",
+          },
+        },
+      );
+      const authenticationOutcome = await Promise.race([
+        authenticationAborted.then(() => "aborted"),
+        new Promise((resolve) =>
+          setTimeout(() => resolve("still pending"), 100),
+        ),
+      ]);
+      if (authenticationOutcome !== "aborted") {
+        releaseAuthentication();
+      }
+      const originalResponse = await originalResponsePromise;
+      await originalResponse.text();
+      const reused = await postToSession(
+        baseUrl,
+        sessionId,
+        "test-api-key",
+        {
+          jsonrpc: "2.0",
+          id: "after-authentication-cancellation",
+          method: "tools/list",
+          params: {},
+        },
+      );
+
+      expect(cancellation.status).toBe(202);
+      expect(authenticationOutcome).toBe("aborted");
+      expect(originalResponse.status).toBe(204);
+      expect(projectRequestCount).toBe(0);
+      expect(reused.status).toBe(200);
+      expect(await reused.text()).toContain('"tools"');
+    } finally {
+      releaseAuthentication?.();
+      await fetch(baseUrl, {
+        method: "DELETE",
+        headers: {
+          authorization: "Bearer test-api-key",
+          "mcp-session-id": sessionId,
+        },
+      });
+    }
+  });
+
+  it("aborts authentication when its session is closed", async () => {
+    let authenticationCount = 0;
+    let projectRequestCount = 0;
+    let releaseAuthentication;
+    let resolveAuthenticationStarted;
+    let resolveAuthenticationAborted;
+    const authenticationStarted = new Promise((resolve) => {
+      resolveAuthenticationStarted = resolve;
+    });
+    const authenticationAborted = new Promise((resolve) => {
+      resolveAuthenticationAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        authenticationCount += 1;
+        if (authenticationCount !== 2) {
+          return new Response(null, { status: 204 });
+        }
+        resolveAuthenticationStarted();
+        return new Promise((resolve, reject) => {
+          releaseAuthentication = () => {
+            resolve(new Response(null, { status: 204 }));
+          };
+          const abort = () => {
+            resolveAuthenticationAborted();
+            reject(init.signal.reason);
+          };
+          if (init.signal.aborted) {
+            abort();
+          } else {
+            init.signal.addEventListener("abort", abort, { once: true });
+          }
+        });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        projectRequestCount += 1;
+        return jsonResponse({ projects: [] });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, {
+      preAuthTimeoutMs: 1_000,
+      requestTimeoutMs: 1_000,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    const originalResponsePromise = postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: "closed-during-authentication",
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      },
+    );
+
+    await authenticationStarted;
+    const deleted = await fetch(baseUrl, {
+      method: "DELETE",
+      headers: {
+        authorization: "Bearer test-api-key",
+        "mcp-session-id": sessionId,
+      },
+    });
+    const authenticationOutcome = await Promise.race([
+      authenticationAborted.then(() => "aborted"),
+      new Promise((resolve) =>
+        setTimeout(() => resolve("still pending"), 100),
+      ),
+    ]);
+    if (authenticationOutcome !== "aborted") {
+      releaseAuthentication();
+    }
+    const originalResponse = await originalResponsePromise;
+    const originalBody = await originalResponse.json();
+
+    expect(deleted.status).toBe(200);
+    expect(authenticationOutcome).toBe("aborted");
+    expect(originalResponse.status).toBe(404);
+    expect(originalBody).toMatchObject({
+      error: { code: -32001, message: "MCP session not found." },
+    });
+    expect(projectRequestCount).toBe(0);
+  });
+
+  it("aborts pending authentication during application shutdown", async () => {
+    let authenticationCount = 0;
+    let resolveAuthenticationStarted;
+    let resolveAuthenticationAborted;
+    const authenticationStarted = new Promise((resolve) => {
+      resolveAuthenticationStarted = resolve;
+    });
+    const authenticationAborted = new Promise((resolve) => {
+      resolveAuthenticationAborted = resolve;
+    });
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (!String(url).endsWith("/api/agent/auth/verify")) {
+        return jsonResponse({ error: "Unexpected upstream request." }, 500);
+      }
+      authenticationCount += 1;
+      if (authenticationCount === 1) {
+        return new Response(null, { status: 204 });
+      }
+      resolveAuthenticationStarted();
+      return new Promise((_resolve, reject) => {
+        const abort = () => {
+          resolveAuthenticationAborted();
+          reject(init.signal.reason);
+        };
+        if (init.signal.aborted) {
+          abort();
+        } else {
+          init.signal.addEventListener("abort", abort, { once: true });
+        }
+      });
+    });
+    const { app, baseUrl } = await startAppInstance(fetchImpl, {
+      preAuthTimeoutMs: 1_000,
+    });
+    const sessionId = await initializeSession(baseUrl);
+    const originalResponsePromise = postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: "pending-at-shutdown",
+        method: "tools/list",
+        params: {},
+      },
+    );
+
+    await authenticationStarted;
+    await app.locals.closeMcpSessions();
+    await authenticationAborted;
+    const originalResponse = await originalResponsePromise;
+
+    expect(originalResponse.status).toBe(503);
+    expect(originalResponse.headers.get("retry-after")).toBe("1");
+    expect(await originalResponse.json()).toMatchObject({
+      error: { message: "MCP server is shutting down." },
+    });
+  });
 
   it("rejects JSON-RPC batches without cancelling active work", async () => {
     let resolveUpstreamStarted;

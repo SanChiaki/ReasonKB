@@ -510,6 +510,41 @@ export function createReasonkbMcpHttpApp({
   let activeToolRequests = 0;
   let shuttingDown = false;
 
+  function abortPendingRequests(entry) {
+    const reason = new Error("MCP session closed.");
+    for (const pendingRequest of entry.pendingRequests?.values() ?? []) {
+      pendingRequest.cancelled = true;
+      pendingRequest.abortController.abort(reason);
+      if (
+        pendingRequest.dispatched ||
+        pendingRequest.response.destroyed ||
+        pendingRequest.response.writableEnded
+      ) {
+        continue;
+      }
+      if (!pendingRequest.response.headersSent) {
+        if (shuttingDown) {
+          pendingRequest.response.set("Retry-After", "1");
+          jsonRpcError(
+            pendingRequest.response,
+            503,
+            "MCP server is shutting down.",
+          );
+        } else {
+          jsonRpcError(
+            pendingRequest.response,
+            404,
+            "MCP session not found.",
+            -32001,
+          );
+        }
+      } else {
+        pendingRequest.response.end();
+      }
+    }
+    entry.pendingRequests?.clear();
+  }
+
   function cleanupSession(entry) {
     if (entry.pending) {
       entry.pending = false;
@@ -520,7 +555,7 @@ export function createReasonkbMcpHttpApp({
     }
     clearTimeout(entry.idleTimer);
     entry.idleTimer = undefined;
-    entry.pendingRequests?.clear();
+    abortPendingRequests(entry);
     entry.closed = true;
   }
 
@@ -657,9 +692,6 @@ export function createReasonkbMcpHttpApp({
     if (authResponse.ok) {
       return true;
     }
-    if (authResponse.status === 401 && session) {
-      void closeSession(session);
-    }
     response.set("WWW-Authenticate", "Bearer");
     jsonRpcError(
       response,
@@ -668,6 +700,9 @@ export function createReasonkbMcpHttpApp({
         ? "Invalid or revoked API key."
         : "ReasonKB authentication service is unavailable.",
     );
+    if (authResponse.status === 401 && session) {
+      void closeSession(session);
+    }
     return false;
   }
 
@@ -723,13 +758,50 @@ export function createReasonkbMcpHttpApp({
   }
 
   function matchPendingCancellations(session, cancellations) {
-    return cancellations.filter((cancellation) =>
-      session.pendingRequests.has(cancellation.requestId),
-    );
+    return cancellations.flatMap((cancellation) => {
+      const pendingRequest = session.pendingRequests.get(
+        cancellation.requestId,
+      );
+      return pendingRequest ? [{ cancellation, pendingRequest }] : [];
+    });
   }
 
-  function abortCancelledTools(session, cancellations) {
-    for (const cancellation of cancellations) {
+  function cancelUndispatchedRequests(session, matches) {
+    for (const { cancellation, pendingRequest } of matches) {
+      if (pendingRequest.dispatched) {
+        continue;
+      }
+      if (
+        session.pendingRequests.get(cancellation.requestId) === pendingRequest
+      ) {
+        session.pendingRequests.delete(cancellation.requestId);
+      }
+      pendingRequest.cancelled = true;
+      pendingRequest.abortController.abort(
+        new Error(cancellation.reason || "MCP request cancelled."),
+      );
+      if (
+        pendingRequest.response.destroyed ||
+        pendingRequest.response.writableEnded
+      ) {
+        continue;
+      }
+      if (!pendingRequest.response.headersSent) {
+        pendingRequest.response.status(204).end();
+      } else if (!pendingRequest.response.writableEnded) {
+        pendingRequest.response.end();
+      }
+    }
+  }
+
+  function abortCancelledTools(session, matches) {
+    for (const { cancellation, pendingRequest } of matches) {
+      if (!pendingRequest.dispatched) {
+        continue;
+      }
+      pendingRequest.abortController.abort(
+        new Error(cancellation.reason || "MCP request cancelled."),
+      );
       const tool = session.activeTools.get(cancellation.requestId);
       tool?.abortController.abort(
         new Error(cancellation.reason || "MCP request cancelled."),
@@ -745,10 +817,13 @@ export function createReasonkbMcpHttpApp({
     );
   }
 
-  async function finishCancelledStreams(session, cancellations) {
+  async function finishCancelledStreams(session, matches) {
     await Promise.resolve();
-    abortCancelledTools(session, cancellations);
-    for (const cancellation of cancellations) {
+    abortCancelledTools(session, matches);
+    for (const { cancellation, pendingRequest } of matches) {
+      if (!pendingRequest.dispatched) {
+        continue;
+      }
       session.transport.closeSSEStream(cancellation.requestId);
       try {
         await session.transport.send({
@@ -816,7 +891,7 @@ export function createReasonkbMcpHttpApp({
       idleTimer: undefined,
       inFlight: 0,
       pending: true,
-      pendingRequests: new Set(),
+      pendingRequests: new Map(),
       server: undefined,
       sessionId: undefined,
       transport: undefined,
@@ -943,6 +1018,7 @@ export function createReasonkbMcpHttpApp({
       const rpcRequest = isJSONRPCRequest(request.body)
         ? request.body
         : undefined;
+      let pendingRequest;
       if (rpcRequest && session.pendingRequests.has(rpcRequest.id)) {
         jsonRpcError(
           response,
@@ -951,6 +1027,15 @@ export function createReasonkbMcpHttpApp({
           ErrorCode.InvalidRequest,
         );
         return;
+      }
+      if (rpcRequest) {
+        pendingRequest = {
+          abortController: context.abortController,
+          cancelled: false,
+          dispatched: false,
+          response,
+        };
+        session.pendingRequests.set(rpcRequest.id, pendingRequest);
       }
       let controlSlot = false;
       if (control.allControl) {
@@ -970,40 +1055,31 @@ export function createReasonkbMcpHttpApp({
           return;
         }
         clearRequestDeadline(context);
+        if (
+          context.abortController.signal.aborted ||
+          response.writableEnded ||
+          (pendingRequest &&
+            (pendingRequest.cancelled ||
+              session.pendingRequests.get(rpcRequest.id) !== pendingRequest))
+        ) {
+          return;
+        }
         if (session.closed || sessions.get(sessionId) !== session) {
           jsonRpcError(response, 404, "MCP session not found.", -32001);
           return;
         }
-        if (rpcRequest && session.pendingRequests.has(rpcRequest.id)) {
-          jsonRpcError(
-            response,
-            400,
-            "An MCP request with this ID is already active.",
-            ErrorCode.InvalidRequest,
-          );
-          return;
-        }
         attachSession(context, session, !control.allControl);
         setRequestAuthInfo(request, fingerprint, context);
-        if (rpcRequest) {
-          session.pendingRequests.add(rpcRequest.id);
+        if (pendingRequest) {
+          pendingRequest.dispatched = true;
         }
         const matchedCancellations = matchPendingCancellations(
           session,
           control.cancellations,
         );
-        try {
-          await session.transport.handleRequest(
-            request,
-            response,
-            request.body,
-          );
-          await finishCancelledStreams(session, matchedCancellations);
-        } finally {
-          if (rpcRequest) {
-            session.pendingRequests.delete(rpcRequest.id);
-          }
-        }
+        cancelUndispatchedRequests(session, matchedCancellations);
+        await session.transport.handleRequest(request, response, request.body);
+        await finishCancelledStreams(session, matchedCancellations);
       } catch (error) {
         if (context.abortController.signal.aborted) {
           return;
@@ -1016,6 +1092,12 @@ export function createReasonkbMcpHttpApp({
           jsonRpcError(response, 500, "Internal MCP server error.");
         }
       } finally {
+        if (
+          pendingRequest &&
+          session.pendingRequests.get(rpcRequest.id) === pendingRequest
+        ) {
+          session.pendingRequests.delete(rpcRequest.id);
+        }
         if (controlSlot) {
           activeControlRequests -= 1;
         }
