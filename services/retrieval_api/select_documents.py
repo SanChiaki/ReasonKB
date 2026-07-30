@@ -802,13 +802,12 @@ def _rerank_batch_selections(
 
 def _llm_select_document_batches(
     query: str,
-    docs: list[dict],
+    batches: list[list[dict]],
     *,
     limit: int,
     model: str | None,
     mode: str,
 ) -> tuple[_LlmSelection, int]:
-    batches = _candidate_document_batches(query, docs)
     outcomes: list[_LlmSelectionOutcome] = []
     selected_documents: list[dict] = []
     attempted_batches = 0
@@ -878,15 +877,12 @@ def select_candidate_documents(
     if mode not in SELECTION_MODES:
         raise ValueError(f"unsupported document selection mode: {mode}")
 
-    llm_candidates = prefilter_candidate_documents(
-        query,
-        docs,
-        limit=DEFAULT_PREFILTER_LIMIT,
-    )
-    is_batched = len(docs) > DEFAULT_PREFILTER_LIMIT
+    candidate_batches = _candidate_document_batches(query, docs)
+    llm_candidates = candidate_batches[0]
+    is_batched = len(candidate_batches) > 1
     llm_selection, attempted_batches = _llm_select_document_batches(
         query,
-        docs,
+        candidate_batches,
         limit=limit,
         model=model,
         mode=mode,
