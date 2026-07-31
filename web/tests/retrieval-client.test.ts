@@ -161,6 +161,40 @@ describe("retrieval client", () => {
     expect(cancelStream).toHaveBeenCalledTimes(1);
   });
 
+  it("cancels the upstream stream when frame parsing fails", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const encoder = new TextEncoder();
+    const cancelStream = vi.fn();
+    const body = new ReadableStream<Uint8Array>(
+      {
+        start(controller) {
+          controller.enqueue(encoder.encode("data: not-json\n\n"));
+        },
+        cancel: cancelStream,
+      },
+      { highWaterMark: 0 },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(body, { status: 200 })),
+    );
+
+    const { sendRetrievalQueryStream } = await import("@/lib/retrieval-client");
+    await expect(
+      sendRetrievalQueryStream(
+        { query: "Reject malformed data", projectIds: [], mode: "answer" },
+        vi.fn(),
+      ),
+    ).rejects.toBeInstanceOf(SyntaxError);
+
+    expect(cancelStream).toHaveBeenCalledTimes(1);
+  });
+
   it("forwards an abort signal to the streaming retrieval request", async () => {
     vi.doMock("@/lib/config", () => ({
       appConfig: {
@@ -195,5 +229,118 @@ describe("retrieval client", () => {
     abortController.abort();
 
     await expect(retrieval).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("projects Agent progress without leaking internal document metadata", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const encoder = new TextEncoder();
+    const result = {
+      answer: "Grounded answer",
+      citations: [],
+      selectedDocuments: [],
+      evidence: [],
+    };
+    const upstream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const events = [
+          {
+            type: "progress",
+            stage: "documents_selected",
+            data: {
+              documentCount: 1,
+              selectionStrategy: "model_only_full_budget",
+              documents: [
+                {
+                  documentId: "secret-doc",
+                  sourceRelativePath: "private/secret.pdf",
+                  documentUrl: "https://internal.example/secret",
+                },
+              ],
+            },
+          },
+          {
+            type: "progress",
+            stage: "document_evidence_loaded",
+            data: {
+              document: { documentId: "secret-doc" },
+              excerpt: "private evidence excerpt",
+              evidenceCount: 1,
+            },
+          },
+          { type: "result", data: result },
+        ];
+        const payload = events
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join("");
+        const bytes = encoder.encode(payload);
+        controller.enqueue(bytes.slice(0, 31));
+        controller.enqueue(bytes.slice(31));
+        controller.close();
+      },
+    });
+
+    const { projectAgentRetrievalStream } = await import("@/lib/retrieval-client");
+    const projected = await new Response(
+      projectAgentRetrievalStream(upstream),
+    ).text();
+    const events = projected
+      .trim()
+      .split("\n\n")
+      .map((frame) => JSON.parse(frame.replace(/^data: /, "")));
+
+    expect(events).toEqual([
+      {
+        type: "progress",
+        stage: "documents_selected",
+        data: {
+          documentCount: 1,
+          selectionStrategy: "model_only_full_budget",
+        },
+      },
+      {
+        type: "progress",
+        stage: "document_evidence_loaded",
+        data: { evidenceCount: 1 },
+      },
+      { type: "result", data: result },
+    ]);
+  });
+
+  it("also projects Evidence progress without leaking internal document metadata", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const { projectAgentRetrievalEvent } = await import("@/lib/retrieval-client");
+
+    expect(
+      projectAgentRetrievalEvent(
+        {
+          type: "progress",
+          stage: "document_evidence_loaded",
+          data: {
+            document: {
+              documentId: "secret-doc",
+              sourceRelativePath: "private/secret.pdf",
+              documentUrl: "https://internal.example/secret",
+            },
+            excerpt: "private evidence excerpt",
+            evidenceCount: 1,
+          },
+        },
+        "evidence",
+      ),
+    ).toEqual({
+      type: "progress",
+      stage: "document_evidence_loaded",
+      data: { evidenceCount: 1 },
+    });
   });
 });

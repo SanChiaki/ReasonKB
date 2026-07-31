@@ -380,6 +380,396 @@ describe("Streamable HTTP MCP server", () => {
     ).toBe(true);
   });
 
+  it.each([
+    ["reasonkb_query", "query"],
+    ["reasonkb_evidence", "evidence"],
+  ])(
+    "streams %s retrieval progress before returning the final result",
+    async (toolName, route) => {
+      const encoder = new TextEncoder();
+      const progressEvents = [
+        {
+          type: "progress",
+          stage: "documents_loaded",
+          data: { documentCount: 2 },
+        },
+        {
+          type: "progress",
+          stage: "documents_selected",
+          data: { selectedCount: 1 },
+        },
+      ];
+      const finalResult = {
+        answer: route === "query" ? "Grounded answer" : "",
+        citations: [],
+        selectedDocuments: [],
+        evidence: [{ documentId: "doc-1", text: "Relevant evidence" }],
+      };
+      let upstreamRequest;
+      let resolveUpstreamCancelled;
+      const upstreamCancelled = new Promise((resolve) => {
+        resolveUpstreamCancelled = resolve;
+      });
+      const fetchImpl = vi.fn(async (url, init = {}) => {
+        if (String(url).endsWith("/api/agent/auth/verify")) {
+          return new Response(null, { status: 204 });
+        }
+        if (String(url).endsWith("/api/agent/" + route)) {
+          upstreamRequest = init;
+          return new Response(
+            new ReadableStream({
+              start(controller) {
+                const progressBytes = encoder.encode(
+                  progressEvents
+                    .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                    .join(""),
+                );
+                const splitAt = 17;
+                controller.enqueue(progressBytes.slice(0, splitAt));
+                controller.enqueue(progressBytes.slice(splitAt));
+                setTimeout(() => {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "result",
+                        data: finalResult,
+                      })}\n\n`,
+                    ),
+                  );
+                }, 25);
+              },
+              cancel() {
+                resolveUpstreamCancelled();
+              },
+            }),
+            { headers: { "content-type": "text/event-stream; charset=utf-8" } },
+          );
+        }
+        return jsonResponse({ error: "Not found." }, 404);
+      });
+      const baseUrl = await startApp(fetchImpl);
+      const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+      clients.push(client);
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(baseUrl), {
+          requestInit: {
+            headers: { Authorization: "Bearer test-api-key" },
+          },
+        }),
+      );
+      const progress = [];
+      let callSettled = false;
+
+      const call = client
+        .callTool(
+          {
+            name: toolName,
+            arguments: { query: "Find the evidence", projectIds: [] },
+          },
+          undefined,
+          {
+            onprogress(update) {
+              progress.push({ ...update, callSettled });
+            },
+          },
+        )
+        .finally(() => {
+          callSettled = true;
+        });
+      const result = await call;
+
+      expect(new Headers(upstreamRequest.headers).get("accept")).toBe(
+        "text/event-stream",
+      );
+      expect(progress).toEqual([
+        {
+          progress: 1,
+          message: JSON.stringify(progressEvents[0]),
+          callSettled: false,
+        },
+        {
+          progress: 2,
+          message: JSON.stringify(progressEvents[1]),
+          callSettled: false,
+        },
+      ]);
+      expect(result.structuredContent).toEqual(finalResult);
+      await expect(
+        Promise.race([
+          upstreamCancelled,
+          new Promise((_resolve, reject) =>
+            setTimeout(
+              () => reject(new Error("upstream stream was not cancelled")),
+              250,
+            ),
+          ),
+        ]),
+      ).resolves.toBeUndefined();
+    },
+  );
+
+  it("returns a streamed result without notifications when progress was not requested", async () => {
+    const encoder = new TextEncoder();
+    const finalResult = {
+      answer: "Grounded answer",
+      citations: [],
+      selectedDocuments: [],
+      evidence: [],
+    };
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              for (const event of [
+                {
+                  type: "progress",
+                  stage: "documents_selected",
+                  data: { documentCount: 1 },
+                },
+                { type: "result", data: finalResult },
+              ]) {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+                );
+              }
+              controller.close();
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    const clientErrors = [];
+    client.onerror = (error) => clientErrors.push(error);
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_query",
+      arguments: { query: "Find the evidence", projectIds: [] },
+    });
+
+    expect(result.structuredContent).toEqual(finalResult);
+    expect(clientErrors).toEqual([]);
+  });
+
+  it("preserves a zero progress token on the request-associated HTTP stream", async () => {
+    const progressEvent = {
+      type: "progress",
+      stage: "retrieval_started",
+      data: {},
+    };
+    const finalResult = {
+      answer: "Grounded answer",
+      citations: [],
+      selectedDocuments: [],
+      evidence: [],
+    };
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        return new Response(
+          [
+            `data: ${JSON.stringify(progressEvent)}\n\n`,
+            `data: ${JSON.stringify({ type: "result", data: finalResult })}\n\n`,
+          ].join(""),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const sessionId = await initializeSession(baseUrl);
+
+    const response = await postToSession(
+      baseUrl,
+      sessionId,
+      "test-api-key",
+      {
+        jsonrpc: "2.0",
+        id: "zero-progress-token",
+        method: "tools/call",
+        params: {
+          name: "reasonkb_query",
+          arguments: { query: "Track this request", projectIds: [] },
+          _meta: { progressToken: 0 },
+        },
+      },
+    );
+    const messages = (await response.text())
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data: "))
+      .map((line) => JSON.parse(line.slice("data: ".length)));
+
+    expect(response.status).toBe(200);
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toEqual({
+      jsonrpc: "2.0",
+      method: "notifications/progress",
+      params: {
+        progressToken: 0,
+        progress: 1,
+        message: JSON.stringify(progressEvent),
+      },
+    });
+    expect(messages[1]).toMatchObject({
+      jsonrpc: "2.0",
+      id: "zero-progress-token",
+      result: { structuredContent: finalResult },
+    });
+  });
+
+  it("keeps ordinary JSON Agent responses compatible with retrieval tools", async () => {
+    const finalResult = {
+      answer: "JSON answer",
+      citations: [],
+      selectedDocuments: [],
+      evidence: [],
+    };
+    let upstreamRequest;
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        upstreamRequest = init;
+        return jsonResponse(finalResult);
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_query",
+      arguments: { query: "Use JSON fallback", projectIds: [] },
+    });
+
+    expect(new Headers(upstreamRequest.headers).get("accept")).toBe(
+      "text/event-stream",
+    );
+    expect(result.structuredContent).toEqual(finalResult);
+  });
+
+  it("accepts a fragmented legitimate Evidence result larger than one MiB", async () => {
+    const evidenceContent = "e".repeat(1_100_000);
+    const finalResult = {
+      answer: "",
+      citations: [],
+      selectedDocuments: [{ documentId: "doc-large" }],
+      evidence: [
+        {
+          documentId: "doc-large",
+          documentName: "large.pdf",
+          pages: "1-16",
+          content: evidenceContent,
+        },
+      ],
+    };
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/evidence")) {
+        const bytes = new TextEncoder().encode(
+          `data: ${JSON.stringify({ type: "result", data: finalResult })}\r\n\r\n`,
+        );
+        let offset = 0;
+        return new Response(
+          new ReadableStream({
+            pull(controller) {
+              if (offset >= bytes.length) {
+                controller.close();
+                return;
+              }
+              const nextOffset = Math.min(offset + 1024, bytes.length);
+              controller.enqueue(bytes.slice(offset, nextOffset));
+              offset = nextOffset;
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_evidence",
+      arguments: { query: "Return the full evidence", projectIds: [] },
+    });
+
+    expect(result.structuredContent.evidence[0].content).toHaveLength(1_100_000);
+  });
+
+  it("reports malformed Agent SSE without echoing its contents", async () => {
+    const privatePayload = "PRIVATE evidence that must not appear in errors";
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        return new Response(`data: ${privatePayload}\n\n`, {
+          headers: { "content-type": "text/event-stream" },
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_query",
+      arguments: { query: "Malformed upstream", projectIds: [] },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain(
+      "ReasonKB retrieval stream contained malformed JSON.",
+    );
+    expect(result.content[0].text).not.toContain(privatePayload);
+  });
+
   it("binds each stateful session to the API key that initialized it", async () => {
     const fetchImpl = vi
       .fn()
@@ -789,6 +1179,84 @@ describe("Streamable HTTP MCP server", () => {
     await new Promise((resolve) => setImmediate(resolve));
     expect(clientErrors).toEqual([]);
     await expect(client.listTools()).resolves.toHaveProperty("tools");
+  });
+
+  it("aborts an Agent event stream when an official MCP client times out", async () => {
+    let resolveUpstreamAborted;
+    const upstreamAborted = new Promise((resolve) => {
+      resolveUpstreamAborted = resolve;
+    });
+    const encoder = new TextEncoder();
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "progress",
+                    stage: "retrieval_started",
+                    data: {},
+                  })}\n\n`,
+                ),
+              );
+              init.signal.addEventListener(
+                "abort",
+                () => {
+                  resolveUpstreamAborted();
+                  controller.error(init.signal.reason);
+                },
+                { once: true },
+              );
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl, { requestTimeoutMs: 1_000 });
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    const clientErrors = [];
+    client.onerror = (error) => clientErrors.push(error);
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+    const progress = [];
+
+    const call = client.callTool(
+      {
+        name: "reasonkb_query",
+        arguments: { query: "Cancel the stream", projectIds: [] },
+      },
+      undefined,
+      { timeout: 25, onprogress: (update) => progress.push(update) },
+    );
+
+    await expect(call).rejects.toMatchObject({ code: -32001 });
+    await expect(
+      Promise.race([
+        upstreamAborted,
+        new Promise((_resolve, reject) =>
+          setTimeout(
+            () => reject(new Error("upstream stream was not aborted")),
+            250,
+          ),
+        ),
+      ]),
+    ).resolves.toBeUndefined();
+    expect(progress).toHaveLength(1);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(clientErrors).toEqual([]);
   });
 
   it.each([0, ""])(

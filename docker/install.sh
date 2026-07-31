@@ -296,6 +296,28 @@ if [ "$INSTALL_ACTION" = "install" ]; then
 # PAGEINDEX_LLM_BASE_URL=
 # PAGEINDEX_LLM_MODEL=openai/deepseek-v4-flash
 # PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/deepseek-v4-flash
+
+# 检索请求的总时限（秒）：默认 240，最大 600。
+# RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
+# 单次检索模型调用时限（秒）：默认 30，最大 600。
+# RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
+# 最终回答模型调用时限（秒）：默认 120，最大 600。
+# ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
+# 检索模型每次调用的总尝试次数（包含首次调用）：默认且最多 2。
+# RETRIEVAL_LLM_MAX_ATTEMPTS=2
+# PageIndex 运行层（索引及无上下文回退）每次调用的总尝试次数：默认且最多 2。
+# PAGEINDEX_LLM_MAX_ATTEMPTS=2
+# 最终回答模型每次调用的总尝试次数：默认 1，可设置 1-2。
+# ANSWER_LLM_MAX_ATTEMPTS=1
+# 最终回答推理模式：auto（默认）、disabled、low 或 default。
+# ANSWER_REASONING_MODE=auto
+# 最终回答可见输出上限：默认 4096，可设置 256-8192。
+# ANSWER_LLM_MAX_OUTPUT_TOKENS=4096
+# 全进程检索模型并发：默认 2，可设置 1-5。
+# RETRIEVAL_LLM_CONCURRENCY=2
+# 单个请求并行检索的文档数：默认 2，可设置 1-5。
+# RETRIEVAL_DOCUMENT_CONCURRENCY=2
+
 # VISION_EXTRACTION_ENABLED=false
 # VISION_MODEL=
 EOF

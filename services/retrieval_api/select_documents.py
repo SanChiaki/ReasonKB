@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from ast import literal_eval
 from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 import json
 import logging
 import re
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
@@ -17,9 +19,32 @@ _HARD_ACRONYM_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?![A-Za-z0-9])
 _HARD_CODE_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
 )
+_DEALER_TIER_MARKERS = (
+    ("钻石", "diamond"),
+    ("铂金", "platinum"),
+    ("白金", "platinum"),
+    ("黄金", "gold"),
+    ("金牌", "gold"),
+    ("银牌", "silver"),
+    ("铜牌", "bronze"),
+    ("金", "gold"),
+    ("银", "silver"),
+    ("铜", "bronze"),
+)
+_DEALER_TIER_TERM_PATTERN = "(?:" + "|".join(
+    re.escape(marker) for marker, _canonical in _DEALER_TIER_MARKERS
+) + ")"
 _DEALER_TIER_RE = re.compile(
-    r"([\u3400-\u4dbf\u4e00-\u9fff]{1,12}"
-    r"(?:[/、或和与及][\u3400-\u4dbf\u4e00-\u9fff]{1,12})*)经销商"
+    rf"({_DEALER_TIER_TERM_PATTERN}"
+    rf"(?:[/、或和与及]{_DEALER_TIER_TERM_PATTERN})*)经销商"
+)
+_NEGATED_DEALER_TIER_RE = re.compile(
+    r"(?:(?:非|不是|并非|除|排除|不含|不包括)[^，。；;！？!?]{0,20}经销商"
+    r"|经销商(?:以外|之外|除外))"
+)
+_RELATIVE_DEALER_TIER_RE = re.compile(
+    rf"(?:{_DEALER_TIER_TERM_PATTERN}(?:经销商)?(?:及)?(?:以上|以下)"
+    rf"|(?:不低于|不高于|高于|低于|至少|至多){_DEALER_TIER_TERM_PATTERN}(?:经销商)?)"
 )
 DEFAULT_PREFILTER_LIMIT = 50
 STRUCTURE_SEARCH_TEXT_LIMIT = 30000
@@ -33,6 +58,10 @@ MIN_FALLBACK_QUERY_TERMS = 2
 MIN_FALLBACK_SUMMARY_COVERAGE = 0.5
 MIN_FALLBACK_TOTAL_COVERAGE = 0.75
 logger = logging.getLogger(__name__)
+_CANDIDATE_COMPLETION: ContextVar[Any] = ContextVar(
+    "reasonkb_candidate_completion",
+    default=None,
+)
 
 _LlmSelectionOutcome = Literal[
     "selected",
@@ -69,6 +98,15 @@ class CandidateDocuments(list[dict]):
         super().__init__(documents)
         self.model_outcome = model_outcome
         self.strategy = strategy
+
+
+@contextmanager
+def candidate_completion_scope(completion):
+    token = _CANDIDATE_COMPLETION.set(completion)
+    try:
+        yield
+    finally:
+        _CANDIDATE_COMPLETION.reset(token)
 
 _QUERY_EXPANSIONS = {
     "终验": ["final", "acceptance", "handover", "sign", "off"],
@@ -112,20 +150,6 @@ _FALLBACK_CJK_STOP_TERMS = {
     "信息",
     "查询",
 }
-_DEALER_TIER_MARKERS = (
-    ("钻石", "diamond"),
-    ("铂金", "platinum"),
-    ("白金", "platinum"),
-    ("黄金", "gold"),
-    ("金牌", "gold"),
-    ("银牌", "silver"),
-    ("铜牌", "bronze"),
-    ("金", "gold"),
-    ("银", "silver"),
-    ("铜", "bronze"),
-)
-
-
 def _tokenize_query(text: str) -> list[str]:
     lowered = text.lower()
     latin_tokens = _LATIN_RE.findall(lowered)
@@ -291,6 +315,8 @@ def _strong_keyword_select_documents(
 ) -> list[dict]:
     if limit <= 0:
         return []
+    if _query_has_semantic_dealer_tier_constraint(query):
+        return []
 
     query_terms = _fallback_query_terms(query)
     if len(query_terms) < MIN_FALLBACK_QUERY_TERMS:
@@ -419,6 +445,107 @@ def _iter_dealer_tier_markers(text: str):
             marker = _dealer_tier_marker(term)
             if marker:
                 yield marker
+
+
+def _query_dealer_tier_markers(query: str) -> frozenset[str]:
+    if _query_has_semantic_dealer_tier_constraint(query):
+        return frozenset()
+    return frozenset(_iter_dealer_tier_markers(query))
+
+
+def _query_has_negated_dealer_tier(query: str) -> bool:
+    return bool(_NEGATED_DEALER_TIER_RE.search(query))
+
+
+def _query_has_semantic_dealer_tier_constraint(query: str) -> bool:
+    return _query_has_negated_dealer_tier(query) or bool(
+        _RELATIVE_DEALER_TIER_RE.search(query)
+    )
+
+
+def _document_has_dealer_tier(
+    document: dict,
+    query_tiers: frozenset[str],
+    *,
+    include_page_text: bool,
+) -> bool:
+    return any(
+        query_tiers.intersection(_iter_dealer_tier_markers(search_text))
+        for search_text in _iter_hard_search_texts(
+            document,
+            include_page_text=include_page_text,
+        )
+    )
+
+
+def _document_dealer_tiers(
+    document: dict,
+    *,
+    include_page_text: bool,
+) -> frozenset[str]:
+    return frozenset(
+        marker
+        for search_text in _iter_hard_search_texts(
+            document,
+            include_page_text=include_page_text,
+        )
+        for marker in _iter_dealer_tier_markers(search_text)
+    )
+
+
+def document_supports_query_dealer_tier(
+    query: str,
+    document: dict,
+    page_texts: Iterable[str] = (),
+) -> bool:
+    query_tiers = _query_dealer_tier_markers(query)
+    if not query_tiers:
+        return True
+
+    metadata_tiers = _document_dealer_tiers(
+        document,
+        include_page_text=False,
+    )
+    page_tiers = {
+        marker
+        for text in page_texts
+        if isinstance(text, str)
+        for marker in _iter_dealer_tier_markers(text)
+    }
+    if query_tiers.intersection(page_tiers):
+        return True
+    if page_tiers:
+        return False
+    if query_tiers.intersection(metadata_tiers):
+        return True
+    return not metadata_tiers
+
+
+def _documents_matching_dealer_tier(query: str, documents: list[dict]) -> list[dict]:
+    query_tiers = _query_dealer_tier_markers(query)
+    if not query_tiers:
+        return documents
+
+    metadata_matches = [
+        document
+        for document in documents
+        if _document_has_dealer_tier(
+            document,
+            query_tiers,
+            include_page_text=False,
+        )
+    ]
+    metadata_match_ids = {id(document) for document in metadata_matches}
+    return [
+        document
+        for document in documents
+        if id(document) in metadata_match_ids
+        or _document_has_dealer_tier(
+            document,
+            query_tiers,
+            include_page_text=True,
+        )
+    ]
 
 
 def _hard_fallback_term_groups(query: str) -> tuple[frozenset[str], ...]:
@@ -591,7 +718,7 @@ Candidate Documents:
 {json.dumps(candidates, ensure_ascii=False)}
 
 Return valid JSON only:
-{{"thinking":"brief reason","answer":["D001","D002"]}}
+{{"answer":["D001","D002"]}}
 """
 
 
@@ -659,7 +786,9 @@ def _llm_select_documents(
     model: str | None,
     mode: str,
 ) -> _LlmSelection:
-    from pageindex.utils import llm_completion
+    llm_completion = _CANDIDATE_COMPLETION.get()
+    if llm_completion is None:
+        from pageindex.utils import llm_completion
 
     prompt = _selection_prompt(query, docs, mode)
     try:
@@ -876,6 +1005,21 @@ def select_candidate_documents(
         )
     if mode not in SELECTION_MODES:
         raise ValueError(f"unsupported document selection mode: {mode}")
+
+    tier_constrained_docs = _documents_matching_dealer_tier(query, docs)
+    if not tier_constrained_docs:
+        logger.info(
+            "Candidate document selection strategy=hard_constraint_no_match "
+            "mode=%s model_outcome=not_run documents=%d",
+            mode,
+            len(docs),
+        )
+        return CandidateDocuments(
+            [],
+            model_outcome="not_run",
+            strategy="hard_constraint_no_match",
+        )
+    docs = tier_constrained_docs
 
     candidate_batches = _candidate_document_batches(query, docs)
     llm_candidates = candidate_batches[0]

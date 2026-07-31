@@ -84,6 +84,7 @@ def test_llm_configuration(db_path: str, request: LlmTestInput) -> dict[str, Any
             ],
             temperature=0,
             timeout=20,
+            max_retries=0,
         )
         output = (response.choices[0].message.content or "").strip()
         return {

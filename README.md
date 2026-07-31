@@ -163,15 +163,58 @@ is known:
 REASONKB_ADMIN_COOKIE_SECURE=auto  # auto | true | false
 ```
 
-LLM defaults can be supplied through `.env` and later changed by the administrator:
+LLM defaults can be supplied through `.env` and later changed by the administrator. The answer
+model is used for indexing and final Answer synthesis. The retrieval model is used for candidate
+document routing, PageIndex node/page selection, evidence sufficiency checks, and evidence
+validation:
 
 ```env
 PAGEINDEX_LLM_API_KEY=your_key
 PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
-PAGEINDEX_LLM_MODEL=openai/model-name
-PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/model-name
-RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=120
+PAGEINDEX_LLM_MODEL=openai/answer-model
+PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/retrieval-model
+RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
+ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
+RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
+RETRIEVAL_LLM_MAX_ATTEMPTS=2
+ANSWER_LLM_MAX_ATTEMPTS=1
+PAGEINDEX_LLM_MAX_ATTEMPTS=2
+ANSWER_REASONING_MODE=auto
+ANSWER_LLM_MAX_OUTPUT_TOKENS=4096
+RETRIEVAL_LLM_CONCURRENCY=2
+RETRIEVAL_DOCUMENT_CONCURRENCY=2
 ```
+
+`RETRIEVAL_REQUEST_TIMEOUT_SECONDS` is the deadline for the complete retrieval request and is
+bounded to 600 seconds. Retrieval calls accept `1` or `2` attempts through
+`RETRIEVAL_LLM_MAX_ATTEMPTS`; Answer calls default to one attempt and can be set to `1` or `2`
+through `ANSWER_LLM_MAX_ATTEMPTS`. Provider SDK retries are disabled so these attempts remain
+inside the request deadline. The legacy PageIndex sync/async runtime wrappers used by indexing
+and no-context fallbacks use a separate `PAGEINDEX_LLM_MAX_ATTEMPTS` budget (default and maximum
+`2`). `ANSWER_LLM_MAX_OUTPUT_TOKENS` bounds visible Answer output to
+256-8192 tokens (default 4096). `RETRIEVAL_DOCUMENT_CONCURRENCY` accepts `1-5` and controls
+how many selected documents one request searches concurrently. The process-wide
+`RETRIEVAL_LLM_CONCURRENCY` limit also accepts `1-5` and defaults to `2`, covering candidate
+routing, tree search, sufficiency checks, and evidence validation across concurrent requests.
+These defaults are intended for small single-node deployments; increase them only after
+measuring provider rate limits, memory, and tail latency.
+
+Evidence keeps all candidate-summary batches reachable, then searches the selected documents in
+bounded waves. The first wave contains at most two documents; only an explicit high-confidence,
+complete coverage decision can stop expansion before the configured document limit is reached.
+
+Structured retrieval calls use the retrieval model with hidden thinking disabled when the
+provider supports explicit reasoning control. A bounded third tree-assessment round may request
+`low` reasoning for complex comparison, cross-document, or multi-hop questions when earlier
+non-thinking rounds still need more evidence. The escalation is honored only when the provider
+offers an enforceable low-effort budget. DeepSeek-compatible endpoints expose a thinking switch
+but no portable independent reasoning-token cap, so `low` falls back to explicitly disabled
+thinking on those endpoints. Answer synthesis uses the answer model with
+`ANSWER_REASONING_MODE=auto` by default: ordinary synthesis explicitly
+disables hidden thinking, while clearly multi-step questions or broad cross-document evidence use
+the same provider-aware `low` policy. Set `disabled`, `low`, or `default` to override this policy.
+This is separate from PageIndex's reasoning-based tree navigation: selecting nodes from a document
+tree does not require hidden thinking on every provider request.
 
 Image evidence extraction is disabled by default:
 

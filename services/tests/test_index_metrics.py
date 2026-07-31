@@ -83,6 +83,7 @@ def test_llm_completion_uses_scoped_request_deadline(monkeypatch):
         assert utils.llm_completion(model="gpt-test", prompt="question") == "answer"
 
     assert 0 < captured["timeout"] <= 17.5
+    assert captured["max_retries"] == 0
 
 
 def test_llm_completion_preserves_indexing_timeout_contract_without_scope(monkeypatch):
@@ -103,6 +104,41 @@ def test_llm_completion_preserves_indexing_timeout_contract_without_scope(monkey
 
     assert utils.llm_completion(model="gpt-test", prompt="question") == "answer"
     assert "timeout" not in captured
+    assert captured["max_retries"] == 0
+
+
+def test_llm_completion_caps_pageindex_attempt_budget(monkeypatch):
+    provider_calls = 0
+
+    def failing_completion(**_kwargs):
+        nonlocal provider_calls
+        provider_calls += 1
+        raise TimeoutError("provider timed out")
+
+    monkeypatch.setenv("PAGEINDEX_LLM_MAX_ATTEMPTS", "99")
+    monkeypatch.setattr("litellm.completion", failing_completion)
+    monkeypatch.setattr(pageindex_runtime, "_wait_before_llm_retry", lambda *_args: True)
+
+    assert utils.llm_completion(model="gpt-test", prompt="question") == ""
+    assert provider_calls == 2
+
+
+def test_llm_acompletion_uses_pageindex_attempt_budget(monkeypatch):
+    provider_calls = 0
+
+    async def failing_acompletion(**_kwargs):
+        nonlocal provider_calls
+        provider_calls += 1
+        raise TimeoutError("provider timed out")
+
+    monkeypatch.setenv("PAGEINDEX_LLM_MAX_ATTEMPTS", "1")
+    monkeypatch.setattr("litellm.acompletion", failing_acompletion)
+
+    async def run_completion():
+        return await utils.llm_acompletion(model="gpt-test", prompt="question")
+
+    assert asyncio.run(run_completion()) == ""
+    assert provider_calls == 1
 
 
 def test_llm_completion_does_not_retry_past_scoped_deadline(monkeypatch):
@@ -232,6 +268,7 @@ def test_llm_acompletion_uses_scoped_request_deadline(monkeypatch):
 
     assert result == "answer"
     assert 0 < captured["timeout"] <= 17.5
+    assert captured["max_retries"] == 0
 
 
 def test_llm_acompletion_rechecks_deadline_after_runtime_configuration(monkeypatch):
