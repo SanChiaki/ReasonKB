@@ -1,5 +1,9 @@
 import json
 
+from services.common.pageindex_runtime import configure_pageindex_runtime
+
+configure_pageindex_runtime()
+
 from services.retrieval_api import select_documents as select_documents_module
 from services.retrieval_api.select_documents import (
     EVIDENCE_VALIDATION_REASON_KEY,
@@ -323,6 +327,46 @@ def test_evidence_selection_searches_every_candidate_batch(monkeypatch):
     assert any(doc["id"] == "doc_churn" for doc in selected)
     assert selected.strategy == "batched_model_selection"
     assert len(prompts) == 2
+
+
+def test_evidence_selection_keeps_the_third_candidate_batch_reachable(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"topic-{index:03d}.pdf",
+            "doc_description": "Topic background.",
+        }
+        for index in range(100)
+    ]
+    docs.append(
+        {
+            "id": "doc_late",
+            "project_id": "proj_1",
+            "file_name": "zzz-late-evidence.pdf",
+            "doc_description": "The direct topic evidence.",
+        }
+    )
+    prompts: list[str] = []
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "zzz-late-evidence.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(prompt, "zzz-late-evidence.pdf")
+            return json.dumps({"answer": [candidate_id]})
+        return '{"answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents(
+        "topic evidence",
+        docs,
+        limit=2,
+        mode="evidence",
+    )
+
+    assert [document["id"] for document in selected] == ["doc_late"]
+    assert len(prompts) == 4
 
 
 def test_evidence_selection_reranks_batch_results_over_limit(monkeypatch):
@@ -694,6 +738,21 @@ def test_select_candidate_documents_accepts_short_candidate_aliases(monkeypatch)
     assert [doc["id"] for doc in selected] == ["doc_gold"]
 
 
+def test_candidate_selection_prompt_does_not_request_free_text_thinking(monkeypatch):
+    docs = _policy_candidate_documents()
+
+    def fake_llm_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        assert '"thinking"' not in prompt
+        assert '"answer"' in prompt
+        return '{"answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+
+    selected = select_candidate_documents("钻石经销商的PGI评估指标有哪些？", docs)
+
+    assert [doc["id"] for doc in selected] == ["doc_gold"]
+
+
 def test_select_candidate_documents_falls_back_when_provider_fails(monkeypatch):
     docs = _policy_candidate_documents()
 
@@ -861,12 +920,35 @@ def test_strong_anchor_runs_after_model_selection_without_page_scan(monkeypatch)
     assert events == [("model", None), ("strong", False)]
 
 
-def test_explicit_empty_does_not_probe_unrepresented_partner_tier(monkeypatch):
+def test_unrepresented_partner_tier_skips_model_selection(monkeypatch):
+    docs = _policy_candidate_documents()
+
+    def unexpected_completion(*_args, **_kwargs):
+        raise AssertionError("unrepresented tier should be rejected before model selection")
+
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        unexpected_completion,
+    )
+
+    selected = select_candidate_documents(
+        "铂金经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert selected == []
+    assert selected.model_outcome == "not_run"
+    assert selected.strategy == "hard_constraint_no_match"
+
+
+def test_model_selection_cannot_substitute_an_unrepresented_partner_tier(monkeypatch):
     docs = _policy_candidate_documents()
     monkeypatch.setattr(
         "pageindex.utils.llm_completion",
         lambda model, prompt, chat_history=None, return_finish_reason=False: (
-            '{"thinking":"no match","answer":[]}'
+            '{"thinking":"closest policy","answer":["doc_gold"]}'
         ),
     )
 
@@ -878,8 +960,174 @@ def test_explicit_empty_does_not_probe_unrepresented_partner_tier(monkeypatch):
     )
 
     assert selected == []
-    assert selected.model_outcome == "explicit_empty"
-    assert selected.strategy == "explicit_empty_no_strong_match"
+    assert selected.model_outcome == "not_run"
+    assert selected.strategy == "hard_constraint_no_match"
+
+
+def test_represented_partner_tier_remains_available_to_model_selection(monkeypatch):
+    docs = [
+        *_policy_candidate_documents(),
+        {
+            "id": "doc_platinum",
+            "project_id": "proj_1",
+            "file_name": "铂金经销商PGI评估标准.xlsx",
+            "doc_description": "铂金经销商PGI评估指标和评分规则。",
+        },
+    ]
+
+    def select_platinum(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        assert "钻石经销商" not in prompt
+        return '{"answer":["doc_platinum"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_platinum)
+
+    selected = select_candidate_documents(
+        "铂金经销商的PGI评估指标有哪些？",
+        docs,
+        limit=3,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_platinum"]
+    assert selected.model_outcome == "selected"
+
+
+def test_partner_tier_filter_keeps_page_only_support_with_metadata_matches(monkeypatch):
+    docs = [
+        {
+            "id": "doc_named",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商PGI评估标准.xlsx",
+            "doc_description": "钻石经销商PGI评估指标。",
+        },
+        {
+            "id": "doc_page_only",
+            "project_id": "proj_1",
+            "file_name": "合作伙伴补充规则.pdf",
+            "doc_description": "合作伙伴补充规则。",
+            "pages": [
+                {"page": 1, "content": "本页规定钻石经销商PGI补充评估指标。"}
+            ],
+        },
+    ]
+
+    def select_both(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        assert "钻石经销商PGI评估标准.xlsx" in prompt
+        assert "合作伙伴补充规则.pdf" in prompt
+        return '{"answer":["doc_named","doc_page_only"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_both)
+
+    selected = select_candidate_documents(
+        "钻石经销商的PGI评估指标有哪些？",
+        docs,
+        limit=2,
+        mode="evidence",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_named", "doc_page_only"]
+
+
+def test_negated_partner_tier_does_not_exclude_other_tier_documents(monkeypatch):
+    docs = [
+        {
+            "id": "doc_diamond",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商权益.pdf",
+            "doc_description": "钻石经销商激励和权益。",
+        },
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "金牌经销商权益.pdf",
+            "doc_description": "金牌经销商激励和权益。",
+        },
+    ]
+
+    def select_gold(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        assert "钻石经销商权益.pdf" in prompt
+        assert "金牌经销商权益.pdf" in prompt
+        return '{"answer":["doc_gold"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_gold)
+
+    for query in (
+        "非钻石经销商有哪些权益？",
+        "除钻石经销商外，其他经销商有哪些权益？",
+    ):
+        selected = select_candidate_documents(query, docs, limit=2, mode="answer")
+        assert [doc["id"] for doc in selected] == ["doc_gold"]
+
+
+def test_separate_partner_tiers_remain_available_for_comparison(monkeypatch):
+    docs = [
+        {
+            "id": "doc_diamond",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商权益.pdf",
+            "doc_description": "钻石经销商激励和权益。",
+        },
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "金牌经销商权益.pdf",
+            "doc_description": "金牌经销商激励和权益。",
+        },
+    ]
+
+    def select_both(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        assert "钻石经销商权益.pdf" in prompt
+        assert "金牌经销商权益.pdf" in prompt
+        return '{"answer":["doc_diamond","doc_gold"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_both)
+
+    selected = select_candidate_documents(
+        "钻石经销商与金牌经销商的权益有什么差异？",
+        docs,
+        limit=2,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_diamond", "doc_gold"]
+
+
+def test_relative_partner_tier_range_is_left_to_model_selection(monkeypatch):
+    docs = [
+        {
+            "id": "doc_diamond",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商权益.pdf",
+            "doc_description": "钻石经销商激励和权益。",
+        },
+        {
+            "id": "doc_gold",
+            "project_id": "proj_1",
+            "file_name": "金牌经销商权益.pdf",
+            "doc_description": "金牌经销商激励和权益。",
+        },
+    ]
+
+    def select_both(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        assert "钻石经销商权益.pdf" in prompt
+        assert "金牌经销商权益.pdf" in prompt
+        return '{"answer":["doc_diamond","doc_gold"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_both)
+
+    selected = select_candidate_documents(
+        "金牌经销商及以上级别有哪些权益？",
+        docs,
+        limit=2,
+        mode="answer",
+    )
+
+    assert [doc["id"] for doc in selected] == ["doc_diamond", "doc_gold"]
 
 
 def test_explicit_empty_does_not_probe_unrepresented_uppercase_code(monkeypatch):

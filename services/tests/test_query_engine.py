@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from services.common.retrieval_llm import CompletionResult
 from services.retrieval_api import query_engine
 from services.retrieval_api.query_engine import (
     _build_seeyon_document_url,
@@ -19,6 +20,27 @@ from services.retrieval_api.select_documents import (
     CandidateDocuments,
     EVIDENCE_VALIDATION_REASON_KEY,
 )
+
+
+def _mock_query_llm(monkeypatch, completion):
+    def complete(**kwargs):
+        raw = completion(
+            kwargs["model"],
+            kwargs["prompt"],
+            return_finish_reason=True,
+        )
+        if isinstance(raw, tuple):
+            content, finish_reason = raw
+        else:
+            content, finish_reason = raw, "finished"
+        return CompletionResult(
+            content if isinstance(content, str) and content else None,
+            finish_reason=finish_reason,
+            error_type=None if content else "ProviderError",
+            attempts=1,
+        )
+
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
 
 
 def test_build_citation_includes_project_and_pages():
@@ -51,6 +73,381 @@ def test_retrieval_llm_timeout_rejects_invalid_values_and_caps_large_values(monk
 
     monkeypatch.setenv("RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS", "999")
     assert query_engine._retrieval_llm_timeout_seconds() == 600.0
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (None, 2),
+        ("1", 1),
+        ("5", 5),
+        ("0", 1),
+        ("6", 5),
+        ("invalid", 2),
+    ],
+)
+def test_retrieval_llm_concurrency_is_bounded(monkeypatch, configured, expected):
+    if configured is None:
+        monkeypatch.delenv("RETRIEVAL_LLM_CONCURRENCY", raising=False)
+    else:
+        monkeypatch.setenv("RETRIEVAL_LLM_CONCURRENCY", configured)
+
+    assert query_engine._retrieval_llm_concurrency() == expected
+
+
+def test_retrieval_llm_concurrency_is_process_wide(monkeypatch):
+    monkeypatch.setenv("RETRIEVAL_LLM_CONCURRENCY", "2")
+    monkeypatch.setattr(
+        query_engine,
+        "_RETRIEVAL_LLM_CAPACITY",
+        query_engine._RetrievalLlmCapacity(),
+    )
+    state_changed = threading.Condition()
+    release_provider = threading.Event()
+    active = 0
+    max_active = 0
+    provider_calls = 0
+
+    def complete(**_kwargs):
+        nonlocal active, max_active, provider_calls
+        with state_changed:
+            active += 1
+            provider_calls += 1
+            max_active = max(max_active, active)
+            state_changed.notify_all()
+        release_provider.wait(timeout=2)
+        with state_changed:
+            active -= 1
+            state_changed.notify_all()
+        return CompletionResult("{}", finish_reason="stop", attempts=1)
+
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+
+    def run_completion(index: int):
+        context = query_engine._QueryLlmContext(
+            request_id=f"request-{index}",
+            retrieval_model="openai/deepseek-chat",
+            answer_model="openai/answer-model",
+            api_key="test-key",
+            base_url="",
+            deadline=time.monotonic() + 2,
+        )
+        with query_engine._query_llm_context_scope(context):
+            query_engine._active_completion(
+                "question",
+                model_role="retrieval",
+                stage="page_selection",
+                reasoning="disabled",
+                max_output_tokens=64,
+            )
+
+    workers = [
+        threading.Thread(target=run_completion, args=(index,), daemon=True)
+        for index in range(3)
+    ]
+    for worker in workers:
+        worker.start()
+    try:
+        with state_changed:
+            assert state_changed.wait_for(lambda: provider_calls == 2, timeout=1)
+        time.sleep(0.05)
+        assert provider_calls == 2
+        assert max_active == 2
+    finally:
+        release_provider.set()
+
+    for worker in workers:
+        worker.join(timeout=1)
+        assert not worker.is_alive()
+    assert provider_calls == 3
+
+
+def test_retrieval_llm_capacity_wait_honors_deadline():
+    capacity = query_engine._RetrievalLlmCapacity()
+    assert capacity.acquire(
+        limit=1,
+        deadline=time.monotonic() + 1,
+        cancellation_signal=None,
+    )
+    try:
+        assert not capacity.acquire(
+            limit=1,
+            deadline=time.monotonic() + 0.02,
+            cancellation_signal=None,
+        )
+    finally:
+        capacity.release()
+
+
+def test_retrieval_llm_capacity_wait_honors_cancellation():
+    capacity = query_engine._RetrievalLlmCapacity()
+    cancellation = threading.Event()
+    waiter_started = threading.Event()
+    result: list[bool] = []
+    assert capacity.acquire(
+        limit=1,
+        deadline=time.monotonic() + 1,
+        cancellation_signal=None,
+    )
+
+    def wait_for_capacity():
+        waiter_started.set()
+        result.append(
+            capacity.acquire(
+                limit=1,
+                deadline=time.monotonic() + 1,
+                cancellation_signal=cancellation,
+            )
+        )
+
+    waiter = threading.Thread(target=wait_for_capacity, daemon=True)
+    waiter.start()
+    try:
+        assert waiter_started.wait(timeout=0.5)
+        cancellation.set()
+        waiter.join(timeout=0.5)
+        assert not waiter.is_alive()
+        assert result == [False]
+    finally:
+        capacity.release()
+
+
+@pytest.mark.parametrize(
+    ("model_role", "expected_attempts"),
+    [("retrieval", 2), ("answer", 1)],
+)
+def test_active_completion_uses_role_specific_attempt_budget(
+    monkeypatch,
+    model_role,
+    expected_attempts,
+):
+    calls: list[dict] = []
+    context = query_engine._QueryLlmContext(
+        request_id="role-attempt-budget",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="test-key",
+        base_url="https://provider.example/v1",
+        deadline=time.monotonic() + 30,
+    )
+
+    def complete(**kwargs):
+        calls.append(kwargs)
+        return CompletionResult("{}", finish_reason="stop", attempts=1)
+
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+
+    with query_engine._query_llm_context_scope(context):
+        raw, error, finish_reason = query_engine._active_completion(
+            "question",
+            model_role=model_role,
+            stage=(
+                "answer_generation"
+                if model_role == "answer"
+                else "page_selection"
+            ),
+            reasoning="default" if model_role == "answer" else "disabled",
+            max_output_tokens=None,
+        )
+
+    assert (raw, error, finish_reason) == ("{}", None, "stop")
+    assert len(calls) == 1
+    assert calls[0]["max_attempts"] == expected_attempts
+    assert calls[0]["model"] == (
+        "answer-model" if model_role == "answer" else "retrieval-model"
+    )
+
+
+def test_answer_generation_defaults_to_explicitly_disabled_reasoning(
+    monkeypatch,
+):
+    calls: list[dict] = []
+    context = query_engine._QueryLlmContext(
+        request_id="answer-reasoning-default",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="test-key",
+        base_url="https://provider.example/v1",
+        deadline=time.monotonic() + 30,
+    )
+
+    def complete(**kwargs):
+        calls.append(kwargs)
+        return CompletionResult("grounded answer", finish_reason="stop", attempts=1)
+
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+    context_blocks = [
+        {
+            "document": "policy.pdf",
+            "pages": "1",
+            "evidence": [{"page": 1, "content": "The policy changed."}],
+        }
+    ]
+
+    with query_engine._query_llm_context_scope(context):
+        answer = query_engine._generate_answer("What changed?", context_blocks)
+
+    assert answer == "grounded answer"
+    assert len(calls) == 1
+    assert calls[0]["reasoning"] == "disabled"
+    assert calls[0]["max_attempts"] == 1
+    assert calls[0]["max_output_tokens"] == query_engine.DEFAULT_ANSWER_MAX_OUTPUT_TOKENS
+
+
+def test_answer_generation_rejects_truncated_provider_output(monkeypatch):
+    context = query_engine._QueryLlmContext(
+        request_id="answer-truncated",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="test-key",
+        base_url="https://provider.example/v1",
+        deadline=time.monotonic() + 30,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "complete_retrieval_llm",
+        lambda **_kwargs: CompletionResult(
+            "partial answer that must not escape",
+            finish_reason="max_output_reached",
+            attempts=1,
+        ),
+    )
+
+    with query_engine._query_llm_context_scope(context):
+        answer = query_engine._generate_answer(
+            "What changed?",
+            [
+                {
+                    "document": "policy.pdf",
+                    "pages": "1",
+                    "evidence": [{"page": 1, "content": "The policy changed."}],
+                }
+            ],
+        )
+
+    assert answer == ""
+
+
+def test_answer_reasoning_auto_escalates_only_for_complex_synthesis(monkeypatch):
+    monkeypatch.delenv("ANSWER_REASONING_MODE", raising=False)
+
+    assert (
+        query_engine._answer_reasoning_mode(
+            "What changed?",
+            [{"evidence": [{"content": "A change."}]}],
+        )
+        == "disabled"
+    )
+    assert (
+        query_engine._answer_reasoning_mode(
+            "Compare the causes, impacts, and steps across the two policies.",
+            [
+                {"evidence": [{"content": "Policy A."}]},
+                {"evidence": [{"content": "Policy B."}]},
+            ],
+        )
+        == "low"
+    )
+
+
+def test_tree_reasoning_escalates_only_for_complex_third_round_queries():
+    assert (
+        query_engine._tree_assessment_reasoning_mode(
+            "钻石经销商的业绩门槛是多少？",
+            3,
+        )
+        == "disabled"
+    )
+    assert (
+        query_engine._tree_assessment_reasoning_mode(
+            "比较两份政策的差异以及跨文档影响",
+            2,
+        )
+        == "disabled"
+    )
+    assert (
+        query_engine._tree_assessment_reasoning_mode(
+            "比较两份政策的差异以及跨文档影响",
+            3,
+        )
+        == "low"
+    )
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [("disabled", "disabled"), ("low", "low"), ("default", "default")],
+)
+def test_answer_reasoning_mode_can_be_overridden(monkeypatch, configured, expected):
+    monkeypatch.setenv("ANSWER_REASONING_MODE", configured)
+    assert query_engine._answer_reasoning_mode("What changed?", []) == expected
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [(None, 1), ("1", 1), ("2", 2), ("0", 1), ("9", 2), ("invalid", 1)],
+)
+def test_answer_llm_attempts_are_bounded(monkeypatch, configured, expected):
+    if configured is None:
+        monkeypatch.delenv("ANSWER_LLM_MAX_ATTEMPTS", raising=False)
+    else:
+        monkeypatch.setenv("ANSWER_LLM_MAX_ATTEMPTS", configured)
+    assert query_engine._answer_llm_max_attempts() == expected
+
+
+def test_retrieval_llm_capacity_is_released_after_unexpected_provider_error(
+    monkeypatch,
+):
+    monkeypatch.setenv("RETRIEVAL_LLM_CONCURRENCY", "1")
+    monkeypatch.setattr(
+        query_engine,
+        "_RETRIEVAL_LLM_CAPACITY",
+        query_engine._RetrievalLlmCapacity(),
+    )
+    context = query_engine._QueryLlmContext(
+        request_id="provider-error",
+        retrieval_model="openai/deepseek-chat",
+        answer_model="openai/answer-model",
+        api_key="test-key",
+        base_url="",
+        deadline=time.monotonic() + 1,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "complete_retrieval_llm",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("unexpected provider error")),
+    )
+
+    with query_engine._query_llm_context_scope(context):
+        with pytest.raises(RuntimeError, match="unexpected provider error"):
+            query_engine._active_completion(
+                "question",
+                model_role="retrieval",
+                stage="page_selection",
+                reasoning="disabled",
+                max_output_tokens=64,
+            )
+
+        monkeypatch.setattr(
+            query_engine,
+            "complete_retrieval_llm",
+            lambda **_kwargs: CompletionResult(
+                "{}",
+                finish_reason="stop",
+                attempts=1,
+            ),
+        )
+        raw, error, finish_reason = query_engine._active_completion(
+            "question",
+            model_role="retrieval",
+            stage="page_selection",
+            reasoning="disabled",
+            max_output_tokens=64,
+        )
+
+    assert raw == "{}"
+    assert error is None
+    assert finish_reason == "stop"
 
 
 def _fallback_document_result(*, validation_reason: str = "technical_fallback"):
@@ -97,6 +494,125 @@ def test_fallback_evidence_validation_keeps_only_directly_supported_pages(monkey
     assert validation.document_results[0]["evidenceBlock"]["pages"] == "2"
     assert "1000 万元" in validation.document_results[0]["evidenceBlock"]["content"]
     assert "政策目录" not in validation.document_results[0]["evidenceBlock"]["content"]
+    assert (
+        EVIDENCE_VALIDATION_REASON_KEY
+        not in validation.document_results[0]["document"]
+    )
+
+
+def test_evidence_list_validation_restores_selected_continuation_pages(monkeypatch):
+    document = {
+        "id": "doc_table",
+        "project_id": "proj_1",
+        "project_name": "Alpha",
+        "file_name": "thresholds.xlsx",
+        "source_relative_path": "thresholds.xlsx",
+        "project_relative_path": "thresholds.xlsx",
+        "evidence_kind": "office_pdf_text",
+        "visual_assets": [],
+        EVIDENCE_VALIDATION_REASON_KEY: "model_selection",
+    }
+    document_result = query_engine._assemble_document_result(
+        "金/银经销商PGI评估指标有哪些？",
+        document,
+        "evidence",
+        "1-4,7",
+        [
+            {"page": 1, "content": "表头和前半部分指标。"},
+            {"page": 2, "content": "表格连续行的中间指标。"},
+            {"page": 3, "content": "表格连续行的后半指标。"},
+            {"page": 4, "content": "表格注释。"},
+            {"page": 7, "content": "独立的详细说明。"},
+        ],
+    )
+
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"matches":[{"candidate_id":"D001","supporting_pages":[1,3]}]}'
+        ),
+    )
+
+    validation = query_engine._validate_retrieved_evidence(
+        "金/银经销商PGI评估指标有哪些？",
+        [document_result],
+        "evidence",
+    )
+
+    assert validation.status == "matched"
+    assert validation.document_results[0]["evidenceBlock"]["pages"] == "1-4"
+    assert "表格连续行的中间指标" in validation.document_results[0]["evidenceBlock"]["content"]
+    assert "独立的详细说明" not in validation.document_results[0]["evidenceBlock"]["content"]
+
+
+def test_evidence_validation_keeps_cross_page_list_continuations(monkeypatch):
+    document = {
+        "id": "doc_pgi",
+        "project_id": "proj_1",
+        "project_name": "Alpha",
+        "file_name": "diamond-pgi.xlsx",
+        "source_relative_path": "diamond-pgi.xlsx",
+        "project_relative_path": "diamond-pgi.xlsx",
+        "evidence_kind": "pdf_text",
+        "visual_assets": [],
+        EVIDENCE_VALIDATION_REASON_KEY: "model_selection",
+    }
+    document_result = query_engine._assemble_document_result(
+        "钻石经销商的PGI评估指标有哪些？",
+        document,
+        "evidence",
+        "1-3",
+        [
+            {
+                "page": 1,
+                "content": (
+                    "钻石经销商PGI评估指标：1 专业化能力；"
+                    "2 行业解决方案能力；3 服务能力。"
+                ),
+            },
+            {
+                "page": 2,
+                "content": "4 业绩结构；5 业绩增长；6 业绩规模。",
+            },
+            {
+                "page": 3,
+                "content": "PGI评估细则：专业化能力按初中高级计分。",
+            },
+        ],
+    )
+
+    def continuation_aware_completion(
+        model,
+        prompt,
+        chat_history=None,
+        return_finish_reason=False,
+    ):
+        del model, chat_history, return_finish_reason
+        if "Evaluate the candidate pages together" in prompt:
+            return (
+                '{"matches":[{"candidate_id":"D001",'
+                '"supporting_pages":[1,2]}]}'
+            )
+        return (
+            '{"matches":[{"candidate_id":"D001",'
+            '"supporting_pages":[1,3]}]}'
+        )
+
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        continuation_aware_completion,
+    )
+
+    validation = query_engine._validate_retrieved_evidence(
+        "钻石经销商的PGI评估指标有哪些？",
+        [document_result],
+        "evidence",
+    )
+
+    assert validation.status == "matched"
+    assert validation.document_results[0]["evidenceBlock"]["pages"] == "1-2"
+    assert "6 业绩规模" in validation.document_results[0]["evidenceBlock"]["content"]
+    assert "专业化能力按初中高级计分" not in validation.document_results[0]["evidenceBlock"]["content"]
 
 
 def test_fallback_evidence_validation_returns_no_match_for_topical_but_unsupported_text(
@@ -117,6 +633,28 @@ def test_fallback_evidence_validation_returns_no_match_for_topical_but_unsupport
 
     assert validation.status == "no_match"
     assert validation.document_results == ()
+
+
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_evidence_validation_rejects_wrong_partner_tier_before_model(
+    monkeypatch,
+    mode,
+):
+    def unexpected_completion(*_args, **_kwargs):
+        raise AssertionError("wrong dealer tier must be rejected deterministically")
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", unexpected_completion)
+
+    validation = query_engine._validate_retrieved_evidence(
+        "铂金经销商的业绩门槛是多少？",
+        [_fallback_document_result(validation_reason="model_selection")],
+        mode,
+    )
+
+    assert validation.status == "no_match"
+    assert validation.document_results == ()
+    assert validation.attempted_count == 1
+    assert validation.accepted_count == 0
 
 
 def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
@@ -678,8 +1216,8 @@ def test_answer_question_rejects_explicit_empty_probe_without_direct_support(
         "services.retrieval_api.query_engine.choose_page_window",
         lambda _query, _document, _mode="answer": "1",
     )
-    monkeypatch.setattr(
-        "pageindex.utils.llm_completion",
+    _mock_query_llm(
+        monkeypatch,
         lambda model, prompt, chat_history=None, return_finish_reason=False: (
             '{"sufficient":false,"matches":[]}'
         ),
@@ -733,8 +1271,8 @@ def test_stream_validates_technical_fallback_before_returning_evidence(
         "services.retrieval_api.query_engine.choose_page_window",
         lambda _query, _document, _mode="answer": "1",
     )
-    monkeypatch.setattr(
-        "pageindex.utils.llm_completion",
+    _mock_query_llm(
+        monkeypatch,
         lambda model, prompt, chat_history=None, return_finish_reason=False: (
             '{"matches":[{"candidate_id":"D001","supporting_pages":[1]}]}'
         ),
@@ -1082,7 +1620,6 @@ def test_answer_question_falls_back_when_llm_pages_range_is_oversized(
 
 
 def test_retrieval_llm_uses_configured_model(monkeypatch):
-    query_engine._get_retrieval_model.cache_clear()
     monkeypatch.setattr(
         "pageindex.utils.ConfigLoader.load",
         lambda self, user_opt=None: SimpleNamespace(
@@ -1124,7 +1661,7 @@ def test_retrieval_llm_uses_configured_model(monkeypatch):
 
     assert pages == "2"
     assert answer == "final answer"
-    assert seen_models == ["gpt-retrieval", "gpt-retrieval"]
+    assert seen_models == ["gpt-retrieval", "gpt-base"]
 
 
 def test_choose_page_window_maps_pageindex_node_list_to_physical_pages(monkeypatch):
@@ -1161,6 +1698,118 @@ def test_choose_page_window_maps_pageindex_node_list_to_physical_pages(monkeypat
     pages = query_engine.choose_page_window("What is the deferred asset total?", document)
 
     assert pages == "7-8"
+
+
+def test_choose_page_window_keeps_overview_nodes_for_complete_list_questions(
+    monkeypatch,
+):
+    document = {
+        "id": "doc_pgi",
+        "file_name": "diamond-pgi.xlsx",
+        "doc_description": "Diamond distributor PGI assessment",
+        "structure": [
+            {
+                "node_id": "0000",
+                "title": "Preface",
+                "summary": (
+                    "The overview enumerates professional capability, industry solution "
+                    "capability, service capability, performance structure, growth, and scale."
+                ),
+                "start_index": 1,
+                "end_index": 2,
+            },
+            {
+                "node_id": "0001",
+                "title": "Performance details",
+                "summary": "Detailed scoring rules for capability and performance.",
+                "start_index": 2,
+                "end_index": 4,
+            },
+        ],
+        "pages": [
+            {"page": page, "content": f"content {page}"}
+            for page in range(1, 5)
+        ],
+    }
+
+    monkeypatch.setattr(
+        "pageindex.retrieve.get_document_structure",
+        lambda _document_map, _document_id: json.dumps(document["structure"]),
+    )
+
+    def list_aware_completion(
+        model,
+        prompt,
+        chat_history=None,
+        return_finish_reason=False,
+    ):
+        del model, chat_history, return_finish_reason
+        if "include overview, preface, summary, or table nodes" in prompt:
+            return '{"node_list":["0000","0001"],"pages":"1-4"}'
+        return '{"node_list":["0001"],"pages":"2-4"}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", list_aware_completion)
+
+    pages = query_engine.choose_page_window(
+        "钻石经销商的PGI评估指标有哪些？",
+        document,
+        "evidence",
+    )
+
+    assert pages == "1-4"
+
+
+def test_choose_page_window_adds_structural_overview_when_model_omits_it(
+    monkeypatch,
+):
+    """A list answer must retain the node that enumerates the top-level items."""
+    document = {
+        "id": "doc_pgi",
+        "file_name": "diamond-pgi.xlsx",
+        "doc_description": "Diamond distributor PGI assessment",
+        "structure": [
+            {
+                "node_id": "0000",
+                "title": "Preface",
+                "summary": (
+                    "The overview enumerates professional capability, industry solution "
+                    "capability, service capability, performance structure, growth, and scale."
+                ),
+                "start_index": 1,
+                "end_index": 2,
+            },
+            {
+                "node_id": "0001",
+                "title": "Performance details",
+                "summary": "Detailed scoring rules for capability and performance.",
+                "start_index": 2,
+                "end_index": 4,
+            },
+        ],
+        "pages": [
+            {"page": page, "content": f"content {page}"}
+            for page in range(1, 5)
+        ],
+    }
+
+    monkeypatch.setattr(
+        "pageindex.retrieve.get_document_structure",
+        lambda _document_map, _document_id: json.dumps(document["structure"]),
+    )
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"node_list":["0001"],"pages":"2-4"}'
+        ),
+    )
+
+    pages = query_engine.choose_page_window(
+        "钻石经销商的PGI评估指标有哪些？",
+        document,
+        "answer",
+    )
+
+    assert pages == "1-4"
 
 
 def test_choose_page_window_marks_provider_fallback_as_degraded(monkeypatch):
@@ -1216,6 +1865,70 @@ def test_tree_assessment_marks_malformed_output_as_degraded(monkeypatch):
     assert assessment.sufficient is True
     assert assessment.next_pages is None
     assert assessment.degraded_reason == "tree_assessment_malformed"
+
+
+def test_low_reasoning_tree_assessment_uses_larger_budget_and_falls_back_on_truncation(
+    monkeypatch,
+):
+    calls = []
+
+    def truncated_completion(
+        prompt,
+        *,
+        model_role,
+        stage,
+        reasoning,
+        max_output_tokens,
+    ):
+        del prompt, model_role
+        calls.append(
+            {
+                "stage": stage,
+                "reasoning": reasoning,
+                "max_output_tokens": max_output_tokens,
+            }
+        )
+        if reasoning == "low":
+            return '{"sufficient":true}', None, "max_output_reached"
+        return '{"sufficient":false,"next_pages":"2"}', None, "stop"
+
+    monkeypatch.setattr(query_engine, "_active_completion", truncated_completion)
+    document = {
+        "id": "doc_1",
+        "file_name": "policy.pdf",
+        "structure": [{"node_id": "0001", "start_index": 1, "end_index": 1}],
+        "pages": [
+            {"page": 1, "content": "first"},
+            {"page": 2, "content": "second"},
+        ],
+    }
+    reasoning_token = query_engine._TREE_ASSESSMENT_REASONING.set("low")
+    try:
+        assessment = query_engine._assess_evidence_and_choose_next_pages(
+            "What is the policy?",
+            document,
+            [{"page": 1, "content": "first"}],
+            {1},
+            "answer",
+        )
+    finally:
+        query_engine._TREE_ASSESSMENT_REASONING.reset(reasoning_token)
+
+    assert calls == [
+        {
+            "stage": "tree_assessment_escalation",
+            "reasoning": "low",
+            "max_output_tokens": query_engine.TREE_ASSESSMENT_ESCALATION_MAX_TOKENS,
+        },
+        {
+            "stage": "tree_assessment_fallback",
+            "reasoning": "disabled",
+            "max_output_tokens": query_engine.EVIDENCE_ASSESSMENT_MAX_TOKENS,
+        },
+    ]
+    assert assessment.sufficient is False
+    assert assessment.next_pages == "2"
+    assert assessment.degraded_reason is None
 
 
 def test_tree_assessment_treats_explicit_empty_next_pages_as_normal_stop(monkeypatch):
@@ -1334,7 +2047,7 @@ def test_query_mode_iterates_pageindex_tree_until_evidence_is_sufficient(
             return "The total deferred assets were 42 million."
         raise AssertionError(f"unexpected prompt: {prompt}")
 
-    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+    _mock_query_llm(monkeypatch, fake_llm_completion)
 
     result = answer_question(
         str(db_path),
@@ -1402,9 +2115,11 @@ def test_evidence_mode_uses_tree_search_but_does_not_generate_an_answer(
             if len(assessment_prompts) == 1:
                 return '{"sufficient":false,"next_node_list":["0002"]}'
             return '{"sufficient":true}'
+        if "should inspect more candidate documents" in prompt:
+            return '{"coverage":"complete","confidence":"high","unresolved":[]}'
         raise AssertionError("evidence mode must not generate an answer")
 
-    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+    _mock_query_llm(monkeypatch, fake_llm_completion)
 
     result = answer_question(
         str(db_path),
@@ -1446,7 +2161,6 @@ def test_retrieval_llm_refreshes_runtime_settings_before_completion(monkeypatch,
     conn.commit()
     conn.close()
 
-    query_engine._get_retrieval_model.cache_clear()
     monkeypatch.setenv("APP_DB_PATH", str(db_path))
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
@@ -1482,6 +2196,91 @@ def test_retrieval_llm_refreshes_runtime_settings_before_completion(monkeypatch,
     assert answer == "runtime answer"
 
 
+def test_query_snapshots_models_and_refreshes_them_on_the_next_request(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = _seed_retrieval_db(tmp_path)
+    _insert_ready_document(
+        db_path,
+        document_id="doc_policy",
+        file_name="policy.pdf",
+        doc_description="Policy evidence.",
+        structure_json=json.dumps([{"title": "Policy"}]),
+        pages_json=json.dumps([{"page": 1, "content": "The policy changed."}]),
+    )
+    settings_versions = [
+        SimpleNamespace(
+            api_key="key-old",
+            base_url="https://old.example/v1",
+            model="answer-old",
+            retrieve_model="retrieval-old",
+        ),
+        SimpleNamespace(
+            api_key="key-new",
+            base_url="https://new.example/v1",
+            model="answer-new",
+            retrieve_model="retrieval-new",
+        ),
+    ]
+    settings_calls = 0
+
+    def current_settings(_db_path):
+        nonlocal settings_calls
+        value = settings_versions[min(settings_calls, len(settings_versions) - 1)]
+        settings_calls += 1
+        return value
+
+    monkeypatch.setattr(query_engine, "get_llm_runtime_settings", current_settings)
+    monkeypatch.setattr(
+        query_engine,
+        "select_candidate_documents",
+        lambda _query, docs, limit=5, model=None, mode="answer": CandidateDocuments(
+            docs[:1], model_outcome="selected", strategy="model_only_single_slot"
+        ),
+    )
+    calls: list[dict] = []
+
+    def complete(**kwargs):
+        calls.append(kwargs)
+        if kwargs["stage"] == "page_selection":
+            content = '{"pages":"1"}'
+        elif kwargs["stage"].startswith("tree_assessment"):
+            content = '{"sufficient":true}'
+        elif kwargs["stage"] == "answer_generation":
+            content = f"answer from {kwargs['model']}"
+        else:
+            raise AssertionError(f"unexpected stage: {kwargs['stage']}")
+        return CompletionResult(content, finish_reason="stop", attempts=1)
+
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+
+    first = answer_question(str(db_path), "What changed?", ["proj_1"])
+    second = answer_question(str(db_path), "What changed?", ["proj_1"])
+
+    request_ids = list(dict.fromkeys(call["request_id"] for call in calls))
+    assert len(request_ids) == 2
+    first_calls = [call for call in calls if call["request_id"] == request_ids[0]]
+    second_calls = [call for call in calls if call["request_id"] == request_ids[1]]
+    assert {call["model"] for call in first_calls if call["stage"] != "answer_generation"} == {
+        "retrieval-old"
+    }
+    assert next(
+        call["model"] for call in first_calls if call["stage"] == "answer_generation"
+    ) == "answer-old"
+    assert {call["model"] for call in second_calls if call["stage"] != "answer_generation"} == {
+        "retrieval-new"
+    }
+    assert next(
+        call["model"] for call in second_calls if call["stage"] == "answer_generation"
+    ) == "answer-new"
+    assert len({call["deadline"] for call in first_calls}) == 1
+    assert len({call["deadline"] for call in second_calls}) == 1
+    assert first["answer"] == "answer from answer-old"
+    assert second["answer"] == "answer from answer-new"
+    assert settings_calls == 2
+
+
 def test_select_citation_anchor_prefers_specific_paragraph_over_full_page_blob():
     focus_page, excerpt = query_engine._select_citation_anchor(
         "这个项目有哪些遗留事项？",
@@ -1507,7 +2306,6 @@ def test_select_citation_anchor_prefers_specific_paragraph_over_full_page_blob()
 def test_answer_question_uses_description_selection_for_cross_language_query(
     tmp_path, monkeypatch
 ):
-    query_engine._get_retrieval_model.cache_clear()
     db_path = _seed_retrieval_db(tmp_path)
     _insert_ready_document(
         db_path,
@@ -1527,8 +2325,11 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
     )
 
     monkeypatch.setattr(
-        "pageindex.utils.ConfigLoader.load",
-        lambda self, user_opt=None: SimpleNamespace(
+        query_engine,
+        "get_llm_runtime_settings",
+        lambda _db_path: SimpleNamespace(
+            api_key="",
+            base_url="",
             model="gpt-base",
             retrieve_model="gpt-retrieval",
         ),
@@ -1543,7 +2344,7 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
             return '{"sufficient":true,"matches":[{"candidate_id":"D001","supporting_pages":[1]}]}'
         return '{"thinking":"doc_acceptance is the acceptance criteria document","answer":["doc_acceptance"]}'
 
-    monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
+    _mock_query_llm(monkeypatch, fake_llm_completion)
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
         lambda _query, _doc, _mode="answer": "1",
@@ -1641,6 +2442,8 @@ def test_answer_question_processes_selected_documents_concurrently_and_preserves
     tmp_path,
     monkeypatch,
 ):
+    monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
+    monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
         _insert_ready_document(
@@ -1705,6 +2508,8 @@ def test_answer_question_events_processes_documents_concurrently_and_preserves_o
     tmp_path,
     monkeypatch,
 ):
+    monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
+    monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
         _insert_ready_document(
@@ -1933,7 +2738,506 @@ def test_stream_reuses_process_document_executor(monkeypatch):
     assert [event["stage"] for event in events] == ["document_evidence_started"]
 
 
+def test_document_queue_wait_consumes_the_request_deadline(monkeypatch):
+    started_documents: list[str] = []
+
+    def slow_document_events(_query, document, _mode):
+        started_documents.append(document["id"])
+        time.sleep(0.12)
+        yield {"type": "document_result", "data": {"document": document}}
+
+    monkeypatch.setattr(
+        query_engine,
+        "_build_document_evidence_events",
+        slow_document_events,
+    )
+    selected = [
+        {
+            "id": f"doc_{index}",
+            "file_name": f"doc-{index}.pdf",
+            "project_id": "proj_1",
+            "project_name": "Project 1",
+        }
+        for index in range(2)
+    ]
+    context = query_engine._QueryLlmContext(
+        request_id="deadline-test",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="",
+        base_url="",
+        deadline=time.monotonic() + 0.03,
+    )
+
+    list(
+        query_engine._build_selected_documents_evidence_events(
+            "handover evidence",
+            selected,
+            "evidence",
+            query_context=context,
+            document_concurrency=1,
+        )
+    )
+    time.sleep(0.15)
+
+    assert started_documents == ["doc_0"]
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (None, 2),
+        ("1", 1),
+        ("5", 5),
+        ("0", 1),
+        ("6", 5),
+        ("invalid", 2),
+    ],
+)
+def test_retrieval_document_concurrency_is_bounded(
+    monkeypatch,
+    configured,
+    expected,
+):
+    if configured is None:
+        monkeypatch.delenv("RETRIEVAL_DOCUMENT_CONCURRENCY", raising=False)
+    else:
+        monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", configured)
+
+    assert query_engine._retrieval_document_concurrency() == expected
+
+
+def _install_progressive_evidence_fixture(
+    tmp_path,
+    monkeypatch,
+    *,
+    document_count: int = 5,
+    real_selection: bool = False,
+):
+    db_path = _seed_retrieval_db(tmp_path)
+    for index in range(document_count):
+        _insert_ready_document(
+            db_path,
+            document_id=f"doc_{index}",
+            file_name=f"doc-{index}.pdf",
+            doc_description="handover evidence",
+            structure_json=json.dumps([{"title": f"Doc {index}"}]),
+            pages_json=json.dumps([{"page": 1, "content": f"evidence {index}"}]),
+        )
+
+    monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "2")
+    if real_selection:
+        candidate_response = json.dumps(
+            {
+                "answer": [
+                    f"D{index:03d}" for index in range(1, document_count + 1)
+                ]
+            }
+        )
+
+        def candidate_completion(
+            model,
+            prompt,
+            chat_history=None,
+            return_finish_reason=False,
+        ):
+            del model, prompt, chat_history
+            return (
+                (candidate_response, "finished")
+                if return_finish_reason
+                else candidate_response
+            )
+
+        monkeypatch.setattr(
+            query_engine,
+            "_candidate_completion",
+            candidate_completion,
+        )
+    else:
+        monkeypatch.setattr(
+            query_engine,
+            "select_candidate_documents",
+            lambda _query, docs, limit=5, model=None, mode="answer": CandidateDocuments(
+                docs[:limit],
+                model_outcome="selected",
+                strategy="model_only_full_budget",
+            ),
+        )
+    started_documents: list[str] = []
+
+    def document_events(query, document, mode):
+        started_documents.append(document["id"])
+        result = query_engine._assemble_document_result(
+            query,
+            document,
+            mode,
+            "1",
+            [{"page": 1, "content": f"direct evidence from {document['id']}"}],
+        )
+        yield {"type": "document_result", "data": result}
+
+    monkeypatch.setattr(query_engine, "_build_document_evidence_events", document_events)
+    return db_path, started_documents
+
+
+def test_evidence_progressive_expansion_stops_after_complete_first_wave(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            coverage="complete",
+            confidence="high",
+            unresolved=(),
+            degraded_reason=None,
+        ),
+        raising=False,
+    )
+
+    result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert len(started_documents) == 2
+    assert len(set(started_documents)) == 2
+    assert len(result["evidence"]) == 2
+    assert result["retrievalStatus"] == "matched"
+
+
+def test_real_model_selection_is_validated_before_progressive_early_stop(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+        real_selection=True,
+    )
+    validation_prompts: list[str] = []
+
+    def validate_selected_pages(
+        _model,
+        prompt,
+        chat_history=None,
+        return_finish_reason=False,
+    ):
+        validation_prompts.append(prompt)
+        response = json.dumps(
+            {
+                "matches": [
+                    {"candidate_id": "D001", "supporting_pages": [1]},
+                    {"candidate_id": "D002", "supporting_pages": [1]},
+                ]
+            }
+        )
+        return (response, "finished") if return_finish_reason else response
+
+    _mock_query_llm(monkeypatch, validate_selected_pages)
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            coverage="complete",
+            confidence="high",
+            unresolved=(),
+            degraded_reason=None,
+        ),
+    )
+
+    result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert len(started_documents) == 2
+    assert len(set(started_documents)) == 2
+    assert len(validation_prompts) == 1
+    assert len(result["evidence"]) == 2
+    assert result["retrievalStatus"] == "matched"
+
+
+def test_request_deadline_drops_evidence_pending_validation(
+    monkeypatch,
+):
+    pending_result = _fallback_document_result(validation_reason="model_selection")
+    selected_document = pending_result["document"]
+    selected = CandidateDocuments(
+        [selected_document],
+        model_outcome="selected",
+        strategy="model_only_single_slot",
+    )
+    context = query_engine._QueryLlmContext(
+        request_id="deadline-pending-validation",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="",
+        base_url="",
+        deadline=time.monotonic() + 10,
+    )
+    deadline_checks = 0
+
+    def expires_after_collection(_context):
+        nonlocal deadline_checks
+        deadline_checks += 1
+        return deadline_checks >= 2
+
+    def fake_expansion(*_args, **_kwargs):
+        if False:
+            yield {}
+        return query_engine._EvidenceExpansionResult(
+            document_results=query_engine._DocumentResults(
+                [pending_result],
+                attempted_count=1,
+            ),
+            attempted_documents=(selected_document,),
+        )
+
+    monkeypatch.setattr(query_engine, "_new_query_llm_context", lambda *_args: context)
+    monkeypatch.setattr(query_engine, "_load_ready_documents", lambda *_args: [selected_document])
+    monkeypatch.setattr(
+        query_engine,
+        "get_retrieval_document_limit",
+        lambda *_args, **_kwargs: 1,
+    )
+    monkeypatch.setattr(query_engine, "select_candidate_documents", lambda *_args, **_kwargs: selected)
+    monkeypatch.setattr(query_engine, "_build_progressive_evidence_events", fake_expansion)
+    monkeypatch.setattr(query_engine, "_query_deadline_expired", expires_after_collection)
+
+    result = answer_question("unused.db", "What changed?", mode="evidence")
+
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "request_deadline_exceeded"
+    assert result["evidence"] == []
+
+
+def test_request_deadline_discards_answer_that_finishes_after_deadline(monkeypatch):
+    document_result = _fallback_document_result()
+    document_result["document"].pop(EVIDENCE_VALIDATION_REASON_KEY)
+    selected_document = document_result["document"]
+    selected = CandidateDocuments(
+        [selected_document],
+        model_outcome="selected",
+        strategy="model_only_single_slot",
+    )
+    context = query_engine._QueryLlmContext(
+        request_id="answer-deadline",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="",
+        base_url="",
+        deadline=time.monotonic() + 10,
+    )
+    deadline_expired = False
+
+    def fake_document_events(*_args, **_kwargs):
+        if False:
+            yield {}
+        return query_engine._DocumentResults(
+            [document_result],
+            attempted_count=1,
+        )
+
+    def generate_after_deadline(_query, _context_blocks):
+        nonlocal deadline_expired
+        deadline_expired = True
+        return "This answer arrived too late."
+
+    monkeypatch.setattr(query_engine, "_new_query_llm_context", lambda *_args: context)
+    monkeypatch.setattr(
+        query_engine,
+        "_load_ready_documents",
+        lambda *_args: [selected_document],
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "get_retrieval_document_limit",
+        lambda *_args, **_kwargs: 1,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "select_candidate_documents",
+        lambda *_args, **_kwargs: selected,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_build_selected_documents_evidence_events",
+        fake_document_events,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_validate_retrieved_evidence",
+        lambda *_args, **_kwargs: query_engine._EvidenceValidationResult(
+            (document_result,),
+            "matched",
+        ),
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_query_deadline_expired",
+        lambda _context: deadline_expired,
+    )
+    monkeypatch.setattr(query_engine, "_generate_answer", generate_after_deadline)
+
+    result = answer_question("unused.db", "What changed?", mode="answer")
+
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "request_deadline_exceeded"
+    assert result["answer"] == (
+        "Retrieval exceeded its request deadline before it could complete."
+    )
+
+
+def test_request_deadline_wins_when_answer_provider_returns_late(monkeypatch):
+    document_result = _fallback_document_result()
+    selected_document = document_result["document"]
+    selected_document.pop(EVIDENCE_VALIDATION_REASON_KEY)
+    selected = CandidateDocuments(
+        [selected_document],
+        model_outcome="selected",
+        strategy="model_only_single_slot",
+    )
+    clock = {"now": 0.0}
+    context = query_engine._QueryLlmContext(
+        request_id="deadline-during-answer",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="",
+        base_url="",
+        deadline=1.0,
+    )
+
+    def fake_document_results(*_args, **_kwargs):
+        if False:
+            yield {}
+        return query_engine._DocumentResults(
+            [document_result],
+            attempted_count=1,
+        )
+
+    def late_answer(*_args, **_kwargs):
+        clock["now"] = 2.0
+        return "provider response after the request deadline"
+
+    monkeypatch.setattr(query_engine, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(query_engine, "_new_query_llm_context", lambda *_args: context)
+    monkeypatch.setattr(query_engine, "_load_ready_documents", lambda *_args: [selected_document])
+    monkeypatch.setattr(
+        query_engine,
+        "get_retrieval_document_limit",
+        lambda *_args, **_kwargs: 1,
+    )
+    monkeypatch.setattr(query_engine, "select_candidate_documents", lambda *_args, **_kwargs: selected)
+    monkeypatch.setattr(
+        query_engine,
+        "_build_selected_documents_evidence_events",
+        fake_document_results,
+    )
+    monkeypatch.setattr(query_engine, "_generate_answer", late_answer)
+
+    result = answer_question("unused.db", "What changed?", mode="answer")
+
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "request_deadline_exceeded"
+    assert result["answer"] == "Retrieval exceeded its request deadline before it could complete."
+    assert result["citations"] == []
+
+
+def test_evidence_progressive_expansion_reaches_hard_limit_when_incomplete(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            coverage="incomplete",
+            confidence="high",
+            unresolved=("sign-off owner",),
+            degraded_reason=None,
+        ),
+        raising=False,
+    )
+
+    result = answer_question(
+        str(db_path),
+        "List the handover date and sign-off owner.",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert set(started_documents) == {f"doc_{index}" for index in range(5)}
+    assert len(result["evidence"]) == 5
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "evidence_expansion_limit_reached"
+
+
+def test_evidence_progressive_expansion_continues_when_coverage_is_unknown(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            coverage="unknown",
+            confidence="low",
+            unresolved=(),
+            degraded_reason="evidence_coverage_failed",
+        ),
+        raising=False,
+    )
+
+    result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert set(started_documents) == {f"doc_{index}" for index in range(5)}
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "evidence_coverage_failed"
+
+
 def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
+    monkeypatch.setenv(
+        "RETRIEVAL_DOCUMENT_CONCURRENCY",
+        str(query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS),
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS",
+        query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            coverage="complete",
+            confidence="high",
+            unresolved=(),
+            degraded_reason=None,
+        ),
+    )
     state_changed = threading.Condition()
     release_workers = threading.Event()
     active = 0

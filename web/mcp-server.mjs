@@ -30,6 +30,7 @@ const MAX_REQUEST_BODY_SIZE = "100kb";
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 const MAX_TIMER_DELAY_SECONDS = Math.floor(MAX_TIMER_DELAY_MS / 1000);
 const REQUEST_SIGNAL_AUTH_INFO_KEY = "reasonkbRequestSignal";
+const MAX_RETRIEVAL_SSE_FRAME_CHARS = 32 * 1024 * 1024;
 
 function normalizedBaseUrl(value) {
   return value.replace(/\/+$/, "");
@@ -146,6 +147,157 @@ async function reasonkbRequest(pathname, init, context) {
   return payload;
 }
 
+function isEventStreamResponse(response) {
+  const mediaType = response.headers
+    .get("content-type")
+    ?.split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  return mediaType === "text/event-stream";
+}
+
+function takeCompleteSseFrames(state) {
+  const frames = [];
+  let scanFrom = Math.max(0, state.scanFrom);
+
+  while (true) {
+    let frameEnd = -1;
+    let nextFrameStart = -1;
+    for (let index = scanFrom; index < state.buffer.length; index += 1) {
+      if (state.buffer.charCodeAt(index) !== 10) {
+        continue;
+      }
+      let secondNewline = index + 1;
+      if (state.buffer.charCodeAt(secondNewline) === 13) {
+        secondNewline += 1;
+      }
+      if (state.buffer.charCodeAt(secondNewline) !== 10) {
+        continue;
+      }
+      frameEnd =
+        index > 0 && state.buffer.charCodeAt(index - 1) === 13 ? index - 1 : index;
+      nextFrameStart = secondNewline + 1;
+      break;
+    }
+
+    if (nextFrameStart < 0) {
+      state.scanFrom = Math.max(0, state.buffer.length - 2);
+      return frames;
+    }
+
+    frames.push(state.buffer.slice(0, frameEnd));
+    state.buffer = state.buffer.slice(nextFrameStart);
+    scanFrom = 0;
+  }
+}
+
+function parseSseEvents(state) {
+  const events = [];
+
+  for (const part of takeCompleteSseFrames(state)) {
+    if (part.length > MAX_RETRIEVAL_SSE_FRAME_CHARS) {
+      throw new Error("ReasonKB retrieval event exceeded the maximum frame size.");
+    }
+    const data = part
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice("data:".length).replace(/^ /, ""))
+      .join("\n");
+    if (data) {
+      try {
+        events.push(JSON.parse(data));
+      } catch {
+        throw new Error("ReasonKB retrieval stream contained malformed JSON.");
+      }
+    }
+  }
+
+  if (state.buffer.length > MAX_RETRIEVAL_SSE_FRAME_CHARS) {
+    throw new Error("ReasonKB retrieval event exceeded the maximum frame size.");
+  }
+
+  return events;
+}
+
+async function readRetrievalEventStream(response, onProgress) {
+  if (!response.body) {
+    throw new Error("ReasonKB returned an empty event stream.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const parserState = { buffer: "", scanFrom: 0 };
+  let progress = 0;
+
+  const handleEvents = async (events) => {
+    for (const event of events) {
+      if (event?.type === "progress") {
+        progress += 1;
+        await onProgress?.(event, progress);
+      } else if (event?.type === "result") {
+        if (
+          !event.data ||
+          typeof event.data !== "object" ||
+          Array.isArray(event.data)
+        ) {
+          throw new Error("ReasonKB retrieval returned a malformed result event.");
+        }
+        return { found: true, result: event.data };
+      }
+    }
+    return { found: false };
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      parserState.buffer += decoder.decode(value, { stream: true });
+      const handled = await handleEvents(parseSseEvents(parserState));
+      if (handled.found) {
+        return handled.result;
+      }
+    }
+
+    parserState.buffer += decoder.decode();
+    if (parserState.buffer.trim()) {
+      parserState.buffer += "\n\n";
+      const handled = await handleEvents(parseSseEvents(parserState));
+      if (handled.found) {
+        return handled.result;
+      }
+    }
+
+    throw new Error("ReasonKB event stream ended without a result event.");
+  } finally {
+    await reader.cancel("ReasonKB retrieval stream finished").catch(() => {});
+    reader.releaseLock();
+  }
+}
+
+async function reasonkbRetrievalRequest(pathname, init, context, onProgress) {
+  const { apiKey, baseUrl, fetchImpl } = context;
+  const response = await fetchImpl(normalizedBaseUrl(baseUrl) + pathname, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + apiKey,
+      Accept: "text/event-stream",
+      ...(init?.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error || "ReasonKB returned " + response.status);
+  }
+  if (!isEventStreamResponse(response)) {
+    return response.json().catch(() => null);
+  }
+  return readRetrievalEventStream(response, onProgress);
+}
+
 export function createReasonkbMcpServer({
   apiKey,
   baseUrl,
@@ -171,6 +323,26 @@ export function createReasonkbMcpServer({
         ),
       },
       { apiKey, baseUrl, fetchImpl },
+    );
+  const retrievalRequest = (
+    pathname,
+    init = {},
+    toolSignal,
+    authInfo,
+    onProgress,
+  ) =>
+    reasonkbRetrievalRequest(
+      pathname,
+      {
+        ...init,
+        signal: combineAbortSignals(
+          abortSignal,
+          toolSignal,
+          authInfo?.extra?.[REQUEST_SIGNAL_AUTH_INFO_KEY],
+        ),
+      },
+      { apiKey, baseUrl, fetchImpl },
+      onProgress,
     );
 
   server.registerTool(
@@ -244,21 +416,33 @@ export function createReasonkbMcpServer({
           .strict(),
       },
       async ({ query, projectIds }, extra) =>
-        runTool(
-          async (executionSignal) =>
-            toolResult(
-              await request(
-                "/api/agent/" + route,
-                {
-                  method: "POST",
-                  body: JSON.stringify({ query, projectIds }),
-                },
-                combineAbortSignals(extra.signal, executionSignal),
-                extra.authInfo,
-              ),
+        runTool(async (executionSignal) => {
+          const progressToken = extra._meta?.progressToken;
+          const onProgress =
+            progressToken === undefined
+              ? undefined
+              : (event, progress) =>
+                  extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                      progressToken,
+                      progress,
+                      message: JSON.stringify(event),
+                    },
+                  });
+          return toolResult(
+            await retrievalRequest(
+              "/api/agent/" + route,
+              {
+                method: "POST",
+                body: JSON.stringify({ query, projectIds }),
+              },
+              combineAbortSignals(extra.signal, executionSignal),
+              extra.authInfo,
+              onProgress,
             ),
-          extra,
-        ),
+          );
+        }, extra),
     );
   }
 

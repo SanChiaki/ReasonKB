@@ -22,6 +22,7 @@ from services.common.system_settings import get_llm_runtime_settings
 
 _CONFIGURED = False
 _LLM_RETRY_POLL_SECONDS = 0.05
+DEFAULT_PAGEINDEX_LLM_MAX_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -73,6 +74,25 @@ def _llm_time_remaining() -> float | None:
     if deadline is None:
         return None
     return max(0.0, deadline - perf_counter())
+
+
+def _pageindex_llm_max_attempts() -> int:
+    """Return the bounded attempt budget for legacy PageIndex LLM wrappers.
+
+    Query-time retrieval calls use their own role-specific budget. This setting
+    only covers PageIndex's vendor-facing sync/async compatibility wrappers,
+    which are also used by indexing and no-context fallback paths.
+    """
+    try:
+        configured = int(
+            os.getenv(
+                "PAGEINDEX_LLM_MAX_ATTEMPTS",
+                str(DEFAULT_PAGEINDEX_LLM_MAX_ATTEMPTS),
+            )
+        )
+    except (TypeError, ValueError):
+        return DEFAULT_PAGEINDEX_LLM_MAX_ATTEMPTS
+    return min(max(configured, 1), 2)
 
 
 def _llm_retry_wait_slice(backoff_deadline: float) -> float | None:
@@ -430,13 +450,13 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
             return ("", "error") if return_finish_reason else ""
 
         normalized_model = model.removeprefix("litellm/") if model else model
-        max_retries = 10
+        max_attempts = _pageindex_llm_max_attempts()
         messages = (
             list(chat_history) + [{"role": "user", "content": prompt}]
             if chat_history
             else [{"role": "user", "content": prompt}]
         )
-        for attempt in range(max_retries):
+        for attempt in range(max_attempts):
             remaining = _llm_time_remaining()
             if _llm_call_cancelled() or remaining == 0:
                 return cancelled_result()
@@ -450,6 +470,7 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     "model": normalized_model,
                     "messages": messages,
                     "temperature": 0,
+                    "max_retries": 0,
                 }
                 if remaining is not None:
                     completion_options["timeout"] = remaining
@@ -482,7 +503,7 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     return cancelled_result()
                 print("************* Retrying *************")
                 logging.error(f"Error: {exc}")
-                if attempt < max_retries - 1:
+                if attempt < max_attempts - 1:
                     retry_delay = 1 if remaining is None else min(1, remaining)
                     if not _wait_before_llm_retry(retry_delay):
                         return cancelled_result()
@@ -518,9 +539,9 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
 
     async def wrapped(model, prompt):
         normalized_model = model.removeprefix("litellm/") if model else model
-        max_retries = 10
+        max_attempts = _pageindex_llm_max_attempts()
         messages = [{"role": "user", "content": prompt}]
-        for attempt in range(max_retries):
+        for attempt in range(max_attempts):
             remaining = _llm_time_remaining()
             if _llm_call_cancelled() or remaining == 0:
                 return ""
@@ -534,6 +555,7 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                     "model": normalized_model,
                     "messages": messages,
                     "temperature": 0,
+                    "max_retries": 0,
                 }
                 if remaining is not None:
                     completion_options["timeout"] = remaining
@@ -558,7 +580,7 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                     return ""
                 print("************* Retrying *************")
                 logging.error(f"Error: {exc}")
-                if attempt < max_retries - 1:
+                if attempt < max_attempts - 1:
                     retry_delay = 1 if remaining is None else min(1, remaining)
                     if not await _wait_before_llm_retry_async(retry_delay):
                         return ""

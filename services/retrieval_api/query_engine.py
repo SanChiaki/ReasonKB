@@ -1,24 +1,33 @@
 import json
+from contextlib import contextmanager
+from contextvars import ContextVar
 from concurrent.futures import Future, ThreadPoolExecutor
-from dataclasses import dataclass
-from functools import lru_cache
+from dataclasses import dataclass, replace
 import logging
 import math
 import os
 from queue import Empty, Queue
 import re
-from threading import Event
+from threading import Condition, Event
+from time import monotonic, perf_counter
 from typing import Any, Generator, Iterable, Literal
 from urllib.parse import urlencode, urlsplit, urlunsplit
+from uuid import uuid4
 
 from services.common.pageindex_runtime import (
     configure_pageindex_runtime,
     llm_request_scope,
 )
+from services.common.retrieval_llm import complete as complete_retrieval_llm
 from services.common.sqlite_store import open_db
-from services.common.system_settings import get_retrieval_document_limit
+from services.common.system_settings import (
+    get_llm_runtime_settings,
+    get_retrieval_document_limit,
+)
 from services.retrieval_api.select_documents import (
     EVIDENCE_VALIDATION_REASON_KEY,
+    candidate_completion_scope,
+    document_supports_query_dealer_tier,
     select_candidate_documents,
 )
 
@@ -32,10 +41,24 @@ MAX_PARALLEL_DOCUMENT_RETRIEVALS = 5
 MAX_TREE_SEARCH_ROUNDS = 3
 MAX_TREE_SEARCH_PAGES_PER_ROUND = 8
 MAX_TREE_SEARCH_PAGES = 16
+MAX_LIST_OVERVIEW_PAGES = 4
 MAX_TREE_ASSESSMENT_CHARS = 48000
 MAX_EVIDENCE_VALIDATION_CHARS = 48000
 DEFAULT_RETRIEVAL_DOCUMENT_LIMIT = 5
-DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS = 120.0
+DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS = 30.0
+DEFAULT_ANSWER_LLM_TIMEOUT_SECONDS = 120.0
+DEFAULT_RETRIEVAL_REQUEST_TIMEOUT_SECONDS = 240.0
+DEFAULT_RETRIEVAL_LLM_CONCURRENCY = 2
+DEFAULT_RETRIEVAL_DOCUMENT_CONCURRENCY = 2
+DEFAULT_EVIDENCE_INITIAL_DOCUMENTS = 2
+DEFAULT_ANSWER_LLM_MAX_ATTEMPTS = 1
+DEFAULT_ANSWER_MAX_OUTPUT_TOKENS = 4096
+CANDIDATE_SELECTION_MAX_TOKENS = 512
+PAGE_SELECTION_MAX_TOKENS = 384
+EVIDENCE_ASSESSMENT_MAX_TOKENS = 384
+TREE_ASSESSMENT_ESCALATION_MAX_TOKENS = 512
+EVIDENCE_VALIDATION_MAX_TOKENS = 768
+EVIDENCE_COVERAGE_MAX_TOKENS = 384
 DOCUMENT_DEGRADED_REASONS_KEY = "_reasonkb_retrieval_degraded_reasons"
 logger = logging.getLogger(__name__)
 _DOCUMENT_RETRIEVAL_EXECUTOR = ThreadPoolExecutor(
@@ -44,6 +67,29 @@ _DOCUMENT_RETRIEVAL_EXECUTOR = ThreadPoolExecutor(
 )
 
 RetrievalStatus = Literal["matched", "no_match", "degraded"]
+EvidenceCoverage = Literal["complete", "incomplete", "unknown"]
+EvidenceCoverageConfidence = Literal["high", "medium", "low"]
+
+
+@dataclass(frozen=True)
+class _QueryLlmContext:
+    request_id: str
+    retrieval_model: str
+    answer_model: str
+    api_key: str
+    base_url: str
+    deadline: float
+    cancellation_event: Any = None
+
+
+_QUERY_LLM_CONTEXT: ContextVar[_QueryLlmContext | None] = ContextVar(
+    "reasonkb_query_llm_context",
+    default=None,
+)
+_TREE_ASSESSMENT_REASONING: ContextVar[str] = ContextVar(
+    "reasonkb_tree_assessment_reasoning",
+    default="disabled",
+)
 
 
 @dataclass(frozen=True)
@@ -53,6 +99,22 @@ class _EvidenceValidationResult:
     degraded_reason: str | None = None
     attempted_count: int = 0
     accepted_count: int = 0
+
+
+@dataclass(frozen=True)
+class _EvidenceCoverageResult:
+    coverage: EvidenceCoverage
+    confidence: EvidenceCoverageConfidence
+    unresolved: tuple[str, ...] = ()
+    degraded_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class _EvidenceExpansionResult:
+    document_results: "_DocumentResults"
+    attempted_documents: tuple[dict[str, Any], ...]
+    coverage: _EvidenceCoverageResult | None = None
+    coverage_failed: bool = False
 
 
 class _PageWindow(str):
@@ -98,19 +160,194 @@ class _CancellationSignal:
         return any(event.is_set() for event in self._events)
 
 
-def _retrieval_llm_timeout_seconds() -> float:
+class _RetrievalLlmCapacity:
+    def __init__(self) -> None:
+        self._condition = Condition()
+        self._active = 0
+
+    def acquire(
+        self,
+        *,
+        limit: int,
+        deadline: float,
+        cancellation_signal: Any,
+    ) -> bool:
+        with self._condition:
+            while self._active >= limit:
+                if _signal_is_set(cancellation_signal):
+                    return False
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    return False
+                self._condition.wait(timeout=min(0.05, remaining))
+            if _signal_is_set(cancellation_signal) or monotonic() >= deadline:
+                return False
+            self._active += 1
+            return True
+
+    def release(self) -> None:
+        with self._condition:
+            self._active -= 1
+            self._condition.notify_all()
+
+
+_RETRIEVAL_LLM_CAPACITY = _RetrievalLlmCapacity()
+
+
+def _signal_is_set(signal: Any) -> bool:
+    is_set = getattr(signal, "is_set", None)
+    return bool(callable(is_set) and is_set())
+
+
+def _configured_timeout_seconds(name: str, default: float) -> float:
     try:
-        value = float(
+        value = float(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(value) or value <= 0:
+        return default
+    return min(value, 600.0)
+
+
+def _retrieval_llm_timeout_seconds() -> float:
+    return _configured_timeout_seconds(
+        "RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS",
+        DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS,
+    )
+
+
+def _answer_llm_timeout_seconds() -> float:
+    return _configured_timeout_seconds(
+        "ANSWER_LLM_REQUEST_TIMEOUT_SECONDS",
+        DEFAULT_ANSWER_LLM_TIMEOUT_SECONDS,
+    )
+
+
+def _retrieval_request_timeout_seconds() -> float:
+    return _configured_timeout_seconds(
+        "RETRIEVAL_REQUEST_TIMEOUT_SECONDS",
+        DEFAULT_RETRIEVAL_REQUEST_TIMEOUT_SECONDS,
+    )
+
+
+def _configured_attempts(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return min(max(value, 1), 2)
+
+
+def _retrieval_llm_max_attempts() -> int:
+    return _configured_attempts("RETRIEVAL_LLM_MAX_ATTEMPTS", 2)
+
+
+def _answer_llm_max_attempts() -> int:
+    return _configured_attempts(
+        "ANSWER_LLM_MAX_ATTEMPTS",
+        DEFAULT_ANSWER_LLM_MAX_ATTEMPTS,
+    )
+
+
+def _answer_max_output_tokens() -> int:
+    try:
+        value = int(
             os.getenv(
-                "RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS",
-                str(DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS),
+                "ANSWER_LLM_MAX_OUTPUT_TOKENS",
+                str(DEFAULT_ANSWER_MAX_OUTPUT_TOKENS),
             )
         )
     except (TypeError, ValueError):
-        return DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS
-    if not math.isfinite(value) or value <= 0:
-        return DEFAULT_RETRIEVAL_LLM_TIMEOUT_SECONDS
-    return min(value, 600.0)
+        return DEFAULT_ANSWER_MAX_OUTPUT_TOKENS
+    return min(max(value, 256), 8192)
+
+
+_ANSWER_COMPLEXITY_RE = re.compile(
+    r"(?:\b(?:compare|comparison|contrast|difference|why|how|impact|steps?|"
+    r"trade[- ]?offs?)\b|比较|对比|差异|分别|各自|为什么|为何|如何|影响|原因|"
+    r"步骤|同时|并且|跨文档|多跳|优缺点|异同)",
+    re.IGNORECASE,
+)
+
+_RETRIEVAL_COMPLEXITY_RE = re.compile(
+    r"(?:\b(?:compare|comparison|contrast|difference|relationship|cause|why|"
+    r"impact|across\s+documents?|multi[- ]?hop|trade[- ]?offs?)\b|"
+    r"比较|对比|差异|异同|关联|关系|原因|为什么|为何|影响|跨文档|多跳|权衡)",
+    re.IGNORECASE,
+)
+
+
+def _tree_assessment_reasoning_mode(
+    query: str,
+    round_number: int,
+) -> Literal["disabled", "low"]:
+    if round_number < MAX_TREE_SEARCH_ROUNDS:
+        return "disabled"
+    query_text = query.strip() if isinstance(query, str) else ""
+    if len(query_text) > 160 or _RETRIEVAL_COMPLEXITY_RE.search(query_text):
+        return "low"
+    return "disabled"
+
+
+def _answer_reasoning_mode(
+    query: str,
+    context_blocks: list[dict[str, Any]],
+) -> Literal["disabled", "low", "default"]:
+    """Choose answer reasoning without making provider-default thinking implicit.
+
+    Retrieval already performs the evidence navigation.  Ordinary synthesis is
+    therefore sent with explicit non-thinking controls; only clearly multi-step
+    questions or unusually broad evidence sets receive bounded low reasoning.
+    Operators can override the policy with ANSWER_REASONING_MODE.
+    """
+    configured = os.getenv("ANSWER_REASONING_MODE", "auto").strip().lower()
+    if configured in {"disabled", "low", "default"}:
+        return configured  # type: ignore[return-value]
+    if configured not in {"", "auto"}:
+        logger.warning(
+            "Unsupported ANSWER_REASONING_MODE=%r; using auto policy",
+            configured,
+        )
+
+    query_text = query.strip() if isinstance(query, str) else ""
+    if len(query_text) > 160 or _ANSWER_COMPLEXITY_RE.search(query_text):
+        return "low"
+    if len(context_blocks) > 2:
+        return "low"
+    evidence_chars = sum(
+        len(item.get("content", ""))
+        for block in context_blocks
+        if isinstance(block, dict)
+        for item in block.get("evidence", [])
+        if isinstance(item, dict) and isinstance(item.get("content"), str)
+    )
+    return "low" if len(context_blocks) > 1 and evidence_chars > 24000 else "disabled"
+
+
+def _retrieval_llm_concurrency() -> int:
+    try:
+        value = int(
+            os.getenv(
+                "RETRIEVAL_LLM_CONCURRENCY",
+                str(DEFAULT_RETRIEVAL_LLM_CONCURRENCY),
+            )
+        )
+    except (TypeError, ValueError):
+        return DEFAULT_RETRIEVAL_LLM_CONCURRENCY
+    return min(max(value, 1), MAX_PARALLEL_DOCUMENT_RETRIEVALS)
+
+
+def _retrieval_document_concurrency() -> int:
+    try:
+        value = int(
+            os.getenv(
+                "RETRIEVAL_DOCUMENT_CONCURRENCY",
+                str(DEFAULT_RETRIEVAL_DOCUMENT_CONCURRENCY),
+            )
+        )
+    except (TypeError, ValueError):
+        return DEFAULT_RETRIEVAL_DOCUMENT_CONCURRENCY
+    return min(max(value, 1), MAX_PARALLEL_DOCUMENT_RETRIEVALS)
 
 
 def _progress_event(stage: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -186,31 +423,174 @@ def _document_url(document: dict[str, Any]) -> str | None:
     )
 
 
-@lru_cache(maxsize=1)
 def _get_retrieval_model() -> str | None:
+    context = _QUERY_LLM_CONTEXT.get()
+    if context is not None:
+        return context.retrieval_model
     config = ConfigLoader().load()
     return getattr(config, "retrieve_model", None) or getattr(config, "model", None)
 
 
-def _retrieval_completion(prompt: str) -> tuple[str | None, str | None]:
+def _get_answer_model() -> str | None:
+    context = _QUERY_LLM_CONTEXT.get()
+    if context is not None:
+        return context.answer_model
+    config = ConfigLoader().load()
+    return getattr(config, "model", None) or getattr(config, "retrieve_model", None)
+
+
+def _new_query_llm_context(
+    db_path: str,
+    cancellation_event: Event | None,
+) -> _QueryLlmContext:
+    settings = get_llm_runtime_settings(db_path)
+    return _QueryLlmContext(
+        request_id=uuid4().hex,
+        retrieval_model=settings.retrieve_model or settings.model,
+        answer_model=settings.model or settings.retrieve_model,
+        api_key=settings.api_key,
+        base_url=settings.base_url,
+        deadline=monotonic() + _retrieval_request_timeout_seconds(),
+        cancellation_event=cancellation_event,
+    )
+
+
+@contextmanager
+def _query_llm_context_scope(context: _QueryLlmContext):
+    token = _QUERY_LLM_CONTEXT.set(context)
+    try:
+        yield
+    finally:
+        _QUERY_LLM_CONTEXT.reset(token)
+
+
+def _query_deadline_expired(context: _QueryLlmContext) -> bool:
+    return monotonic() >= context.deadline
+
+
+def _active_completion(
+    prompt: str,
+    *,
+    model_role: Literal["retrieval", "answer"],
+    stage: str,
+    reasoning: Literal["disabled", "low", "default"],
+    max_output_tokens: int | None,
+) -> tuple[str | None, str | None, str | None]:
+    context = _QUERY_LLM_CONTEXT.get()
+    if context is None:
+        return _pageindex_completion(
+            prompt,
+            model=_get_answer_model() if model_role == "answer" else _get_retrieval_model(),
+        )
+
+    capacity_acquired = False
+    if model_role == "retrieval":
+        capacity_acquired = _RETRIEVAL_LLM_CAPACITY.acquire(
+            limit=_retrieval_llm_concurrency(),
+            deadline=context.deadline,
+            cancellation_signal=context.cancellation_event,
+        )
+        if not capacity_acquired:
+            return None, "provider_error", None
+
+    try:
+        result = complete_retrieval_llm(
+            model=(
+                context.answer_model
+                if model_role == "answer"
+                else context.retrieval_model
+            ),
+            prompt=prompt,
+            stage=stage,
+            reasoning=reasoning,
+            max_output_tokens=max_output_tokens,
+            timeout_seconds=(
+                _answer_llm_timeout_seconds()
+                if model_role == "answer"
+                else _retrieval_llm_timeout_seconds()
+            ),
+            deadline=context.deadline,
+            max_attempts=(
+                _answer_llm_max_attempts()
+                if model_role == "answer"
+                else _retrieval_llm_max_attempts()
+            ),
+            cancellation_signal=context.cancellation_event,
+            api_key=context.api_key,
+            base_url=context.base_url,
+            request_id=context.request_id,
+        )
+    finally:
+        if capacity_acquired:
+            _RETRIEVAL_LLM_CAPACITY.release()
+    if result.content is None:
+        return None, "provider_error", result.finish_reason
+    return result.content, None, result.finish_reason
+
+
+def _pageindex_completion(
+    prompt: str,
+    *,
+    model: str | None,
+) -> tuple[str | None, str | None, str | None]:
     from pageindex.utils import llm_completion
 
     try:
         completion_result = llm_completion(
-            model=_get_retrieval_model(),
+            model=model,
             prompt=prompt,
             return_finish_reason=True,
         )
     except Exception:
-        return None, "provider_error"
+        return None, "provider_error", None
 
     if isinstance(completion_result, tuple) and len(completion_result) == 2:
         raw, finish_reason = completion_result
     else:
         raw, finish_reason = completion_result, None
     if finish_reason == "error" or not isinstance(raw, str) or not raw.strip():
-        return None, "provider_error"
-    return raw, None
+        return None, "provider_error", finish_reason
+    return raw, None, finish_reason
+
+
+def _retrieval_completion(
+    prompt: str,
+    *,
+    stage: str = "retrieval",
+    reasoning: Literal["disabled", "low"] = "disabled",
+    max_output_tokens: int | None = None,
+) -> tuple[str | None, str | None]:
+    raw, error, _finish_reason = _active_completion(
+        prompt,
+        model_role="retrieval",
+        stage=stage,
+        reasoning=reasoning,
+        max_output_tokens=max_output_tokens,
+    )
+    if _finish_reason == "max_output_reached":
+        return None, "max_output_reached"
+    return raw, error
+
+
+def _candidate_completion(
+    model,
+    prompt,
+    chat_history=None,
+    return_finish_reason=False,
+):
+    del model, chat_history
+    raw, error, finish_reason = _active_completion(
+        prompt,
+        model_role="retrieval",
+        stage="candidate_document_selection",
+        reasoning="disabled",
+        max_output_tokens=CANDIDATE_SELECTION_MAX_TOKENS,
+    )
+    if error or raw is None:
+        return ("", "error") if return_finish_reason else ""
+    if return_finish_reason:
+        return raw, finish_reason or "finished"
+    return raw
 
 
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
@@ -574,6 +954,92 @@ def _page_selection_request_state(
     return "empty" if seen else "missing"
 
 
+_COMPLETE_LIST_QUERY_RE = re.compile(
+    r"(?:\b(?:what\s+are|which|list|all|every|indicators?|dimensions?|"
+    r"criteria|categories|taxonomy|overview)\b|"
+    r"哪些|哪几|所有|全部|指标|维度|清单|分类|构成|组成|列出|分别)",
+    re.IGNORECASE,
+)
+_OVERVIEW_NODE_RE = re.compile(
+    r"(?:preface|overview|summary|abstract|introduction|contents|table\s+of\s+contents|"
+    r"前言|概述|摘要|目录|总览|评估框架|总体说明)",
+    re.IGNORECASE,
+)
+
+
+def _is_complete_list_query(query: str) -> bool:
+    return isinstance(query, str) and bool(_COMPLETE_LIST_QUERY_RE.search(query))
+
+
+def _overview_pages_for_list_query(
+    query: str,
+    document: dict[str, Any],
+) -> list[int]:
+    """Return a small structural overview window for complete-list questions.
+
+    PageIndex's model normally selects the overview node itself.  Some tree
+    summaries put the first half of a list in that node while the model chooses
+    only a later detail node.  The deterministic augmentation keeps the model's
+    selected pages and adds only the bounded overview prefix; it does not scan
+    page text or replace tree navigation.
+    """
+    if not _is_complete_list_query(query):
+        return []
+
+    available = set(_available_page_numbers(document))
+    if not available:
+        return []
+
+    overview_pages: list[int] = []
+    for node in _iter_structure_nodes(document.get("structure", [])):
+        node_id = str(node.get("node_id") or "").strip()
+        title = node.get("title") if isinstance(node.get("title"), str) else ""
+        summary = node.get("summary") if isinstance(node.get("summary"), str) else ""
+        is_overview = node_id == "0000" or bool(
+            _OVERVIEW_NODE_RE.search(f"{title} {summary}")
+        )
+        if not is_overview:
+            continue
+        start = node.get("start_index")
+        end = node.get("end_index", start)
+        if not _is_page_number(start) or not _is_page_number(end) or end < start:
+            continue
+
+        # A root node can span a very large document.  Only a short prefix is
+        # an overview candidate; the model-selected detail pages remain.
+        end = min(end, start + MAX_LIST_OVERVIEW_PAGES - 1)
+        overview_pages.extend(page for page in range(start, end + 1) if page in available)
+        if len(set(overview_pages)) >= MAX_LIST_OVERVIEW_PAGES:
+            break
+
+    return sorted(set(overview_pages))[:MAX_LIST_OVERVIEW_PAGES]
+
+
+def _augment_list_page_selection(
+    query: str,
+    document: dict[str, Any],
+    selected_pages: list[int],
+) -> list[int]:
+    overview_pages = _overview_pages_for_list_query(query, document)
+    if not overview_pages:
+        return selected_pages
+
+    selected = sorted(set(selected_pages))
+    merged = sorted(set(selected).union(overview_pages))
+    if len(merged) <= MAX_TREE_SEARCH_PAGES_PER_ROUND:
+        return merged
+
+    # Keep the overview prefix and fill the remaining first-round budget with
+    # model-selected detail pages. Later tree-assessment rounds can add pages
+    # that were intentionally left outside this bounded initial window.
+    retained = set(overview_pages)
+    for page in selected:
+        if len(retained) >= MAX_TREE_SEARCH_PAGES_PER_ROUND:
+            break
+        retained.add(page)
+    return sorted(retained)
+
+
 def _build_document_map(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
         document["id"]: {
@@ -614,18 +1080,32 @@ def choose_page_window(
 You are performing PageIndex tree search over a document.
 {selection_goal}
 Prefer leaf nodes or narrow sections. Do not select a broad parent when a specific child is enough.
+For questions asking for a list, all items, dimensions, indicators, criteria, or an overview,
+include overview, preface, summary, or table nodes when their summaries enumerate requested items.
+A generic node title is not a reason to skip it. Select every node needed to cover the complete list.
 
 Question: {query}
 Structure:
 {structure_json}
 
 Return JSON only:
-{{"thinking": "brief reason", "node_list": ["0007"], "pages": "3-5"}}
+{{"node_list": ["0007"], "pages": "3-5"}}
 Use node_list when node IDs are available. Also return the corresponding physical pages.
 """
-    raw, completion_error = _retrieval_completion(prompt)
+    raw, completion_error = _retrieval_completion(
+        prompt,
+        stage="page_selection",
+        max_output_tokens=PAGE_SELECTION_MAX_TOKENS,
+    )
     if completion_error:
-        return _PageWindow(fallback, "page_selection_provider_error")
+        return _PageWindow(
+            fallback,
+            (
+                "page_selection_truncated"
+                if completion_error == "max_output_reached"
+                else "page_selection_provider_error"
+            ),
+        )
     try:
         parsed = extract_json(raw)
     except Exception:
@@ -635,6 +1115,11 @@ Use node_list when node IDs are available. Also return the corresponding physica
 
     selected_pages = _page_selection_from_payload(parsed, document)
     if selected_pages:
+        selected_pages = _augment_list_page_selection(
+            query,
+            document,
+            selected_pages,
+        )
         return _PageWindow(_format_page_window(selected_pages))
     selection_state = _page_selection_request_state(
         parsed,
@@ -712,14 +1197,42 @@ If more evidence is needed, select only uninspected, specific nodes or physical 
 Return JSON only:
 {{
   "sufficient": true,
-  "thinking": "brief reason",
   "next_node_list": [],
   "next_pages": ""
 }}
 """
-    raw, completion_error = _retrieval_completion(prompt)
+    reasoning = _TREE_ASSESSMENT_REASONING.get()
+    raw, completion_error = _retrieval_completion(
+        prompt,
+        stage=(
+            "tree_assessment_escalation"
+            if reasoning == "low"
+            else "tree_assessment"
+        ),
+        reasoning="low" if reasoning == "low" else "disabled",
+        max_output_tokens=(
+            TREE_ASSESSMENT_ESCALATION_MAX_TOKENS
+            if reasoning == "low"
+            else EVIDENCE_ASSESSMENT_MAX_TOKENS
+        ),
+    )
+    if completion_error == "max_output_reached" and reasoning == "low":
+        raw, completion_error = _retrieval_completion(
+            prompt,
+            stage="tree_assessment_fallback",
+            reasoning="disabled",
+            max_output_tokens=EVIDENCE_ASSESSMENT_MAX_TOKENS,
+        )
     if completion_error:
-        return _EvidenceAssessment(True, None, "tree_assessment_provider_error")
+        return _EvidenceAssessment(
+            True,
+            None,
+            (
+                "tree_assessment_truncated"
+                if completion_error == "max_output_reached"
+                else "tree_assessment_provider_error"
+            ),
+        )
     try:
         parsed = extract_json(raw)
     except Exception:
@@ -834,13 +1347,19 @@ def _document_tree_search_steps(
         for round_number in range(2, MAX_TREE_SEARCH_ROUNDS + 1):
             if len(inspected_pages) >= MAX_TREE_SEARCH_PAGES:
                 break
-            assessment = _assess_evidence_and_choose_next_pages(
-                query,
-                document,
-                evidence,
-                inspected_pages,
-                mode,
+            reasoning_token = _TREE_ASSESSMENT_REASONING.set(
+                _tree_assessment_reasoning_mode(query, round_number)
             )
+            try:
+                assessment = _assess_evidence_and_choose_next_pages(
+                    query,
+                    document,
+                    evidence,
+                    inspected_pages,
+                    mode,
+                )
+            finally:
+                _TREE_ASSESSMENT_REASONING.reset(reasoning_token)
             sufficient, next_pages = assessment
             assessment_degraded_reason = getattr(
                 assessment,
@@ -898,7 +1417,16 @@ Evidence:
 
 Return only the answer text.
 """
-    answer, _completion_error = _retrieval_completion(prompt)
+    answer, _completion_error, _finish_reason = _active_completion(
+        prompt,
+        model_role="answer",
+        stage="answer_generation",
+        reasoning=_answer_reasoning_mode(query, context_blocks),
+        max_output_tokens=_answer_max_output_tokens(),
+    )
+    if _finish_reason == "max_output_reached":
+        logger.warning("Rejected truncated answer generation output")
+        return ""
     return answer.strip() if answer else ""
 
 
@@ -1064,6 +1592,117 @@ def _compact_validation_candidates(
     return candidates
 
 
+def _parse_evidence_coverage(payload: Any) -> _EvidenceCoverageResult | None:
+    if not isinstance(payload, dict):
+        return None
+    coverage = payload.get("coverage")
+    confidence = payload.get("confidence")
+    unresolved = payload.get("unresolved")
+    if coverage not in {"complete", "incomplete", "unknown"}:
+        return None
+    if confidence not in {"high", "medium", "low"}:
+        return None
+    if not isinstance(unresolved, list) or any(
+        not isinstance(item, str) for item in unresolved
+    ):
+        return None
+    normalized_unresolved = tuple(
+        dict.fromkeys(item.strip() for item in unresolved if item.strip())
+    )
+    if coverage == "complete" and normalized_unresolved:
+        return None
+    return _EvidenceCoverageResult(
+        coverage=coverage,
+        confidence=confidence,
+        unresolved=normalized_unresolved,
+    )
+
+
+def _assess_evidence_coverage(
+    query: str,
+    document_results: list[dict[str, Any]],
+    remaining_documents: list[dict[str, Any]],
+) -> _EvidenceCoverageResult:
+    if not document_results:
+        return _EvidenceCoverageResult(
+            coverage="incomplete",
+            confidence="high",
+            unresolved=("No directly supporting page evidence has been collected.",),
+        )
+
+    current_evidence = _compact_validation_candidates(query, document_results)
+    remaining_candidates = [
+        {
+            "document_name": document.get("file_name", ""),
+            "project_name": document.get("project_name", ""),
+            "project_relative_path": document.get("project_relative_path", ""),
+            "source_relative_path": document.get("source_relative_path", ""),
+            "document_description": document.get("doc_description", ""),
+        }
+        for document in remaining_documents
+    ]
+    prompt = f"""
+You are deciding whether an Evidence retrieval request should inspect more candidate documents.
+
+Mark coverage as complete only when the collected page text directly covers every material part,
+constraint, comparison, list item, time period, and requested entity in the question. Also require
+the remaining candidate summaries to show no plausible missing source. Be conservative for lists,
+comparisons, multi-document questions, and questions asking for all or every item. Do not infer facts
+that are absent from the collected text. Use incomplete when a specific part remains uncovered. Use
+unknown when the available text or summaries do not support a reliable decision.
+
+Question:
+{query}
+
+Collected page evidence:
+{json.dumps(current_evidence, ensure_ascii=False)}
+
+Not-yet-inspected candidate summaries:
+{json.dumps(remaining_candidates, ensure_ascii=False)}
+
+Return JSON only:
+{{"coverage":"complete","confidence":"high","unresolved":[]}}
+or
+{{"coverage":"incomplete","confidence":"high","unresolved":["missing fact"]}}
+"""
+
+    from pageindex.utils import extract_json
+
+    raw, completion_error = _retrieval_completion(
+        prompt,
+        stage="evidence_coverage",
+        max_output_tokens=EVIDENCE_COVERAGE_MAX_TOKENS,
+    )
+    if completion_error or not raw:
+        return _EvidenceCoverageResult(
+            coverage="unknown",
+            confidence="low",
+            degraded_reason="evidence_coverage_failed",
+        )
+    try:
+        parsed = extract_json(raw)
+        coverage = _parse_evidence_coverage(parsed)
+    except Exception:
+        coverage = None
+    if coverage is None:
+        return _EvidenceCoverageResult(
+            coverage="unknown",
+            confidence="low",
+            degraded_reason="evidence_coverage_failed",
+        )
+    return coverage
+
+
+def _coverage_is_complete(result: _EvidenceCoverageResult | None) -> bool:
+    return bool(
+        result is not None
+        and result.coverage == "complete"
+        and result.confidence == "high"
+        and not result.unresolved
+        and result.degraded_reason is None
+    )
+
+
 def _parse_evidence_validation_matches(
     payload: Any,
     document_results: list[dict[str, Any]],
@@ -1128,11 +1767,119 @@ def _parse_evidence_validation_matches(
     return accepted or None
 
 
+def _expand_evidence_supporting_pages(
+    query: str,
+    result: dict[str, Any],
+    supporting_pages: set[int],
+) -> set[int]:
+    """Keep bounded table/list continuations that a page validator can omit.
+
+    PageIndex returns physical page windows, while PDF/XLSX extraction often loses the grid
+    relationship between a heading and its continuation rows. For Evidence list requests, a
+    validated page makes the contiguous selected window around it relevant by construction. This
+    restores that window without broadening to a separate, non-contiguous page selection.
+    """
+    if not supporting_pages or not _is_complete_list_query(query):
+        return supporting_pages
+    context_block = result.get("contextBlock", {})
+    selected_pages = _parse_page_window(context_block.get("pages", ""))
+    if not selected_pages:
+        return supporting_pages
+    selected_set = set(selected_pages)
+
+    evidence_by_page = {
+        item.get("page"): item.get("content")
+        for item in context_block.get("evidence", [])
+        if isinstance(item, dict)
+        and _is_page_number(item.get("page"))
+        and isinstance(item.get("content"), str)
+    }
+
+    def looks_like_continuation(content: object) -> bool:
+        if not isinstance(content, str) or not content.strip():
+            return False
+        prefix = _normalize_whitespace(content[:600])
+        # Section headings and explanatory prose are not table/list continuations,
+        # even when they happen to be adjacent to a validated page.
+        if re.match(
+            r"^(?:第?\s*\d+\s*页[^。！？\n]*\s*)?"
+            r"(?:[^。！？\n:：]{0,24})?"
+            r"(?:目录|前言|概述|说明|评估细则|定义|规则|备注|注释)\s*[:：]",
+            prefix,
+            re.IGNORECASE,
+        ):
+            return False
+        # Extracted tables often lose their row markers at a page boundary. Keep
+        # explicit continuation wording as a bounded signal, while still relying
+        # on the already selected physical page window.
+        if re.search(r"(?:表格连续行|续页|续表|接上|连续(?:行|指标|项目))", prefix):
+            return True
+        if re.match(r"^表格(?:注释|备注)\s*[:：。]", prefix):
+            return True
+        return bool(
+            re.search(
+                r"(?:^|\s)(?:\d{1,3}\s*[.)、:]|[①②③④⑤⑥⑦⑧⑨⑩]|[-•|])",
+                prefix,
+            )
+        )
+
+    expanded = set(supporting_pages)
+
+    # PDF/XLSX extraction can make the middle page of a continued table look
+    # less relevant than the pages on either side. Fill only gaps bounded by
+    # two validated pages inside the same model-selected contiguous run. This
+    # restores lost table rows without extending into trailing detail pages.
+    selected_runs: list[list[int]] = []
+    for page in sorted(selected_set):
+        if not selected_runs or page != selected_runs[-1][-1] + 1:
+            selected_runs.append([page])
+        else:
+            selected_runs[-1].append(page)
+    for run in selected_runs:
+        run_support = sorted(page for page in run if page in supporting_pages)
+        if len(run_support) >= 2:
+            expanded.update(range(run_support[0], run_support[-1] + 1))
+
+    # If a single validated page is followed by an explicitly marked
+    # continuation, retain that next page as well. This handles lists whose
+    # validator found only the heading page without broadening the selection.
+    for page in sorted(selected_set):
+        if page in expanded or page - 1 not in expanded:
+            continue
+        if looks_like_continuation(evidence_by_page.get(page)):
+            expanded.add(page)
+    return expanded
+
+
 def _validate_retrieved_evidence(
     query: str,
     document_results: list[dict[str, Any]],
     mode: str,
 ) -> _EvidenceValidationResult:
+    supported_results: list[dict[str, Any]] = []
+    deterministically_rejected_count = 0
+    for result in document_results:
+        page_texts = (
+            item.get("content")
+            for item in result.get("contextBlock", {}).get("evidence", [])
+            if isinstance(item, dict)
+        )
+        if document_supports_query_dealer_tier(
+            query,
+            result.get("document", {}),
+            page_texts,
+        ):
+            supported_results.append(result)
+        else:
+            deterministically_rejected_count += 1
+
+    if deterministically_rejected_count:
+        logger.info(
+            "Rejected retrieved evidence with conflicting dealer tier mode=%s count=%d",
+            mode,
+            deterministically_rejected_count,
+        )
+    document_results = supported_results
     validation_indexes = [
         index
         for index, result in enumerate(document_results)
@@ -1142,6 +1889,7 @@ def _validate_retrieved_evidence(
         return _EvidenceValidationResult(
             tuple(document_results),
             "matched" if document_results else "no_match",
+            attempted_count=deterministically_rejected_count,
         )
 
     validation_results = [document_results[index] for index in validation_indexes]
@@ -1178,6 +1926,12 @@ Question: {query}
 Candidate page text:
 {json.dumps(candidates, ensure_ascii=False)}
 
+Evaluate the candidate pages together, not each page in isolation. For a question asking for all
+items in a list or table, supporting_pages must cover the complete list. If numbered rows continue
+onto the next physical page, include that continuation page even when it does not repeat the heading
+or qualifiers. Do not replace a list continuation page with a detailed explanation page merely
+because the latter repeats more query keywords.
+
 Exclude candidates that merely share keywords, discuss a neighboring topic, or do not contain
 the requested fact. Never infer a fact that is absent from the page text. A page that mentions
 the requested year only in an unrelated note does not support a year-specific answer; the fact
@@ -1188,7 +1942,11 @@ itself must be stated for that year. Never use a different year's value as evide
     from pageindex.utils import extract_json
 
     try:
-        raw, completion_error = _retrieval_completion(prompt)
+        raw, completion_error = _retrieval_completion(
+            prompt,
+            stage="evidence_validation",
+            max_output_tokens=EVIDENCE_VALIDATION_MAX_TOKENS,
+        )
         if completion_error:
             raise ValueError(completion_error)
         parsed = extract_json(raw)
@@ -1216,7 +1974,9 @@ itself must be stated for that year. Never use a different year's value as evide
             retained,
             "degraded",
             degraded_reason="evidence_validation_failed",
-            attempted_count=len(validation_indexes),
+            attempted_count=(
+                len(validation_indexes) + deterministically_rejected_count
+            ),
             accepted_count=0,
         )
 
@@ -1233,6 +1993,12 @@ itself must be stated for that year. Never use a different year's value as evide
         supporting_pages = accepted_by_global_index.get(index)
         if not supporting_pages:
             continue
+        if mode == "evidence":
+            supporting_pages = _expand_evidence_supporting_pages(
+                query,
+                result,
+                supporting_pages,
+            )
         supporting_evidence = [
             item
             for item in result.get("contextBlock", {}).get("evidence", [])
@@ -1243,10 +2009,12 @@ itself must be stated for that year. Never use a different year's value as evide
         ]
         if not supporting_evidence:
             continue
+        validated_document = dict(result["document"])
+        validated_document.pop(EVIDENCE_VALIDATION_REASON_KEY, None)
         retained_results.append(
             _assemble_document_result(
                 query,
-                result["document"],
+                validated_document,
                 mode,
                 _format_page_window(supporting_pages),
                 supporting_evidence,
@@ -1263,7 +2031,7 @@ itself must be stated for that year. Never use a different year's value as evide
     return _EvidenceValidationResult(
         tuple(retained_results),
         "matched" if retained_results else "no_match",
-        attempted_count=len(validation_indexes),
+        attempted_count=len(validation_indexes) + deterministically_rejected_count,
         accepted_count=accepted_count,
     )
 
@@ -1271,6 +2039,8 @@ itself must be stated for that year. Never use a different year's value as evide
 def _finalize_document_results(
     selected: list[dict[str, Any]],
     results: Iterable[dict[str, Any] | None],
+    *,
+    extra_degraded_reasons: Iterable[str] = (),
 ) -> _DocumentResults:
     retained = [result for result in results if result is not None]
     degraded_reasons = [
@@ -1281,6 +2051,7 @@ def _finalize_document_results(
     ]
     if len(retained) < len(selected):
         degraded_reasons.append("evidence_collection_failed")
+    degraded_reasons.extend(extra_degraded_reasons)
     return _DocumentResults(
         retained,
         attempted_count=len(selected),
@@ -1404,6 +2175,8 @@ def _evidence_collection_degraded_reason(
     for reason in degraded_reasons:
         if isinstance(reason, str) and reason:
             return reason
+    if isinstance(document_results, _DocumentResults):
+        return None
     if len(document_results) < len(selected):
         return "evidence_collection_failed"
     return None
@@ -1441,6 +2214,39 @@ def _empty_retrieval_result(
     if degraded_reason:
         result["degradedReason"] = degraded_reason
     return result
+
+
+def _request_deadline_result(
+    mode: str,
+    document_results: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if mode == "evidence" and document_results:
+        return _build_answer_result(
+            "",
+            document_results,
+            mode,
+            status="degraded",
+            degraded_reason="request_deadline_exceeded",
+        )
+    return _empty_retrieval_result(
+        "Retrieval exceeded its request deadline before it could complete.",
+        mode,
+        status="degraded",
+        degraded_reason="request_deadline_exceeded",
+    )
+
+
+def _validated_results_only(
+    document_results: Iterable[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    retained: list[dict[str, Any]] = []
+    pending_count = 0
+    for result in document_results:
+        if result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY):
+            pending_count += 1
+            continue
+        retained.append(result)
+    return retained, pending_count
 
 
 def _build_answer_result(
@@ -1579,6 +2385,9 @@ def _build_selected_documents_evidence_events(
     selected: list[dict[str, Any]],
     mode: str,
     cancellation_event: Event | None = None,
+    *,
+    query_context: _QueryLlmContext | None = None,
+    document_concurrency: int | None = None,
 ) -> Generator[dict[str, Any], None, _DocumentResults]:
     if not selected:
         return _DocumentResults([], attempted_count=0)
@@ -1588,23 +2397,40 @@ def _build_selected_documents_evidence_events(
     stop_event = Event()
     cancellation_signal = _CancellationSignal(stop_event, cancellation_event)
     document_results: list[dict[str, Any] | None] = [None] * len(selected)
+    worker_query_context = (
+        replace(query_context, cancellation_event=cancellation_signal)
+        if query_context is not None
+        else None
+    )
 
     def process_document(index: int, document: dict[str, Any]) -> None:
         events = None
         try:
-            if cancellation_signal.is_set():
+            if cancellation_signal.is_set() or (
+                worker_query_context is not None
+                and _query_deadline_expired(worker_query_context)
+            ):
                 return
 
             events = _build_document_evidence_events(query, document, mode)
             while not cancellation_signal.is_set():
-                with llm_request_scope(
-                    cancellation_signal,
-                    timeout_seconds=_retrieval_llm_timeout_seconds(),
-                ):
-                    try:
-                        event = next(events)
-                    except StopIteration:
+                if worker_query_context is not None:
+                    if _query_deadline_expired(worker_query_context):
                         break
+                    with _query_llm_context_scope(worker_query_context):
+                        try:
+                            event = next(events)
+                        except StopIteration:
+                            break
+                else:
+                    with llm_request_scope(
+                        cancellation_signal,
+                        timeout_seconds=_retrieval_llm_timeout_seconds(),
+                    ):
+                        try:
+                            event = next(events)
+                        except StopIteration:
+                            break
                 if cancellation_signal.is_set():
                     break
                 event_queue.put((index, event))
@@ -1652,14 +2478,20 @@ def _build_selected_documents_evidence_events(
         )
 
     try:
-        initial_count = min(MAX_PARALLEL_DOCUMENT_RETRIEVALS, len(selected))
+        request_concurrency = min(
+            max(document_concurrency or MAX_PARALLEL_DOCUMENT_RETRIEVALS, 1),
+            MAX_PARALLEL_DOCUMENT_RETRIEVALS,
+        )
+        initial_count = min(request_concurrency, len(selected))
         for _ in range(initial_count):
             submit_document(next_index)
             next_index += 1
 
         completed = 0
         while completed < len(selected):
-            if cancellation_signal.is_set():
+            if cancellation_signal.is_set() or (
+                query_context is not None and _query_deadline_expired(query_context)
+            ):
                 break
             try:
                 index, item = event_queue.get(timeout=0.1)
@@ -1685,7 +2517,155 @@ def _build_selected_documents_evidence_events(
         for future in tuple(futures.values()):
             future.cancel()
 
-    return _finalize_document_results(selected, document_results)
+    deadline_reasons = (
+        ("request_deadline_exceeded",)
+        if query_context is not None and _query_deadline_expired(query_context)
+        else ()
+    )
+    return _finalize_document_results(
+        selected,
+        document_results,
+        extra_degraded_reasons=deadline_reasons,
+    )
+
+
+def _build_progressive_evidence_events(
+    query: str,
+    selected: list[dict[str, Any]],
+    cancellation_event: Event | None,
+    *,
+    query_context: _QueryLlmContext,
+    document_concurrency: int,
+) -> Generator[dict[str, Any], None, _EvidenceExpansionResult]:
+    accumulated_results: list[dict[str, Any]] = []
+    accumulated_reasons: list[str] = []
+    attempted_documents: list[dict[str, Any]] = []
+    coverage: _EvidenceCoverageResult | None = None
+    coverage_failed = False
+    next_index = 0
+    wave_number = 0
+    selection_reliable = _selection_status(selected)[0] != "degraded"
+
+    while next_index < len(selected):
+        if (
+            cancellation_event is not None and cancellation_event.is_set()
+        ) or _query_deadline_expired(query_context):
+            break
+        wave_number += 1
+        wave_size = (
+            min(DEFAULT_EVIDENCE_INITIAL_DOCUMENTS, document_concurrency)
+            if wave_number == 1
+            else document_concurrency
+        )
+        wave = selected[next_index : next_index + max(1, wave_size)]
+        next_index += len(wave)
+        attempted_documents.extend(wave)
+        yield _progress_event(
+            "evidence_wave_started",
+            {
+                "wave": wave_number,
+                "documentCount": len(wave),
+                "remainingDocumentCount": len(selected) - next_index,
+            },
+        )
+        wave_results = yield from _build_selected_documents_evidence_events(
+            query,
+            wave,
+            "evidence",
+            cancellation_event,
+            query_context=query_context,
+            document_concurrency=document_concurrency,
+        )
+        accumulated_results.extend(wave_results)
+        accumulated_reasons.extend(wave_results.degraded_reasons)
+        yield _progress_event(
+            "evidence_wave_completed",
+            {
+                "wave": wave_number,
+                "attemptedDocumentCount": len(wave),
+                "evidenceDocumentCount": len(wave_results),
+                "remainingDocumentCount": len(selected) - next_index,
+            },
+        )
+
+        if (
+            cancellation_event is not None and cancellation_event.is_set()
+        ) or _query_deadline_expired(query_context):
+            break
+
+        pending_validation_count = sum(
+            bool(result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY))
+            for result in accumulated_results
+        )
+        if pending_validation_count:
+            yield _progress_event(
+                "evidence_validation_started",
+                {
+                    "wave": wave_number,
+                    "documentCount": pending_validation_count,
+                },
+            )
+            with _query_llm_context_scope(query_context):
+                wave_validation = _validate_retrieved_evidence(
+                    query,
+                    accumulated_results,
+                    "evidence",
+                )
+            accumulated_results = list(wave_validation.document_results)
+            if wave_validation.degraded_reason:
+                accumulated_reasons.append(wave_validation.degraded_reason)
+            yield _progress_event(
+                "evidence_validation_completed",
+                {
+                    "wave": wave_number,
+                    "attemptedCount": wave_validation.attempted_count,
+                    "acceptedCount": wave_validation.accepted_count,
+                    "retrievalStatus": wave_validation.status,
+                },
+            )
+
+        yield _progress_event(
+            "evidence_coverage_started",
+            {
+                "wave": wave_number,
+                "evidenceDocumentCount": len(accumulated_results),
+                "remainingDocumentCount": len(selected) - next_index,
+            },
+        )
+        with _query_llm_context_scope(query_context):
+            coverage = _assess_evidence_coverage(
+                query,
+                accumulated_results,
+                selected[next_index:],
+            )
+        coverage_failed = coverage_failed or bool(coverage.degraded_reason)
+        yield _progress_event(
+            "evidence_coverage_completed",
+            {
+                "wave": wave_number,
+                "coverage": coverage.coverage,
+                "confidence": coverage.confidence,
+                "unresolved": list(coverage.unresolved),
+                "remainingDocumentCount": len(selected) - next_index,
+            },
+        )
+        if (
+            selection_reliable
+            and not accumulated_reasons
+            and _coverage_is_complete(coverage)
+        ):
+            break
+
+    return _EvidenceExpansionResult(
+        document_results=_DocumentResults(
+            accumulated_results,
+            attempted_count=len(attempted_documents),
+            degraded_reasons=accumulated_reasons,
+        ),
+        attempted_documents=tuple(attempted_documents),
+        coverage=coverage,
+        coverage_failed=coverage_failed,
+    )
 
 
 # Canonical orchestration shared by the synchronous and streaming adapters.
@@ -1696,9 +2676,16 @@ def _execute_retrieval_events(
     mode: str = "answer",
     cancellation_event: Event | None = None,
 ) -> Iterable[dict[str, Any]]:
+    started_at = perf_counter()
+    query_context = _new_query_llm_context(db_path, cancellation_event)
     yield _progress_event(
         "retrieval_started",
-        {"query": query, "projectIds": project_ids or [], "mode": mode},
+        {
+            "query": query,
+            "projectIds": project_ids or [],
+            "mode": mode,
+            "requestId": query_context.request_id,
+        },
     )
     docs = _load_ready_documents(db_path, project_ids)
     yield _progress_event("documents_loaded", {"documentCount": len(docs)})
@@ -1711,17 +2698,16 @@ def _execute_retrieval_events(
         "document_selection_started",
         {"documentCount": len(docs), "limit": retrieval_limit},
     )
-    with llm_request_scope(
-        cancellation_event,
-        timeout_seconds=_retrieval_llm_timeout_seconds(),
-    ):
-        selected = select_candidate_documents(
-            query,
-            docs,
-            limit=retrieval_limit,
-            model=_get_retrieval_model(),
-            mode=mode,
-        )
+    selection_started_at = perf_counter()
+    with _query_llm_context_scope(query_context):
+        with candidate_completion_scope(_candidate_completion):
+            selected = select_candidate_documents(
+                query,
+                docs,
+                limit=retrieval_limit,
+                model=query_context.retrieval_model,
+                mode=mode,
+            )
     if cancellation_event is not None and cancellation_event.is_set():
         return
     yield _progress_event(
@@ -1731,8 +2717,21 @@ def _execute_retrieval_events(
             "documents": [_document_summary(document) for document in selected],
             "selectionStrategy": getattr(selected, "strategy", "unspecified"),
             "modelOutcome": getattr(selected, "model_outcome", "unspecified"),
+            "elapsedMs": int((perf_counter() - selection_started_at) * 1000),
         },
     )
+    if _query_deadline_expired(query_context):
+        result = _request_deadline_result(mode)
+        yield _progress_event(
+            "retrieval_completed",
+            {
+                "documentCount": 0,
+                "retrievalStatus": "degraded",
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
+        )
+        yield _result_event(result)
+        return
     if not selected:
         status, degraded_reason = _selection_status(selected)
         if status == "matched":
@@ -1751,46 +2750,133 @@ def _execute_retrieval_events(
         )
         yield _progress_event(
             "retrieval_completed",
-            {"documentCount": 0, "retrievalStatus": status},
+            {
+                "documentCount": 0,
+                "retrievalStatus": status,
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
         )
         yield _result_event(result)
         return
 
-    yield _progress_event("evidence_started", {"documentCount": len(selected)})
-    document_results = yield from _build_selected_documents_evidence_events(
-        query,
-        selected,
-        mode,
-        cancellation_event,
+    document_concurrency = _retrieval_document_concurrency()
+    yield _progress_event(
+        "evidence_started",
+        {
+            "documentCount": len(selected),
+            "documentConcurrency": document_concurrency,
+            "initialDocumentCount": (
+                min(
+                    DEFAULT_EVIDENCE_INITIAL_DOCUMENTS,
+                    document_concurrency,
+                    len(selected),
+                )
+                if mode == "evidence"
+                else len(selected)
+            ),
+        },
     )
+    evidence_expansion: _EvidenceExpansionResult | None = None
+    attempted_documents: list[dict[str, Any]] = list(selected)
+    if mode == "evidence":
+        evidence_expansion = yield from _build_progressive_evidence_events(
+            query,
+            selected,
+            cancellation_event,
+            query_context=query_context,
+            document_concurrency=document_concurrency,
+        )
+        document_results = evidence_expansion.document_results
+        attempted_documents = list(evidence_expansion.attempted_documents)
+    else:
+        document_results = yield from _build_selected_documents_evidence_events(
+            query,
+            selected,
+            mode,
+            cancellation_event,
+            query_context=query_context,
+            document_concurrency=document_concurrency,
+        )
     if cancellation_event is not None and cancellation_event.is_set():
         return
     collection_degraded_reason = _evidence_collection_degraded_reason(
-        selected,
+        attempted_documents,
         document_results,
     )
+    if _query_deadline_expired(query_context):
+        validated_results, pending_validation_count = _validated_results_only(
+            document_results
+        )
+        if pending_validation_count:
+            logger.warning(
+                "Discarding %d unvalidated evidence documents at request deadline",
+                pending_validation_count,
+            )
+        result = _request_deadline_result(mode, validated_results)
+        yield _progress_event(
+            "retrieval_completed",
+            {
+                "documentCount": len(result["selectedDocuments"]),
+                "retrievalStatus": "degraded",
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
+        )
+        yield _result_event(result)
+        return
 
     validation_candidate_count = sum(
-        bool(document.get(EVIDENCE_VALIDATION_REASON_KEY)) for document in selected
+        bool(result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY))
+        for result in document_results
     )
     if validation_candidate_count:
         yield _progress_event(
             "evidence_validation_started",
             {"documentCount": validation_candidate_count},
         )
-    with llm_request_scope(
-        cancellation_event,
-        timeout_seconds=_retrieval_llm_timeout_seconds(),
-    ):
+    with _query_llm_context_scope(query_context):
         validation = _validate_retrieved_evidence(query, document_results, mode)
     if cancellation_event is not None and cancellation_event.is_set():
         return
+    document_results = list(validation.document_results)
+    coverage_degraded_reason: str | None = None
+    if mode == "evidence" and document_results:
+        coverage = evidence_expansion.coverage if evidence_expansion else None
+        coverage_failed = evidence_expansion.coverage_failed if evidence_expansion else False
+        if coverage is None or validation_candidate_count:
+            yield _progress_event(
+                "evidence_coverage_started",
+                {
+                    "wave": "final",
+                    "evidenceDocumentCount": len(document_results),
+                    "remainingDocumentCount": 0,
+                },
+            )
+            with _query_llm_context_scope(query_context):
+                coverage = _assess_evidence_coverage(query, document_results, [])
+            coverage_failed = coverage_failed or bool(coverage.degraded_reason)
+            yield _progress_event(
+                "evidence_coverage_completed",
+                {
+                    "wave": "final",
+                    "coverage": coverage.coverage,
+                    "confidence": coverage.confidence,
+                    "unresolved": list(coverage.unresolved),
+                    "remainingDocumentCount": 0,
+                },
+            )
+        if coverage_failed or coverage is None or coverage.degraded_reason:
+            coverage_degraded_reason = "evidence_coverage_failed"
+        elif not _coverage_is_complete(coverage):
+            coverage_degraded_reason = "evidence_expansion_limit_reached"
+
     status, degraded_reason = _combine_retrieval_status(
         selected,
         validation,
         collection_degraded_reason,
     )
-    document_results = list(validation.document_results)
+    if coverage_degraded_reason and status != "degraded":
+        status = "degraded"
+        degraded_reason = coverage_degraded_reason
     if validation_candidate_count:
         yield _progress_event(
             "evidence_validation_completed",
@@ -1800,6 +2886,19 @@ def _execute_retrieval_events(
                 "retrievalStatus": status,
             },
         )
+
+    if _query_deadline_expired(query_context):
+        result = _request_deadline_result(mode, document_results)
+        yield _progress_event(
+            "retrieval_completed",
+            {
+                "documentCount": len(result["selectedDocuments"]),
+                "retrievalStatus": "degraded",
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
+        )
+        yield _result_event(result)
+        return
 
     if not document_results:
         result = _empty_retrieval_result(
@@ -1814,7 +2913,11 @@ def _execute_retrieval_events(
         )
         yield _progress_event(
             "retrieval_completed",
-            {"documentCount": 0, "retrievalStatus": status},
+            {
+                "documentCount": 0,
+                "retrievalStatus": status,
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
         )
         yield _result_event(result)
         return
@@ -1824,10 +2927,7 @@ def _execute_retrieval_events(
             "answer_generation_started",
             {"evidenceDocumentCount": len(document_results)},
         )
-    with llm_request_scope(
-        cancellation_event,
-        timeout_seconds=_retrieval_llm_timeout_seconds(),
-    ):
+    with _query_llm_context_scope(query_context):
         result = _build_answer_result(
             query,
             document_results,
@@ -1836,6 +2936,18 @@ def _execute_retrieval_events(
             degraded_reason=degraded_reason,
         )
     if cancellation_event is not None and cancellation_event.is_set():
+        return
+    if _query_deadline_expired(query_context):
+        result = _request_deadline_result(mode, document_results)
+        yield _progress_event(
+            "retrieval_completed",
+            {
+                "documentCount": len(result["selectedDocuments"]),
+                "retrievalStatus": "degraded",
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
+        )
+        yield _result_event(result)
         return
     if mode != "evidence":
         yield _progress_event(
@@ -1847,6 +2959,7 @@ def _execute_retrieval_events(
         {
             "documentCount": len(result["selectedDocuments"]),
             "retrievalStatus": result["retrievalStatus"],
+            "elapsedMs": int((perf_counter() - started_at) * 1000),
         },
     )
     yield _result_event(result)

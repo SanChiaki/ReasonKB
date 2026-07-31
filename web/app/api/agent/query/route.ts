@@ -6,7 +6,11 @@ import {
   requireAgentAuth,
 } from "@/lib/agent-auth";
 import { appConfig } from "@/lib/config";
-import { sendRetrievalQueryStream } from "@/lib/retrieval-client";
+import {
+  openRetrievalQueryStream,
+  projectAgentRetrievalStream,
+  sendRetrievalQueryStream,
+} from "@/lib/retrieval-client";
 import { MAX_AGENT_PROJECT_IDS } from "@/lib/repos/api-key-store";
 import { findUnavailableProjectIds } from "@/lib/repos/project-store";
 
@@ -17,6 +21,15 @@ const schema = z.object({
     .max(MAX_AGENT_PROJECT_IDS)
     .default([]),
 });
+
+function acceptsEventStream(request: Request) {
+  return request.headers
+    .get("accept")
+    ?.split(",")
+    .some(
+      (value) => value.trim().split(";", 1)[0]?.toLowerCase() === "text/event-stream",
+    );
+}
 
 export async function POST(request: Request) {
   const auth = requireAgentAuth(request, ["query"]);
@@ -46,12 +59,27 @@ export async function POST(request: Request) {
   }
 
   try {
+    const input = {
+      query: parsed.data.query,
+      projectIds,
+      mode: "answer" as const,
+    };
+    if (acceptsEventStream(request)) {
+      const body = projectAgentRetrievalStream(
+        await openRetrievalQueryStream(input, request.signal),
+        "answer",
+      );
+      return new Response(body, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
     const result = await sendRetrievalQueryStream(
-      {
-        query: parsed.data.query,
-        projectIds,
-        mode: "answer",
-      },
+      input,
       () => {},
       request.signal,
     );

@@ -72,6 +72,7 @@ def test_llm_test_uses_saved_api_key_when_request_key_is_blank(
     assert seen_kwargs["api_key"] == "saved-key"
     assert seen_kwargs["api_base"] == "https://current.example.test/v1"
     assert seen_kwargs["model"] == "openai/current-model"
+    assert seen_kwargs["max_retries"] == 0
 
 
 def test_llm_test_reports_missing_saved_api_key(tmp_path, monkeypatch):

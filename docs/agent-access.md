@@ -51,12 +51,26 @@ Every retrieval response includes `retrievalStatus`:
 
 Candidate selection sends at most 50 ranked document summaries in each model
 prompt. `answer` mode continues to the next batch when a batch is empty or its
-output is recoverably malformed, then stops after finding candidates;
-`evidence` mode evaluates every batch and re-ranks combined selections when
-they exceed the configured document limit.
-This keeps every ready document reachable by semantic model selection without
-creating one unbounded prompt, at the cost of additional model calls for large
-retrieval scopes. Provider failures stop the cascade.
+output is recoverably malformed, then stops after finding candidates.
+`evidence` mode evaluates every candidate-summary batch and performs a bounded
+re-rank when the combined selections exceed the configured document limit.
+This preserves the reachability of documents in later batches without creating
+one unbounded prompt. Provider failures stop the candidate cascade.
+
+After ranking, Evidence searches at most two selected documents in its first
+wave. It checks whether the collected page text covers every material part of
+the request and whether the remaining candidate summaries plausibly contain a
+missing source. Early stopping requires explicit `complete` coverage, high
+confidence, no unresolved parts, and no technical degradation. Incomplete or
+unknown coverage expands to another bounded wave until the configured document
+limit is exhausted. Useful partial evidence is returned as `degraded` with
+`evidence_expansion_limit_reached` or `evidence_coverage_failed` instead of
+being presented as a complete match.
+
+Progressive multi-document routing is a ReasonKB orchestration policy, not an
+official PageIndex retrieval guarantee. PageIndex supplies the per-document
+tree and page navigation primitives; ReasonKB owns corpus scoping, document
+ranking, cross-document budgets, validation, and response assembly.
 
 Candidate-model failures use a bounded deterministic fallback only when file
 metadata, descriptions, the PageIndex tree, and exact constraints found while
@@ -74,6 +88,92 @@ Page selection, bounded tree continuation, page loading, final evidence
 validation, and answer generation also propagate technical failures as
 `degraded`. A response can therefore contain useful evidence and still be
 degraded when an upstream failure means the search may be incomplete.
+
+## Retrieval Runtime Controls
+
+ReasonKB snapshots the Answer Model, Retrieval Model, credentials, and request
+deadline once at the start of each query. `PAGEINDEX_LLM_MODEL` is used for
+indexing and final Answer synthesis; `PAGEINDEX_LLM_RETRIEVAL_MODEL` is used for
+candidate routing, PageIndex node/page selection, tree sufficiency checks, and
+evidence validation. Administrator settings stored in SQLite take precedence
+over these environment defaults.
+
+Structured retrieval stages request hidden thinking to be disabled when the
+provider supports explicit reasoning control. The bounded third tree
+assessment may request `low` reasoning for complex comparison, cross-document,
+or multi-hop questions after earlier non-thinking rounds remain insufficient.
+The request is honored only when the provider exposes an enforceable low-effort
+budget. DeepSeek-compatible endpoints have no portable independent
+reasoning-token cap, so `low` falls back to explicitly disabled thinking there.
+Answer synthesis uses `ANSWER_REASONING_MODE=auto` by default:
+ordinary synthesis explicitly disables hidden thinking, while clearly
+multi-step questions or broad cross-document evidence use the same
+provider-aware `low` policy. Set `disabled`, `low`, or `default` to override it.
+PageIndex's term "reasoning-based retrieval" describes LLM navigation over the
+document tree; it does not require hidden thinking for every provider request.
+
+The retrieval service also accepts these deployment controls:
+
+```env
+# Whole-query deadline in seconds. Default 240; values are capped at 600.
+RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
+
+# Per-call timeouts. Retrieval defaults to 30; final Answer defaults to 120.
+RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
+ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
+
+# Retrieval attempts per call, including the first attempt. Default/max 2.
+RETRIEVAL_LLM_MAX_ATTEMPTS=2
+
+# PageIndex runtime wrapper attempts (indexing/fallback paths). Default/max 2.
+PAGEINDEX_LLM_MAX_ATTEMPTS=2
+
+# Answer attempts per call, including the first attempt. Default 1; allowed 1-2.
+ANSWER_LLM_MAX_ATTEMPTS=1
+
+# Answer reasoning: auto (default), disabled, low, or provider default.
+ANSWER_REASONING_MODE=auto
+
+# Maximum visible Answer output. Default 4096; allowed 256-8192.
+ANSWER_LLM_MAX_OUTPUT_TOKENS=4096
+
+# Retrieval-model calls admitted across the process. Default 2; allowed 1-5.
+RETRIEVAL_LLM_CONCURRENCY=2
+
+# Documents searched concurrently by one request. Default 2; allowed 1-5.
+RETRIEVAL_DOCUMENT_CONCURRENCY=2
+```
+
+The LLM provider SDK does not add retries on top of this budget. Retries are
+limited to transient failures and remain bounded by the whole-query deadline.
+The document concurrency setting is per request. Retrieval-model admission is
+process-wide, so simultaneous Agent/MCP requests cannot each consume the full
+document-search budget. The retrieval service also retains a five-worker ceiling
+for non-model document work. Cancellation stops queued work and prevents later
+model rounds or retries. An already-running synchronous provider request cannot
+be interrupted by LiteLLM, so it retains its global admission slot until the
+provider returns or the 30-second retrieval-call timeout expires; any late
+response is discarded.
+
+## Agent Streaming
+
+`POST /api/agent/query` and `POST /api/agent/evidence` return the existing JSON
+response by default. Clients that send `Accept: text/event-stream` receive an
+SSE stream instead. Progress frames contain the stage and non-sensitive counts;
+candidate document summaries, source paths, document URLs, and page excerpts are
+not exposed in Agent progress frames. The final `result` frame has the same
+scope-checked payload as the corresponding JSON response.
+
+The retrieval service sends SSE keep-alive comments while a model call is in
+flight and disables common reverse-proxy buffering. Clients must still enforce
+a request deadline and propagate cancellation; a keep-alive does not extend the
+configured 240-second retrieval budget or an upstream 300-second transport cap.
+
+MCP `reasonkb_query` and `reasonkb_evidence` use this stream automatically. When
+the caller supplies an MCP `progressToken`, the server sends ordered
+`notifications/progress` messages before the final tool result. The token is
+returned unchanged, including numeric token `0`; without a token, no progress
+notifications are sent.
 
 ## Docker CLI
 

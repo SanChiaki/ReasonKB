@@ -256,6 +256,89 @@ describe("agent routes", () => {
     );
   });
 
+  it.each([
+    ["query", "answer"],
+    ["evidence", "evidence"],
+  ] as const)(
+    "relays retrieval events as SSE on the %s route when requested",
+    async (routeName, mode) => {
+      const dbPath = makeTempDb();
+      mockConfig(dbPath);
+      const alpha = createProject(dbPath, {
+        ownerUserId: "user_demo",
+        name: "Alpha",
+      });
+      const key = createApiKey(dbPath, {
+        ownerUserId: "user_demo",
+        name: `Streaming ${routeName}`,
+        scopes: [routeName],
+        projectIds: [alpha.id],
+      });
+      const encoder = new TextEncoder();
+      let closeUpstream!: () => void;
+      const upstreamBody = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "progress",
+                stage: "documents_loaded",
+                data: { documentCount: 2 },
+              })}\n\n`,
+            ),
+          );
+          closeUpstream = () => controller.close();
+        },
+      });
+      const openRetrievalQueryStream = vi.fn().mockResolvedValue(upstreamBody);
+      const sendRetrievalQueryStream = vi.fn();
+      vi.doMock("@/lib/retrieval-client", () => ({
+        openRetrievalQueryStream,
+        projectAgentRetrievalStream: (body: ReadableStream<Uint8Array>) => body,
+        sendRetrievalQueryStream,
+      }));
+      const route =
+        routeName === "query"
+          ? await import("@/app/api/agent/query/route")
+          : await import("@/app/api/agent/evidence/route");
+
+      const response = await route.POST(
+        new Request(`http://localhost/api/agent/${routeName}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key.apiKey}`,
+            Accept: "text/event-stream",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ query: "Stream retrieval progress" }),
+        }),
+      );
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Expected an SSE response body.");
+      }
+      const firstChunk = await reader.read();
+      closeUpstream();
+      await reader.cancel();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/event-stream");
+      expect(response.headers.get("x-accel-buffering")).toBe("no");
+      expect(new TextDecoder().decode(firstChunk.value)).toContain(
+        '"stage":"documents_loaded"',
+      );
+      expect(openRetrievalQueryStream).toHaveBeenCalledWith(
+        {
+          query: "Stream retrieval progress",
+          projectIds: [alpha.id],
+          mode,
+        },
+        expect.any(AbortSignal),
+      );
+      expect(sendRetrievalQueryStream).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["query", "evidence"] as const)(
     "rejects excessive project IDs on the %s route",
     async (routeName) => {
