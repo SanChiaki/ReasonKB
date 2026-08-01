@@ -50,9 +50,7 @@ DEFAULT_PREFILTER_LIMIT = 50
 STRUCTURE_SEARCH_TEXT_LIMIT = 30000
 FALLBACK_PAGE_SEARCH_TEXT_LIMIT = 200000
 MIN_STRONG_PREFILTER_SCORE = 3
-ANSWER_FALLBACK_LIMIT = 2
-EVIDENCE_FALLBACK_LIMIT = 3
-SELECTION_MODES = frozenset({"answer", "evidence"})
+CANDIDATE_FALLBACK_LIMIT = 3
 EVIDENCE_VALIDATION_REASON_KEY = "_reasonkb_evidence_validation_reason"
 MIN_FALLBACK_QUERY_TERMS = 2
 MIN_FALLBACK_SUMMARY_COVERAGE = 0.5
@@ -683,7 +681,7 @@ def _candidate_alias(index: int) -> str:
     return f"D{index + 1:03d}"
 
 
-def _selection_prompt(query: str, docs: list[dict], mode: str) -> str:
+def _selection_prompt(query: str, docs: list[dict]) -> str:
     candidates = [
         {
             "candidate_id": _candidate_alias(index),
@@ -695,21 +693,15 @@ def _selection_prompt(query: str, docs: list[dict], mode: str) -> str:
         }
         for index, doc in enumerate(docs)
     ]
-    selection_goal = (
-        "Prefer recall: include every document that may plausibly provide relevant evidence."
-        if mode == "evidence"
-        else (
-            "Prefer precision: choose the smallest document set likely to contain enough "
-            "information for an accurate answer."
-        )
-    )
     return f"""
 You are selecting candidate documents before PageIndex tree retrieval.
 
 Choose the candidate IDs that are most likely to contain information needed for the query.
 Use the project name, relative paths, file name, and one-sentence document description.
 The query and the document descriptions may be written in different languages.
-{selection_goal}
+Prefer recall while staying within the candidate limit: include every document that may plausibly
+provide direct evidence for a material part, qualifier, comparison, entity, or time period in the
+query. The same selected evidence set will be used for raw Evidence results and Answer generation.
 
 Query:
 {query}
@@ -784,13 +776,12 @@ def _llm_select_documents(
     *,
     limit: int,
     model: str | None,
-    mode: str,
 ) -> _LlmSelection:
     llm_completion = _CANDIDATE_COMPLETION.get()
     if llm_completion is None:
         from pageindex.utils import llm_completion
 
-    prompt = _selection_prompt(query, docs, mode)
+    prompt = _selection_prompt(query, docs)
     try:
         completion_result = llm_completion(
             model=model,
@@ -880,7 +871,6 @@ def _rerank_batch_selections(
     *,
     limit: int,
     model: str | None,
-    mode: str,
     partial: bool,
 ) -> _LlmSelection:
     current = _deduplicate_documents(documents)
@@ -894,7 +884,6 @@ def _rerank_batch_selections(
                 batch,
                 limit=limit,
                 model=model,
-                mode=mode,
             )
             if selection.documents:
                 reduced.extend(selection.documents)
@@ -917,7 +906,6 @@ def _rerank_batch_selections(
         current,
         limit=limit,
         model=model,
-        mode=mode,
     )
     if not selection.documents:
         return _LlmSelection(tuple(current[:limit]), "partial")
@@ -935,7 +923,6 @@ def _llm_select_document_batches(
     *,
     limit: int,
     model: str | None,
-    mode: str,
 ) -> tuple[_LlmSelection, int]:
     outcomes: list[_LlmSelectionOutcome] = []
     selected_documents: list[dict] = []
@@ -946,14 +933,11 @@ def _llm_select_document_batches(
             batch,
             limit=limit,
             model=model,
-            mode=mode,
         )
         attempted_batches += 1
         outcomes.append(selection.outcome)
         selected_documents.extend(selection.documents)
         if selection.outcome == "provider_error":
-            break
-        if mode != "evidence" and selection.documents:
             break
 
     if not selected_documents:
@@ -968,7 +952,6 @@ def _llm_select_document_batches(
             selected_documents,
             limit=limit,
             model=model,
-            mode=mode,
             partial=partial,
         ),
         attempted_batches,
@@ -995,23 +978,22 @@ def select_candidate_documents(
     docs: list[dict],
     limit: int = 8,
     model: str | None = None,
-    mode: str = "answer",
+    mode: str | None = None,
 ) -> CandidateDocuments:
+    # Kept temporarily for direct callers that still pass the former output mode.
+    # Retrieval semantics are intentionally mode-independent.
+    del mode
     if limit <= 0 or not docs:
         return CandidateDocuments(
             [],
             model_outcome="not_run",
             strategy="empty_scope",
         )
-    if mode not in SELECTION_MODES:
-        raise ValueError(f"unsupported document selection mode: {mode}")
-
     tier_constrained_docs = _documents_matching_dealer_tier(query, docs)
     if not tier_constrained_docs:
         logger.info(
             "Candidate document selection strategy=hard_constraint_no_match "
-            "mode=%s model_outcome=not_run documents=%d",
-            mode,
+            "model_outcome=not_run documents=%d",
             len(docs),
         )
         return CandidateDocuments(
@@ -1029,7 +1011,6 @@ def select_candidate_documents(
         candidate_batches,
         limit=limit,
         model=model,
-        mode=mode,
     )
     strong_deterministic: list[dict] = []
 
@@ -1088,10 +1069,7 @@ def select_candidate_documents(
             else "explicit_empty_no_strong_match"
         )
     else:
-        fallback_limit = min(
-            limit,
-            EVIDENCE_FALLBACK_LIMIT if mode == "evidence" else ANSWER_FALLBACK_LIMIT,
-        )
+        fallback_limit = min(limit, CANDIDATE_FALLBACK_LIMIT)
         strong_deterministic = _strong_keyword_select_documents(
             query,
             llm_candidates,
@@ -1115,10 +1093,9 @@ def select_candidate_documents(
         logger.info if llm_selection.outcome == "selected" else logger.warning
     )
     log_selection(
-        "Candidate document selection strategy=%s mode=%s model_outcome=%s "
+        "Candidate document selection strategy=%s model_outcome=%s "
         "prefiltered=%d batches=%d deterministic=%d selected=%d",
         strategy,
-        mode,
         llm_selection.outcome,
         len(llm_candidates),
         attempted_batches,

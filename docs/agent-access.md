@@ -50,27 +50,31 @@ Every retrieval response includes `retrievalStatus`:
   caller can retry instead of treating the response as a confirmed no-match.
 
 Candidate selection sends at most 50 ranked document summaries in each model
-prompt. `answer` mode continues to the next batch when a batch is empty or its
-output is recoverably malformed, then stops after finding candidates.
-`evidence` mode evaluates every candidate-summary batch and performs a bounded
-re-rank when the combined selections exceed the configured document limit.
-This preserves the reachability of documents in later batches without creating
-one unbounded prompt. Provider failures stop the candidate cascade.
+prompt. The shared retrieval path evaluates every candidate-summary batch and
+performs a bounded re-rank when the combined selections exceed the configured
+document limit. This preserves the reachability of documents in later batches
+without creating one unbounded prompt. Provider failures stop the candidate
+cascade.
 
-After ranking, Evidence searches at most two selected documents in its first
-wave. It checks whether the collected page text covers every material part of
-the request and whether the remaining candidate summaries plausibly contain a
-missing source. Early stopping requires explicit `complete` coverage, high
-confidence, no unresolved parts, and no technical degradation. Incomplete or
-unknown coverage expands to another bounded wave until the configured document
-limit is exhausted. Useful partial evidence is returned as `degraded` with
-`evidence_expansion_limit_reached` or `evidence_coverage_failed` instead of
-being presented as a complete match.
+After ranking, Answer and Evidence build the same validated EvidenceSet. Both
+start with at most two selected documents, inspect them with the same PageIndex
+tree search and evidence validation rules, and expand in bounded waves when a
+conservative coverage check finds a missing or uncertain part of the request.
+Expansion stops only on high-confidence complete coverage or after the selected
+document budget is exhausted. Evidence returns the validated page text directly.
+Answer uses that same EvidenceSet for a final answer-generation call. Output mode
+does not change candidate selection, page selection, evidence retention,
+coverage decisions, or document concurrency.
 
-Progressive multi-document routing is a ReasonKB orchestration policy, not an
-official PageIndex retrieval guarantee. PageIndex supplies the per-document
-tree and page navigation primitives; ReasonKB owns corpus scoping, document
-ranking, cross-document budgets, validation, and response assembly.
+This is path equivalence, not cross-request caching. Separate Answer and Evidence
+HTTP requests each execute retrieval and can differ when the model provider is
+non-deterministic. A product contract requiring byte-identical EvidenceSets across
+separate calls would need an explicit retrieval-result or session identifier.
+
+Cross-document routing is a ReasonKB orchestration policy, not an official
+PageIndex retrieval guarantee. PageIndex supplies the per-document tree and page
+navigation primitives; ReasonKB owns corpus scoping, document ranking,
+cross-document budgets, validation, and response assembly.
 
 Candidate-model failures use a bounded deterministic fallback only when file
 metadata, descriptions, the PageIndex tree, and exact constraints found while

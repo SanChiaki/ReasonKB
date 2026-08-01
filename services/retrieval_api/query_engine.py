@@ -957,7 +957,8 @@ def _page_selection_request_state(
 _COMPLETE_LIST_QUERY_RE = re.compile(
     r"(?:\b(?:what\s+are|which|list|all|every|indicators?|dimensions?|"
     r"criteria|categories|taxonomy|overview)\b|"
-    r"哪些|哪几|所有|全部|指标|维度|清单|分类|构成|组成|列出|分别)",
+    r"哪些|哪几|所有|全部|指标|维度|清单|分类|构成|组成|列出|分别|"
+    r"(?:全部|所有)[^。！？]{0,12}规则|规则(?:是?什么|有哪些|包括(?:哪些|什么)?|如下))",
     re.IGNORECASE,
 )
 _OVERVIEW_NODE_RE = re.compile(
@@ -1056,7 +1057,6 @@ def _build_document_map(document: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def choose_page_window(
     query: str,
     document: dict[str, Any],
-    mode: str = "answer",
 ) -> str:
     from pageindex.retrieve import get_document_structure
     from pageindex.utils import extract_json
@@ -1067,18 +1067,11 @@ def choose_page_window(
         structure_json = get_document_structure(document_map, document["id"])
     except Exception:
         return _PageWindow(fallback, "page_structure_failed")
-    selection_goal = (
-        "Find all distinct, specific tree nodes likely to contain relevant evidence. "
-        "Favor recall across sections, but exclude nodes with no plausible relevance."
-        if mode == "evidence"
-        else (
-            "Find the smallest set of specific tree nodes likely to contain enough "
-            "evidence to answer the question accurately."
-        )
-    )
     prompt = f"""
 You are performing PageIndex tree search over a document.
-{selection_goal}
+Find all distinct, specific tree nodes likely to contain relevant evidence. Favor recall across
+sections, but exclude nodes with no plausible relevance. The same evidence set will be used for
+raw Evidence results and Answer generation.
 Prefer leaf nodes or narrow sections. Do not select a broad parent when a specific child is enough.
 For questions asking for a list, all items, dimensions, indicators, criteria, or an overview,
 include overview, preface, summary, or table nodes when their summaries enumerate requested items.
@@ -1163,26 +1156,18 @@ def _assess_evidence_and_choose_next_pages(
     document: dict[str, Any],
     evidence: list[dict[str, Any]],
     inspected_pages: set[int],
-    mode: str,
 ) -> _EvidenceAssessment:
     from pageindex.utils import extract_json, remove_fields
 
     if set(_available_page_numbers(document)).issubset(inspected_pages):
         return _EvidenceAssessment(True, None)
 
-    purpose = (
-        "Decide whether the evidence is sufficient to answer the question accurately and completely."
-        if mode != "evidence"
-        else (
-            "Decide whether the evidence provides strong search-result coverage for a downstream caller. "
-            "Prefer recall: continue when another distinct section is likely to contain relevant evidence. "
-            "Do not answer the question."
-        )
-    )
     structure = remove_fields(document.get("structure", []), fields=["text"])
     prompt = f"""
 You are continuing a bounded PageIndex tree search.
-{purpose}
+Decide whether the collected evidence directly covers every material part of the question. Prefer
+recall: continue when another distinct section is likely to contain relevant evidence. Do not answer
+the question; only decide whether more document pages should be inspected.
 
 Question: {query}
 Document: {document.get("file_name", "")}
@@ -1300,11 +1285,10 @@ def _merge_page_evidence(
 def _document_tree_search_steps(
     query: str,
     document: dict[str, Any],
-    mode: str,
 ) -> Iterable[dict[str, Any]]:
     degraded_reasons: list[str] = []
     fallback_pages = _default_page_window(document)
-    selected = choose_page_window(query, document, mode)
+    selected = choose_page_window(query, document)
     selection_degraded_reason = getattr(selected, "degraded_reason", None)
     if selection_degraded_reason:
         degraded_reasons.append(selection_degraded_reason)
@@ -1356,7 +1340,6 @@ def _document_tree_search_steps(
                     document,
                     evidence,
                     inspected_pages,
-                    mode,
                 )
             finally:
                 _TREE_ASSESSMENT_REASONING.reset(reasoning_token)
@@ -1451,7 +1434,6 @@ def _join_evidence_content(evidence: list[dict[str, Any]]) -> str:
 def _assemble_document_result(
     query: str,
     document: dict[str, Any],
-    mode: str,
     pages: str,
     evidence: list[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -1466,24 +1448,22 @@ def _assemble_document_result(
         "pages": pages,
         "evidence": evidence,
     }
-    citation = None
-    if mode != "evidence":
-        citation = build_citation(
-            project={
-                "id": document["project_id"],
-                "name": document["project_name"],
-                "sourceDisplayName": document.get("source_display_name"),
-                "sourceKind": document.get("source_kind"),
-            },
-            document={
-                "id": document["id"],
-                "file_name": document["file_name"],
-                "document_url": document.get("document_url"),
-            },
-            pages=pages,
-            focus_page=focus_page,
-            excerpt=excerpt,
-        )
+    citation = build_citation(
+        project={
+            "id": document["project_id"],
+            "name": document["project_name"],
+            "sourceDisplayName": document.get("source_display_name"),
+            "sourceKind": document.get("source_kind"),
+        },
+        document={
+            "id": document["id"],
+            "file_name": document["file_name"],
+            "document_url": document.get("document_url"),
+        },
+        pages=pages,
+        focus_page=focus_page,
+        excerpt=excerpt,
+    )
     evidence_block = {
         "projectId": document["project_id"],
         "projectName": document["project_name"],
@@ -1642,7 +1622,7 @@ def _assess_evidence_coverage(
         for document in remaining_documents
     ]
     prompt = f"""
-You are deciding whether an Evidence retrieval request should inspect more candidate documents.
+You are deciding whether the shared EvidenceSet has complete evidence coverage or should inspect more candidate documents.
 
 Mark coverage as complete only when the collected page text directly covers every material part,
 constraint, comparison, list item, time period, and requested entity in the question. Also require
@@ -1706,21 +1686,13 @@ def _coverage_is_complete(result: _EvidenceCoverageResult | None) -> bool:
 def _parse_evidence_validation_matches(
     payload: Any,
     document_results: list[dict[str, Any]],
-    *,
-    require_complete_answer: bool = False,
 ) -> dict[int, set[int]] | None:
     if not isinstance(payload, dict) or not isinstance(payload.get("matches"), list):
         return None
 
     raw_matches = payload["matches"]
-    if require_complete_answer:
-        sufficient = payload.get("sufficient")
-        if type(sufficient) is not bool:
-            return None
-        if not sufficient:
-            return {}
     if not raw_matches:
-        return None if require_complete_answer else {}
+        return {}
 
     result_indexes: dict[str, int] = {}
     available_pages: dict[int, set[int]] = {}
@@ -1775,9 +1747,10 @@ def _expand_evidence_supporting_pages(
     """Keep bounded table/list continuations that a page validator can omit.
 
     PageIndex returns physical page windows, while PDF/XLSX extraction often loses the grid
-    relationship between a heading and its continuation rows. For Evidence list requests, a
-    validated page makes the contiguous selected window around it relevant by construction. This
-    restores that window without broadening to a separate, non-contiguous page selection.
+    relationship between a heading and its continuation rows. For complete-list and rule-set
+    requests, a validated page makes the contiguous selected window around it relevant by
+    construction. This restores that window without broadening to a separate, non-contiguous page
+    selection.
     """
     if not supporting_pages or not _is_complete_list_query(query):
         return supporting_pages
@@ -1854,7 +1827,6 @@ def _expand_evidence_supporting_pages(
 def _validate_retrieved_evidence(
     query: str,
     document_results: list[dict[str, Any]],
-    mode: str,
 ) -> _EvidenceValidationResult:
     supported_results: list[dict[str, Any]] = []
     deterministically_rejected_count = 0
@@ -1875,8 +1847,7 @@ def _validate_retrieved_evidence(
 
     if deterministically_rejected_count:
         logger.info(
-            "Rejected retrieved evidence with conflicting dealer tier mode=%s count=%d",
-            mode,
+            "Rejected retrieved evidence with conflicting dealer tier count=%d",
             deterministically_rejected_count,
         )
     document_results = supported_results
@@ -1894,33 +1865,12 @@ def _validate_retrieved_evidence(
 
     validation_results = [document_results[index] for index in validation_indexes]
     candidates = _compact_validation_candidates(query, validation_results)
-    validation_goal = (
-        "Keep pages only when their combined text directly supports every material part of the "
-        "question and is sufficient to answer it accurately and completely. If the text supports "
-        "only part of the requested result, mark it insufficient and return no matches."
-        if mode != "evidence"
-        else (
-            "Keep a candidate only when its page text directly supports the requested fact and "
-            "all of the query's qualifiers, such as year, version, product level, or audience. "
-            "A neighboring topic or a different year's threshold is not safe evidence."
-        )
-    )
-    output_contract = (
-        "Return JSON only:\n"
-        '{"sufficient":true,"matches":[{"candidate_id":"D001",'
-        '"supporting_pages":[1,3]}]}\n'
-        'Return {"sufficient":false,"matches":[]} when the collected pages cannot '
-        "fully answer the question."
-        if mode != "evidence"
-        else (
-            "Return JSON only:\n"
-            '{"matches":[{"candidate_id":"D001","supporting_pages":[1,3]}]}\n'
-            'Return {"matches":[]} when none of the candidates are directly relevant evidence.'
-        )
-    )
     prompt = f"""
 You are validating page evidence collected by the retrieval candidate stage.
-{validation_goal}
+Keep a candidate only when its page text directly supports a requested fact or material part of the
+question and all applicable qualifiers, such as year, version, product level, audience, or entity.
+A neighboring topic or a different year's threshold is not safe evidence. Preserve directly
+supporting partial evidence; overall question completeness is assessed separately after validation.
 
 Question: {query}
 Candidate page text:
@@ -1936,7 +1886,9 @@ Exclude candidates that merely share keywords, discuss a neighboring topic, or d
 the requested fact. Never infer a fact that is absent from the page text. A page that mentions
 the requested year only in an unrelated note does not support a year-specific answer; the fact
 itself must be stated for that year. Never use a different year's value as evidence.
-{output_contract}
+Return JSON only:
+{{"matches":[{{"candidate_id":"D001","supporting_pages":[1,3]}}]}}
+Return {{"matches":[]}} when none of the candidates are directly relevant evidence.
 """
 
     from pageindex.utils import extract_json
@@ -1953,7 +1905,6 @@ itself must be stated for that year. Never use a different year's value as evide
         accepted_local_indexes = _parse_evidence_validation_matches(
             parsed,
             validation_results,
-            require_complete_answer=mode != "evidence",
         )
     except Exception:
         accepted_local_indexes = None
@@ -1965,8 +1916,7 @@ itself must be stated for that year. Never use a different year's value as evide
             if index not in validation_indexes
         )
         logger.warning(
-            "Retrieved evidence validation failed mode=%s attempted=%d retained=%d",
-            mode,
+            "Retrieved evidence validation failed attempted=%d retained=%d",
             len(validation_indexes),
             len(retained),
         )
@@ -1993,12 +1943,11 @@ itself must be stated for that year. Never use a different year's value as evide
         supporting_pages = accepted_by_global_index.get(index)
         if not supporting_pages:
             continue
-        if mode == "evidence":
-            supporting_pages = _expand_evidence_supporting_pages(
-                query,
-                result,
-                supporting_pages,
-            )
+        supporting_pages = _expand_evidence_supporting_pages(
+            query,
+            result,
+            supporting_pages,
+        )
         supporting_evidence = [
             item
             for item in result.get("contextBlock", {}).get("evidence", [])
@@ -2015,7 +1964,6 @@ itself must be stated for that year. Never use a different year's value as evide
             _assemble_document_result(
                 query,
                 validated_document,
-                mode,
                 _format_page_window(supporting_pages),
                 supporting_evidence,
             )
@@ -2023,8 +1971,7 @@ itself must be stated for that year. Never use a different year's value as evide
         accepted_count += 1
 
     logger.info(
-        "Retrieved evidence validation completed mode=%s attempted=%d accepted=%d",
-        mode,
+        "Retrieved evidence validation completed attempted=%d accepted=%d",
         len(validation_indexes),
         accepted_count,
     )
@@ -2282,7 +2229,7 @@ def _build_answer_result(
 
     result = {
         "answer": answer,
-        "citations": citations,
+        "citations": citations if mode != "evidence" else [],
         "selectedDocuments": _selected_documents_payload(used_documents, mode),
         "evidence": evidence_blocks if mode == "evidence" else [],
         "retrievalStatus": status,
@@ -2319,12 +2266,11 @@ def answer_question(
 def _build_document_evidence_events(
     query: str,
     document: dict[str, Any],
-    mode: str,
 ) -> Iterable[dict[str, Any]]:
     summary = _document_summary(document)
     yield _progress_event("document_evidence_started", {"document": summary})
     try:
-        for step in _document_tree_search_steps(query, document, mode):
+        for step in _document_tree_search_steps(query, document):
             if step["type"] == "pages_selected":
                 yield _progress_event(
                     "document_pages_selected",
@@ -2348,7 +2294,6 @@ def _build_document_evidence_events(
             result = _assemble_document_result(
                 query,
                 document,
-                mode,
                 step["pages"],
                 step["evidence"],
             )
@@ -2383,7 +2328,6 @@ def _build_document_evidence_events(
 def _build_selected_documents_evidence_events(
     query: str,
     selected: list[dict[str, Any]],
-    mode: str,
     cancellation_event: Event | None = None,
     *,
     query_context: _QueryLlmContext | None = None,
@@ -2412,7 +2356,7 @@ def _build_selected_documents_evidence_events(
             ):
                 return
 
-            events = _build_document_evidence_events(query, document, mode)
+            events = _build_document_evidence_events(query, document)
             while not cancellation_signal.is_set():
                 if worker_query_context is not None:
                     if _query_deadline_expired(worker_query_context):
@@ -2571,7 +2515,6 @@ def _build_progressive_evidence_events(
         wave_results = yield from _build_selected_documents_evidence_events(
             query,
             wave,
-            "evidence",
             cancellation_event,
             query_context=query_context,
             document_concurrency=document_concurrency,
@@ -2609,7 +2552,6 @@ def _build_progressive_evidence_events(
                 wave_validation = _validate_retrieved_evidence(
                     query,
                     accumulated_results,
-                    "evidence",
                 )
             accumulated_results = list(wave_validation.document_results)
             if wave_validation.degraded_reason:
@@ -2706,7 +2648,6 @@ def _execute_retrieval_events(
                 docs,
                 limit=retrieval_limit,
                 model=query_context.retrieval_model,
-                mode=mode,
             )
     if cancellation_event is not None and cancellation_event.is_set():
         return
@@ -2765,38 +2706,22 @@ def _execute_retrieval_events(
         {
             "documentCount": len(selected),
             "documentConcurrency": document_concurrency,
-            "initialDocumentCount": (
-                min(
-                    DEFAULT_EVIDENCE_INITIAL_DOCUMENTS,
-                    document_concurrency,
-                    len(selected),
-                )
-                if mode == "evidence"
-                else len(selected)
+            "initialDocumentCount": min(
+                DEFAULT_EVIDENCE_INITIAL_DOCUMENTS,
+                document_concurrency,
+                len(selected),
             ),
         },
     )
-    evidence_expansion: _EvidenceExpansionResult | None = None
-    attempted_documents: list[dict[str, Any]] = list(selected)
-    if mode == "evidence":
-        evidence_expansion = yield from _build_progressive_evidence_events(
-            query,
-            selected,
-            cancellation_event,
-            query_context=query_context,
-            document_concurrency=document_concurrency,
-        )
-        document_results = evidence_expansion.document_results
-        attempted_documents = list(evidence_expansion.attempted_documents)
-    else:
-        document_results = yield from _build_selected_documents_evidence_events(
-            query,
-            selected,
-            mode,
-            cancellation_event,
-            query_context=query_context,
-            document_concurrency=document_concurrency,
-        )
+    evidence_expansion = yield from _build_progressive_evidence_events(
+        query,
+        selected,
+        cancellation_event,
+        query_context=query_context,
+        document_concurrency=document_concurrency,
+    )
+    document_results = evidence_expansion.document_results
+    attempted_documents = list(evidence_expansion.attempted_documents)
     if cancellation_event is not None and cancellation_event.is_set():
         return
     collection_degraded_reason = _evidence_collection_degraded_reason(
@@ -2834,36 +2759,37 @@ def _execute_retrieval_events(
             {"documentCount": validation_candidate_count},
         )
     with _query_llm_context_scope(query_context):
-        validation = _validate_retrieved_evidence(query, document_results, mode)
+        validation = _validate_retrieved_evidence(query, document_results)
     if cancellation_event is not None and cancellation_event.is_set():
         return
     document_results = list(validation.document_results)
+
+    coverage = evidence_expansion.coverage
+    coverage_failed = evidence_expansion.coverage_failed
     coverage_degraded_reason: str | None = None
-    if mode == "evidence" and document_results:
-        coverage = evidence_expansion.coverage if evidence_expansion else None
-        coverage_failed = evidence_expansion.coverage_failed if evidence_expansion else False
-        if coverage is None or validation_candidate_count:
-            yield _progress_event(
-                "evidence_coverage_started",
-                {
-                    "wave": "final",
-                    "evidenceDocumentCount": len(document_results),
-                    "remainingDocumentCount": 0,
-                },
-            )
-            with _query_llm_context_scope(query_context):
-                coverage = _assess_evidence_coverage(query, document_results, [])
-            coverage_failed = coverage_failed or bool(coverage.degraded_reason)
-            yield _progress_event(
-                "evidence_coverage_completed",
-                {
-                    "wave": "final",
-                    "coverage": coverage.coverage,
-                    "confidence": coverage.confidence,
-                    "unresolved": list(coverage.unresolved),
-                    "remainingDocumentCount": 0,
-                },
-            )
+    if document_results and (coverage is None or validation_candidate_count):
+        yield _progress_event(
+            "evidence_coverage_started",
+            {
+                "wave": "final",
+                "evidenceDocumentCount": len(document_results),
+                "remainingDocumentCount": 0,
+            },
+        )
+        with _query_llm_context_scope(query_context):
+            coverage = _assess_evidence_coverage(query, document_results, [])
+        coverage_failed = coverage_failed or bool(coverage.degraded_reason)
+        yield _progress_event(
+            "evidence_coverage_completed",
+            {
+                "wave": "final",
+                "coverage": coverage.coverage,
+                "confidence": coverage.confidence,
+                "unresolved": list(coverage.unresolved),
+                "remainingDocumentCount": 0,
+            },
+        )
+    if document_results:
         if coverage_failed or coverage is None or coverage.degraded_reason:
             coverage_degraded_reason = "evidence_coverage_failed"
         elif not _coverage_is_complete(coverage):

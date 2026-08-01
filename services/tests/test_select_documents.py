@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from services.common.pageindex_runtime import configure_pageindex_runtime
 
 configure_pageindex_runtime()
@@ -283,7 +285,8 @@ def test_provider_failure_stops_candidate_batch_cascade(monkeypatch):
     assert len(prompts) == 1
 
 
-def test_evidence_selection_searches_every_candidate_batch(monkeypatch):
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_selection_searches_every_candidate_batch(monkeypatch, mode):
     docs = [
         {
             "id": f"doc_directory_{index}",
@@ -320,7 +323,7 @@ def test_evidence_selection_searches_every_candidate_batch(monkeypatch):
         "2026 customer churn",
         docs,
         limit=3,
-        mode="evidence",
+        mode=mode,
     )
 
     assert len(selected) == 2
@@ -329,7 +332,8 @@ def test_evidence_selection_searches_every_candidate_batch(monkeypatch):
     assert len(prompts) == 2
 
 
-def test_evidence_selection_keeps_the_third_candidate_batch_reachable(monkeypatch):
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_selection_keeps_the_third_candidate_batch_reachable(monkeypatch, mode):
     docs = [
         {
             "id": f"doc_{index}",
@@ -362,14 +366,15 @@ def test_evidence_selection_keeps_the_third_candidate_batch_reachable(monkeypatc
         "topic evidence",
         docs,
         limit=2,
-        mode="evidence",
+        mode=mode,
     )
 
     assert [document["id"] for document in selected] == ["doc_late"]
     assert len(prompts) == 4
 
 
-def test_evidence_selection_reranks_batch_results_over_limit(monkeypatch):
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_selection_reranks_batch_results_over_limit(monkeypatch, mode):
     docs = [
         {
             "id": f"doc_{index}",
@@ -393,7 +398,7 @@ def test_evidence_selection_reranks_batch_results_over_limit(monkeypatch):
         "topic",
         docs,
         limit=2,
-        mode="evidence",
+        mode=mode,
     )
 
     assert len(selected) == 2

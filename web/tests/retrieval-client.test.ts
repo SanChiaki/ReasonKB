@@ -343,4 +343,40 @@ describe("retrieval client", () => {
       data: { evidenceCount: 1 },
     });
   });
+
+  it("preserves safe progressive retrieval metrics for Agent callers", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const { projectAgentRetrievalEvent } = await import("@/lib/retrieval-client");
+
+    expect(
+      projectAgentRetrievalEvent({
+        type: "progress",
+        stage: "evidence_coverage_completed",
+        data: {
+          wave: 2,
+          coverage: "incomplete",
+          confidence: "high",
+          unresolved: ["sign-off owner"],
+          evidenceDocumentCount: 3,
+          remainingDocumentCount: 2,
+          documents: [{ documentId: "secret-doc" }],
+        },
+      }),
+    ).toEqual({
+      type: "progress",
+      stage: "evidence_coverage_completed",
+      data: {
+        wave: 2,
+        coverage: "incomplete",
+        confidence: "high",
+        evidenceDocumentCount: 3,
+        remainingDocumentCount: 2,
+      },
+    });
+  });
 });

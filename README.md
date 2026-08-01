@@ -199,9 +199,14 @@ routing, tree search, sufficiency checks, and evidence validation across concurr
 These defaults are intended for small single-node deployments; increase them only after
 measuring provider rate limits, memory, and tail latency.
 
-Evidence keeps all candidate-summary batches reachable, then searches the selected documents in
-bounded waves. The first wave contains at most two documents; only an explicit high-confidence,
-complete coverage decision can stop expansion before the configured document limit is reached.
+Answer and Evidence use the same retrieval path. All candidate-summary batches remain reachable,
+then selected documents are inspected in shared bounded waves using the same PageIndex tree
+traversal, evidence validation, and conservative coverage check. The first wave contains at most
+two documents and later waves expand up to `RETRIEVAL_DOCUMENT_CONCURRENCY` until coverage is
+high-confidence complete or the configured document limit is exhausted. Evidence returns the
+validated page text directly; Answer performs one additional synthesis call over that same
+EvidenceSet. Separate Answer and Evidence requests rerun retrieval independently, so provider
+non-determinism can still produce different byte-level results unless a caller reuses one result.
 
 Structured retrieval calls use the retrieval model with hidden thinking disabled when the
 provider supports explicit reasoning control. A bounded third tree-assessment round may request

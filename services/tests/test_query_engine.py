@@ -465,7 +465,6 @@ def _fallback_document_result(*, validation_reason: str = "technical_fallback"):
     return query_engine._assemble_document_result(
         "钻石经销商的业绩门槛是多少？",
         document,
-        "evidence",
         "1-2",
         [
             {"page": 1, "content": "经销商政策目录。"},
@@ -485,7 +484,6 @@ def test_fallback_evidence_validation_keeps_only_directly_supported_pages(monkey
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的业绩门槛是多少？",
         [_fallback_document_result()],
-        "evidence",
     )
 
     assert validation.status == "matched"
@@ -515,7 +513,6 @@ def test_evidence_list_validation_restores_selected_continuation_pages(monkeypat
     document_result = query_engine._assemble_document_result(
         "金/银经销商PGI评估指标有哪些？",
         document,
-        "evidence",
         "1-4,7",
         [
             {"page": 1, "content": "表头和前半部分指标。"},
@@ -536,7 +533,6 @@ def test_evidence_list_validation_restores_selected_continuation_pages(monkeypat
     validation = query_engine._validate_retrieved_evidence(
         "金/银经销商PGI评估指标有哪些？",
         [document_result],
-        "evidence",
     )
 
     assert validation.status == "matched"
@@ -560,7 +556,6 @@ def test_evidence_validation_keeps_cross_page_list_continuations(monkeypatch):
     document_result = query_engine._assemble_document_result(
         "钻石经销商的PGI评估指标有哪些？",
         document,
-        "evidence",
         "1-3",
         [
             {
@@ -606,13 +601,58 @@ def test_evidence_validation_keeps_cross_page_list_continuations(monkeypatch):
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的PGI评估指标有哪些？",
         [document_result],
-        "evidence",
     )
 
     assert validation.status == "matched"
     assert validation.document_results[0]["evidenceBlock"]["pages"] == "1-2"
     assert "6 业绩规模" in validation.document_results[0]["evidenceBlock"]["content"]
     assert "专业化能力按初中高级计分" not in validation.document_results[0]["evidenceBlock"]["content"]
+
+
+def test_evidence_validation_keeps_contiguous_pages_for_rules_question(monkeypatch):
+    document = {
+        "id": "doc_rules",
+        "project_id": "proj_1",
+        "project_name": "Alpha",
+        "file_name": "capability-rules.pdf",
+        "source_relative_path": "capability-rules.pdf",
+        "project_relative_path": "capability-rules.pdf",
+        "evidence_kind": "pdf_text",
+        "visual_assets": [],
+        EVIDENCE_VALIDATION_REASON_KEY: "model_selection",
+    }
+    document_result = query_engine._assemble_document_result(
+        "经销商专业化能力证书统计规则是什么",
+        document,
+        "3-4",
+        [
+            {"page": 3, "content": "1) 同一人员同一方向按最高级别证书计数。"},
+            {
+                "page": 4,
+                "content": "4) 融合类证书只能关联一个方向。5) 仅限中国地区证书。",
+            },
+        ],
+    )
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda *_args, **_kwargs: (
+            '{"matches":[{"candidate_id":"D001","supporting_pages":[3]}]}'
+        ),
+    )
+
+    validation = query_engine._validate_retrieved_evidence(
+        "经销商专业化能力证书统计规则是什么",
+        [document_result],
+    )
+
+    assert validation.status == "matched"
+    assert validation.document_results[0]["evidenceBlock"]["pages"] == "3-4"
+    assert "仅限中国地区证书" in validation.document_results[0]["evidenceBlock"]["content"]
+
+
+def test_focused_rule_question_does_not_expand_as_a_complete_rule_set():
+    assert query_engine._is_complete_list_query("经销商专业化能力证书统计规则是什么")
+    assert not query_engine._is_complete_list_query("退款规则中的时间限制是什么")
 
 
 def test_fallback_evidence_validation_returns_no_match_for_topical_but_unsupported_text(
@@ -628,17 +668,14 @@ def test_fallback_evidence_validation_returns_no_match_for_topical_but_unsupport
     validation = query_engine._validate_retrieved_evidence(
         "铂金经销商的业绩门槛是多少？",
         [_fallback_document_result(validation_reason="explicit_empty_probe")],
-        "answer",
     )
 
     assert validation.status == "no_match"
     assert validation.document_results == ()
 
 
-@pytest.mark.parametrize("mode", ["answer", "evidence"])
 def test_evidence_validation_rejects_wrong_partner_tier_before_model(
     monkeypatch,
-    mode,
 ):
     def unexpected_completion(*_args, **_kwargs):
         raise AssertionError("wrong dealer tier must be rejected deterministically")
@@ -648,7 +685,6 @@ def test_evidence_validation_rejects_wrong_partner_tier_before_model(
     validation = query_engine._validate_retrieved_evidence(
         "铂金经销商的业绩门槛是多少？",
         [_fallback_document_result(validation_reason="model_selection")],
-        mode,
     )
 
     assert validation.status == "no_match"
@@ -668,7 +704,6 @@ def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的业绩门槛是多少？",
         [_fallback_document_result()],
-        "evidence",
     )
 
     assert validation.status == "degraded"
@@ -676,7 +711,7 @@ def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
     assert validation.document_results == ()
 
 
-def test_answer_validation_rejects_partial_evidence_when_not_sufficient(monkeypatch):
+def test_validation_keeps_direct_partial_evidence_for_answer_generation(monkeypatch):
     monkeypatch.setattr(
         "pageindex.utils.llm_completion",
         lambda model, prompt, chat_history=None, return_finish_reason=False: (
@@ -688,11 +723,11 @@ def test_answer_validation_rejects_partial_evidence_when_not_sufficient(monkeypa
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的全部业绩门槛和能力要求是什么？",
         [_fallback_document_result()],
-        "answer",
     )
 
-    assert validation.status == "no_match"
-    assert validation.document_results == ()
+    assert validation.status == "matched"
+    assert len(validation.document_results) == 1
+    assert validation.document_results[0]["evidenceBlock"]["pages"] == "2"
 
 
 def test_evidence_validation_rejects_mixed_valid_and_unknown_candidates(monkeypatch):
@@ -708,7 +743,6 @@ def test_evidence_validation_rejects_mixed_valid_and_unknown_candidates(monkeypa
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的业绩门槛是多少？",
         [_fallback_document_result()],
-        "evidence",
     )
 
     assert validation.status == "degraded"
@@ -726,7 +760,6 @@ def test_evidence_validation_rejects_boolean_pages(monkeypatch):
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的业绩门槛是多少？",
         [_fallback_document_result()],
-        "evidence",
     )
 
     assert validation.status == "degraded"
@@ -746,7 +779,6 @@ def test_evidence_validation_rejects_empty_page_text(monkeypatch):
     validation = query_engine._validate_retrieved_evidence(
         "钻石经销商的业绩门槛是多少？",
         [document_result],
-        "evidence",
     )
 
     assert validation.status == "degraded"
@@ -1112,7 +1144,7 @@ def test_sync_and_stream_adapters_return_the_same_result(tmp_path, monkeypatch):
     monkeypatch.setattr(
         query_engine,
         "choose_page_window",
-        lambda _query, _document, _mode="answer": "1",
+        lambda _query, _document: "1",
     )
     monkeypatch.setattr(
         query_engine,
@@ -1214,7 +1246,7 @@ def test_answer_question_rejects_explicit_empty_probe_without_direct_support(
     )
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
-        lambda _query, _document, _mode="answer": "1",
+        lambda _query, _document: "1",
     )
     _mock_query_llm(
         monkeypatch,
@@ -1269,7 +1301,7 @@ def test_stream_validates_technical_fallback_before_returning_evidence(
     )
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
-        lambda _query, _document, _mode="answer": "1",
+        lambda _query, _document: "1",
     )
     _mock_query_llm(
         monkeypatch,
@@ -1753,7 +1785,6 @@ def test_choose_page_window_keeps_overview_nodes_for_complete_list_questions(
     pages = query_engine.choose_page_window(
         "钻石经销商的PGI评估指标有哪些？",
         document,
-        "evidence",
     )
 
     assert pages == "1-4"
@@ -1806,7 +1837,6 @@ def test_choose_page_window_adds_structural_overview_when_model_omits_it(
     pages = query_engine.choose_page_window(
         "钻石经销商的PGI评估指标有哪些？",
         document,
-        "answer",
     )
 
     assert pages == "1-4"
@@ -1859,7 +1889,6 @@ def test_tree_assessment_marks_malformed_output_as_degraded(monkeypatch):
         document,
         [{"page": 1, "content": "first"}],
         {1},
-        "answer",
     )
 
     assert assessment.sufficient is True
@@ -1909,7 +1938,6 @@ def test_low_reasoning_tree_assessment_uses_larger_budget_and_falls_back_on_trun
             document,
             [{"page": 1, "content": "first"}],
             {1},
-            "answer",
         )
     finally:
         query_engine._TREE_ASSESSMENT_REASONING.reset(reasoning_token)
@@ -1953,7 +1981,6 @@ def test_tree_assessment_treats_explicit_empty_next_pages_as_normal_stop(monkeyp
         document,
         [{"page": 1, "content": "first"}],
         {1},
-        "answer",
     )
 
     assert assessment.sufficient is True
@@ -1983,7 +2010,6 @@ def test_tree_assessment_marks_requested_invalid_page_as_degraded(monkeypatch):
         document,
         [{"page": 1, "content": "first"}],
         {1},
-        "answer",
     )
 
     assert assessment.degraded_reason == "tree_assessment_invalid_next_pages"
@@ -2043,6 +2069,8 @@ def test_query_mode_iterates_pageindex_tree_until_evidence_is_sufficient(
                     '"next_node_list":["0002"]}'
                 )
             return '{"sufficient":true,"thinking":"the total is now available"}'
+        if "complete evidence coverage" in prompt:
+            return '{"coverage":"complete","confidence":"high","unresolved":[]}'
         if "Answer the user's question" in prompt:
             return "The total deferred assets were 42 million."
         raise AssertionError(f"unexpected prompt: {prompt}")
@@ -2135,8 +2163,8 @@ def test_evidence_mode_uses_tree_search_but_does_not_generate_an_answer(
         "All acceptance checks must pass.\n\n"
         "The customer signed the final acceptance record."
     )
-    assert "Find all distinct, specific tree nodes" in initial_prompts[0]
-    assert "Do not answer the question." in assessment_prompts[0]
+    assert "same evidence set" in initial_prompts[0]
+    assert "only decide whether more document pages" in assessment_prompts[0]
 
 
 def test_retrieval_llm_refreshes_runtime_settings_before_completion(monkeypatch, tmp_path):
@@ -2247,6 +2275,8 @@ def test_query_snapshots_models_and_refreshes_them_on_the_next_request(
             content = '{"pages":"1"}'
         elif kwargs["stage"].startswith("tree_assessment"):
             content = '{"sufficient":true}'
+        elif kwargs["stage"] == "evidence_coverage":
+            content = '{"coverage":"complete","confidence":"high","unresolved":[]}'
         elif kwargs["stage"] == "answer_generation":
             content = f"answer from {kwargs['model']}"
         else:
@@ -2342,12 +2372,14 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
         assert "这个项目的验收标准是什么？" in prompt
         if "validating page evidence" in prompt:
             return '{"sufficient":true,"matches":[{"candidate_id":"D001","supporting_pages":[1]}]}'
+        if "complete evidence coverage" in prompt:
+            return '{"coverage":"complete","confidence":"high","unresolved":[]}'
         return '{"thinking":"doc_acceptance is the acceptance criteria document","answer":["doc_acceptance"]}'
 
     _mock_query_llm(monkeypatch, fake_llm_completion)
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
-        lambda _query, _doc, _mode="answer": "1",
+        lambda _query, _doc: "1",
     )
     monkeypatch.setattr(
         "services.retrieval_api.query_engine._load_page_excerpt",
@@ -2373,7 +2405,7 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
             "excerpt": "All deliverables must pass review.",
         }
     ]
-    assert seen_models == ["gpt-retrieval", "gpt-retrieval"]
+    assert seen_models == ["gpt-retrieval", "gpt-retrieval", "gpt-retrieval"]
 
 
 def test_answer_question_evidence_mode_returns_path_and_content_metadata(
@@ -2444,6 +2476,14 @@ def test_answer_question_processes_selected_documents_concurrently_and_preserves
 ):
     monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
     monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+            coverage="complete",
+            confidence="high",
+        ),
+    )
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
         _insert_ready_document(
@@ -2472,7 +2512,7 @@ def test_answer_question_processes_selected_documents_concurrently_and_preserves
     active = 0
     max_active = 0
 
-    def slow_choose_page_window(_query, document, _mode="answer"):
+    def slow_choose_page_window(_query, document):
         nonlocal active, max_active
         with lock:
             active += 1
@@ -2510,6 +2550,14 @@ def test_answer_question_events_processes_documents_concurrently_and_preserves_o
 ):
     monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
     monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+            coverage="complete",
+            confidence="high",
+        ),
+    )
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
         _insert_ready_document(
@@ -2538,7 +2586,7 @@ def test_answer_question_events_processes_documents_concurrently_and_preserves_o
     active = 0
     max_active = 0
 
-    def slow_choose_page_window(_query, document, _mode="answer"):
+    def slow_choose_page_window(_query, document):
         nonlocal active, max_active
         with lock:
             active += 1
@@ -2596,7 +2644,7 @@ def test_answer_question_events_with_cancellation_event_completes_normally(
     )
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
-        lambda _query, _document, _mode="answer": "1",
+        lambda _query, _document: "1",
     )
     cancellation_event = threading.Event()
 
@@ -2620,7 +2668,7 @@ def test_stream_close_does_not_wait_for_in_flight_document_retrieval(monkeypatch
     worker_finished = threading.Event()
     release_worker = threading.Event()
 
-    def slow_document_events(_query, document, _mode):
+    def slow_document_events(_query, document):
         yield query_engine._progress_event(
             "document_evidence_started",
             {"document": query_engine._document_summary(document)},
@@ -2646,7 +2694,6 @@ def test_stream_close_does_not_wait_for_in_flight_document_retrieval(monkeypatch
     events = query_engine._build_selected_documents_evidence_events(
         "handover evidence",
         selected,
-        "evidence",
     )
 
     assert next(events)["stage"] == "document_evidence_started"
@@ -2671,7 +2718,7 @@ def test_stream_coordinator_finishes_when_document_iterator_close_fails(monkeypa
     monkeypatch.setattr(
         query_engine,
         "_build_document_evidence_events",
-        lambda _query, _document, _mode: CloseFailureIterator(),
+        lambda _query, _document: CloseFailureIterator(),
     )
     selected = [
         {
@@ -2688,7 +2735,6 @@ def test_stream_coordinator_finishes_when_document_iterator_close_fails(monkeypa
             query_engine._build_selected_documents_evidence_events(
                 "handover evidence",
                 selected,
-                "evidence",
             )
         )
         completed.set()
@@ -2705,7 +2751,7 @@ def test_stream_reuses_process_document_executor(monkeypatch):
     def fail_per_request_executor(*_args, **_kwargs):
         raise AssertionError("stream requests must not create private thread pools")
 
-    def document_events(_query, document, _mode):
+    def document_events(_query, document):
         yield query_engine._progress_event(
             "document_evidence_started",
             {"document": query_engine._document_summary(document)},
@@ -2731,7 +2777,6 @@ def test_stream_reuses_process_document_executor(monkeypatch):
         query_engine._build_selected_documents_evidence_events(
             "handover evidence",
             selected,
-            "evidence",
         )
     )
 
@@ -2741,7 +2786,7 @@ def test_stream_reuses_process_document_executor(monkeypatch):
 def test_document_queue_wait_consumes_the_request_deadline(monkeypatch):
     started_documents: list[str] = []
 
-    def slow_document_events(_query, document, _mode):
+    def slow_document_events(_query, document):
         started_documents.append(document["id"])
         time.sleep(0.12)
         yield {"type": "document_result", "data": {"document": document}}
@@ -2773,7 +2818,6 @@ def test_document_queue_wait_consumes_the_request_deadline(monkeypatch):
         query_engine._build_selected_documents_evidence_events(
             "handover evidence",
             selected,
-            "evidence",
             query_context=context,
             document_concurrency=1,
         )
@@ -2865,12 +2909,11 @@ def _install_progressive_evidence_fixture(
         )
     started_documents: list[str] = []
 
-    def document_events(query, document, mode):
+    def document_events(query, document):
         started_documents.append(document["id"])
         result = query_engine._assemble_document_result(
             query,
             document,
-            mode,
             "1",
             [{"page": 1, "content": f"direct evidence from {document['id']}"}],
         )
@@ -2880,7 +2923,43 @@ def _install_progressive_evidence_fixture(
     return db_path, started_documents
 
 
-def test_evidence_progressive_expansion_stops_after_complete_first_wave(
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_retrieval_stops_after_complete_first_wave(
+    tmp_path,
+    monkeypatch,
+    mode,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+            coverage="complete",
+            confidence="high",
+        ),
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_generate_answer",
+        lambda *_args: "The handover evidence is summarized above.",
+    )
+    result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode=mode,
+    )
+
+    assert len(started_documents) == 2
+    assert len(set(started_documents)) == 2
+    assert len(result["evidence"] if mode == "evidence" else result["citations"]) == 2
+    assert result["retrievalStatus"] == "matched"
+
+
+def test_answer_and_evidence_share_the_same_retrieved_evidence_set(
     tmp_path,
     monkeypatch,
 ):
@@ -2891,29 +2970,50 @@ def test_evidence_progressive_expansion_stops_after_complete_first_wave(
     monkeypatch.setattr(
         query_engine,
         "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: SimpleNamespace(
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
             coverage="complete",
             confidence="high",
-            unresolved=(),
-            degraded_reason=None,
         ),
-        raising=False,
     )
-
-    result = answer_question(
+    evidence_result = answer_question(
         str(db_path),
         "What was the handover date?",
         ["proj_1"],
         mode="evidence",
     )
+    evidence_document_ids = [
+        item["documentId"] for item in evidence_result["evidence"]
+    ]
+    evidence_documents_started = list(started_documents)
 
-    assert len(started_documents) == 2
-    assert len(set(started_documents)) == 2
-    assert len(result["evidence"]) == 2
-    assert result["retrievalStatus"] == "matched"
+    started_documents.clear()
+    generated_context_blocks = []
+
+    def capture_answer_context(_query, context_blocks):
+        generated_context_blocks.extend(context_blocks)
+        return "The handover evidence is summarized above."
+
+    monkeypatch.setattr(query_engine, "_generate_answer", capture_answer_context)
+    answer_result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode="answer",
+    )
+
+    assert answer_result["answer"] == "The handover evidence is summarized above."
+    assert started_documents == evidence_documents_started
+    assert [
+        block["document"] for block in generated_context_blocks
+    ] == [
+        item["documentName"] for item in evidence_result["evidence"]
+    ]
+    assert [
+        document["documentId"] for document in answer_result["selectedDocuments"]
+    ] == evidence_document_ids
 
 
-def test_real_model_selection_is_validated_before_progressive_early_stop(
+def test_real_model_selection_is_validated_before_evidence_is_returned(
     tmp_path,
     monkeypatch,
 ):
@@ -2945,14 +3045,11 @@ def test_real_model_selection_is_validated_before_progressive_early_stop(
     monkeypatch.setattr(
         query_engine,
         "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: SimpleNamespace(
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
             coverage="complete",
             confidence="high",
-            unresolved=(),
-            degraded_reason=None,
         ),
     )
-
     result = answer_question(
         str(db_path),
         "What was the handover date?",
@@ -2965,6 +3062,43 @@ def test_real_model_selection_is_validated_before_progressive_early_stop(
     assert len(validation_prompts) == 1
     assert len(result["evidence"]) == 2
     assert result["retrievalStatus"] == "matched"
+
+
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_retrieval_expands_all_documents_when_coverage_is_incomplete(
+    tmp_path,
+    monkeypatch,
+    mode,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+            coverage="incomplete",
+            confidence="high",
+            unresolved=("sign-off owner",),
+        ),
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_generate_answer",
+        lambda *_args: "The available handover evidence is summarized above.",
+    )
+
+    result = answer_question(
+        str(db_path),
+        "List the handover date and sign-off owner.",
+        ["proj_1"],
+        mode=mode,
+    )
+
+    assert set(started_documents) == {f"doc_{index}" for index in range(5)}
+    assert result["retrievalStatus"] == "degraded"
+    assert result["degradedReason"] == "evidence_expansion_limit_reached"
 
 
 def test_request_deadline_drops_evidence_pending_validation(
@@ -2992,15 +3126,12 @@ def test_request_deadline_drops_evidence_pending_validation(
         deadline_checks += 1
         return deadline_checks >= 2
 
-    def fake_expansion(*_args, **_kwargs):
+    def fake_document_results(*_args, **_kwargs):
         if False:
             yield {}
-        return query_engine._EvidenceExpansionResult(
-            document_results=query_engine._DocumentResults(
-                [pending_result],
-                attempted_count=1,
-            ),
-            attempted_documents=(selected_document,),
+        return query_engine._DocumentResults(
+            [pending_result],
+            attempted_count=1,
         )
 
     monkeypatch.setattr(query_engine, "_new_query_llm_context", lambda *_args: context)
@@ -3011,7 +3142,11 @@ def test_request_deadline_drops_evidence_pending_validation(
         lambda *_args, **_kwargs: 1,
     )
     monkeypatch.setattr(query_engine, "select_candidate_documents", lambda *_args, **_kwargs: selected)
-    monkeypatch.setattr(query_engine, "_build_progressive_evidence_events", fake_expansion)
+    monkeypatch.setattr(
+        query_engine,
+        "_build_selected_documents_evidence_events",
+        fake_document_results,
+    )
     monkeypatch.setattr(query_engine, "_query_deadline_expired", expires_after_collection)
 
     result = answer_question("unused.db", "What changed?", mode="evidence")
@@ -3153,7 +3288,7 @@ def test_request_deadline_wins_when_answer_provider_returns_late(monkeypatch):
     assert result["citations"] == []
 
 
-def test_evidence_progressive_expansion_reaches_hard_limit_when_incomplete(
+def test_shared_retrieval_returns_partial_evidence_at_expansion_limit(
     tmp_path,
     monkeypatch,
 ):
@@ -3164,15 +3299,12 @@ def test_evidence_progressive_expansion_reaches_hard_limit_when_incomplete(
     monkeypatch.setattr(
         query_engine,
         "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: SimpleNamespace(
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
             coverage="incomplete",
             confidence="high",
             unresolved=("sign-off owner",),
-            degraded_reason=None,
         ),
-        raising=False,
     )
-
     result = answer_question(
         str(db_path),
         "List the handover date and sign-off owner.",
@@ -3186,9 +3318,11 @@ def test_evidence_progressive_expansion_reaches_hard_limit_when_incomplete(
     assert result["degradedReason"] == "evidence_expansion_limit_reached"
 
 
-def test_evidence_progressive_expansion_continues_when_coverage_is_unknown(
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_shared_retrieval_continues_when_coverage_is_unknown(
     tmp_path,
     monkeypatch,
+    mode,
 ):
     db_path, started_documents = _install_progressive_evidence_fixture(
         tmp_path,
@@ -3197,20 +3331,23 @@ def test_evidence_progressive_expansion_continues_when_coverage_is_unknown(
     monkeypatch.setattr(
         query_engine,
         "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: SimpleNamespace(
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
             coverage="unknown",
             confidence="low",
-            unresolved=(),
             degraded_reason="evidence_coverage_failed",
         ),
-        raising=False,
+    )
+    monkeypatch.setattr(
+        query_engine,
+        "_generate_answer",
+        lambda *_args: "The available handover evidence is summarized above.",
     )
 
     result = answer_question(
         str(db_path),
         "What was the handover date?",
         ["proj_1"],
-        mode="evidence",
+        mode=mode,
     )
 
     assert set(started_documents) == {f"doc_{index}" for index in range(5)}
@@ -3231,11 +3368,9 @@ def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
     monkeypatch.setattr(
         query_engine,
         "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: SimpleNamespace(
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
             coverage="complete",
             confidence="high",
-            unresolved=(),
-            degraded_reason=None,
         ),
     )
     state_changed = threading.Condition()
@@ -3254,7 +3389,7 @@ def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
             active -= 1
             state_changed.notify_all()
 
-    def stream_document_events(_query, document, _mode):
+    def stream_document_events(_query, document):
         block_document_worker()
         yield {
             "type": "document_result",
@@ -3362,7 +3497,7 @@ def test_many_streams_keep_process_document_worker_count_bounded(monkeypatch):
     max_active = 0
     worker_names: set[str] = set()
 
-    def document_events(_query, document, _mode):
+    def document_events(_query, document):
         nonlocal active, max_active
         with state_changed:
             active += 1
@@ -3394,7 +3529,6 @@ def test_many_streams_keep_process_document_worker_count_bounded(monkeypatch):
             query_engine._build_selected_documents_evidence_events(
                 "handover evidence",
                 [document],
-                "evidence",
             )
         )
         finished[index].set()
@@ -3444,7 +3578,7 @@ def test_large_stream_does_not_queue_all_documents_ahead_of_small_stream(monkeyp
                 small_submitted.set()
             return real_executor.submit(fn, *args, **kwargs)
 
-    def document_events(_query, document, _mode):
+    def document_events(_query, document):
         with starts_changed:
             started_documents.append(document["id"])
             starts_changed.notify_all()
@@ -3484,7 +3618,6 @@ def test_large_stream_does_not_queue_all_documents_ahead_of_small_stream(monkeyp
             query_engine._build_selected_documents_evidence_events(
                 f"{prefix} evidence",
                 selected,
-                "evidence",
             )
         )
         finished.set()
@@ -3536,7 +3669,7 @@ def test_stream_cancellation_stops_coordinator_and_pending_documents(monkeypatch
     started_documents: list[str] = []
     finished_documents: list[str] = []
 
-    def blocking_document_events(_query, document, _mode):
+    def blocking_document_events(_query, document):
         try:
             with worker_started:
                 started_documents.append(document["id"])
@@ -3570,7 +3703,6 @@ def test_stream_cancellation_stops_coordinator_and_pending_documents(monkeypatch
             query_engine._build_selected_documents_evidence_events(
                 "handover evidence",
                 selected,
-                "evidence",
                 cancellation_event,
             )
         )
@@ -3606,7 +3738,6 @@ def test_stream_cancellation_stops_coordinator_and_pending_documents(monkeypatch
             query_engine._build_selected_documents_evidence_events(
                 "recovery evidence",
                 selected[: query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS],
-                "evidence",
             )
         )
         recovery_finished.set()
@@ -3652,6 +3783,14 @@ def test_answer_question_events_reports_real_retrieval_progress(tmp_path, monkey
         "services.retrieval_api.query_engine._generate_answer",
         lambda _query, _blocks: "Acceptance answer.",
     )
+    monkeypatch.setattr(
+        query_engine,
+        "_assess_evidence_coverage",
+        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+            coverage="complete",
+            confidence="high",
+        ),
+    )
 
     events = list(
         query_engine.answer_question_events(
@@ -3671,9 +3810,13 @@ def test_answer_question_events_reports_real_retrieval_progress(tmp_path, monkey
         "document_selection_started",
         "documents_selected",
         "evidence_started",
+        "evidence_wave_started",
         "document_evidence_started",
         "document_pages_selected",
         "document_evidence_loaded",
+        "evidence_wave_completed",
+        "evidence_coverage_started",
+        "evidence_coverage_completed",
         "answer_generation_started",
         "answer_generation_completed",
         "retrieval_completed",
@@ -3731,12 +3874,12 @@ def test_answer_question_events_reports_each_tree_search_round(tmp_path, monkeyp
     )
     monkeypatch.setattr(
         "services.retrieval_api.query_engine.choose_page_window",
-        lambda _query, _document, _mode="answer": "1",
+        lambda _query, _document: "1",
     )
 
     assessment_count = 0
 
-    def fake_assessment(_query, _document, _evidence, _inspected_pages, _mode):
+    def fake_assessment(_query, _document, _evidence, _inspected_pages):
         nonlocal assessment_count
         assessment_count += 1
         return (False, "3") if assessment_count == 1 else (True, None)
