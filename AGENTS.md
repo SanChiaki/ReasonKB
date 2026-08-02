@@ -35,8 +35,9 @@ Default native development entry points:
 
 ```sh
 pnpm -C web dev
-./.venv/bin/uvicorn services.retrieval_api.app:app --reload --port 8001
-./.venv/bin/python -m services.index_worker.worker
+uv sync --frozen
+uv run uvicorn services.retrieval_api.app:app --reload --port 8001
+uv run python -m services.index_worker.worker
 ```
 
 ## ACR Release Tagging

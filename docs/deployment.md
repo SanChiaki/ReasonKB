@@ -270,7 +270,7 @@ docker compose --env-file ./.env -f compose.yml config --quiet
 发布前至少执行：
 
 ```bash
-./.venv/bin/python -m pytest -q services/tests
+uv run pytest -q services/tests
 pnpm -C web test
 pnpm -C web exec tsc --noEmit
 docker compose -f docker/compose.yml config --quiet

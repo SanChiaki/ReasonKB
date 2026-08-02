@@ -545,6 +545,23 @@ def test_root_dockerfile_matches_compose_build_dockerfile_for_acr_auto_build():
     ).read_text(encoding="utf-8")
 
 
+def test_dockerfile_installs_locked_production_dependencies_with_pinned_uv():
+    dockerfile = (ROOT / "docker" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "ARG UV_VERSION=0.12.1" in dockerfile
+    assert "FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv" in dockerfile
+    assert "COPY --from=uv /uv /uvx /bin/" in dockerfile
+    assert "UV_PROJECT_ENVIRONMENT=/opt/venv" in dockerfile
+    assert "UV_PYTHON=/usr/bin/python3" in dockerfile
+    assert "UV_PYTHON_DOWNLOADS=never" in dockerfile
+    assert "COPY pyproject.toml uv.lock .python-version ./" in dockerfile
+    assert "RUN uv sync --frozen --no-dev" in dockerfile
+    assert "requirements.txt" not in dockerfile
+    assert "pip install" not in dockerfile
+    assert "python3-venv" not in dockerfile
+    assert "python3-pip" not in dockerfile
+
+
 def test_dockerfile_copies_pnpm_patches_before_installing_dependencies():
     dockerfile = (ROOT / "docker" / "Dockerfile").read_text(encoding="utf-8")
     workspace = yaml.safe_load(
