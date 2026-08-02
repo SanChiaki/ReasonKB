@@ -381,4 +381,22 @@ export const schemaMigrations: SchemaMigration[] = [
       `);
     },
   },
+  {
+    version: 7,
+    name: "document-page-layout-blocks",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS document_page_blocks (
+          document_index_id TEXT NOT NULL,
+          page_number INTEGER NOT NULL CHECK (page_number > 0),
+          layout_status TEXT NOT NULL
+            CHECK (layout_status IN ('no_table', 'structured', 'ambiguous', 'visual_only')),
+          blocks_json TEXT NOT NULL DEFAULT '[]',
+          diagnostics_json TEXT NOT NULL DEFAULT '{}',
+          PRIMARY KEY(document_index_id, page_number),
+          FOREIGN KEY(document_index_id) REFERENCES document_indexes(id) ON DELETE CASCADE
+        );
+      `);
+    },
+  },
 ];

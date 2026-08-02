@@ -111,6 +111,13 @@ function toEvidence(value: unknown): RetrievalEvidence | null {
     visualAssets: Array.isArray(candidate.visualAssets)
       ? (candidate.visualAssets as Array<Record<string, unknown>>)
       : [],
+    ...(Array.isArray(candidate.pageBlocks)
+      ? {
+          pageBlocks: candidate.pageBlocks as NonNullable<
+            RetrievalEvidence["pageBlocks"]
+          >,
+        }
+      : {}),
   };
 }
 

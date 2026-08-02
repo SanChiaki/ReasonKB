@@ -468,7 +468,19 @@ def _fallback_document_result(*, validation_reason: str = "technical_fallback"):
         "1-2",
         [
             {"page": 1, "content": "经销商政策目录。"},
-            {"page": 2, "content": "钻石经销商业绩门槛为年度收入 1000 万元。"},
+            {
+                "page": 2,
+                "content": "钻石经销商业绩门槛为年度收入 1000 万元。",
+                "layoutStatus": "structured",
+                "blocks": [
+                    {
+                        "type": "table",
+                        "schemaVersion": "TableBlockV1",
+                        "cells": [{"text": "1000"}],
+                    }
+                ],
+                "layoutDiagnostics": {"tableCount": 1},
+            },
         ],
     )
 
@@ -492,6 +504,20 @@ def test_fallback_evidence_validation_keeps_only_directly_supported_pages(monkey
     assert validation.document_results[0]["evidenceBlock"]["pages"] == "2"
     assert "1000 万元" in validation.document_results[0]["evidenceBlock"]["content"]
     assert "政策目录" not in validation.document_results[0]["evidenceBlock"]["content"]
+    assert validation.document_results[0]["evidenceBlock"]["pageBlocks"] == [
+        {
+            "page": 2,
+            "layoutStatus": "structured",
+            "blocks": [
+                {
+                    "type": "table",
+                    "schemaVersion": "TableBlockV1",
+                    "cells": [{"text": "1000"}],
+                }
+            ],
+            "diagnostics": {"tableCount": 1},
+        }
+    ]
     assert (
         EVIDENCE_VALIDATION_REASON_KEY
         not in validation.document_results[0]["document"]
@@ -966,6 +992,108 @@ def test_query_response_keeps_backward_compatible_status_default():
         "evidence": [],
         "retrievalStatus": "matched",
     }
+
+
+def test_selected_page_blocks_are_loaded_lazily_and_kept_out_of_answer_context(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = _seed_retrieval_db(tmp_path)
+    _insert_ready_document(
+        db_path,
+        document_id="doc_table",
+        file_name="policy.pdf",
+        doc_description="Partner thresholds.",
+        structure_json="[]",
+        pages_json=json.dumps(
+            [{"page": 1, "content": '<table><tr><td>3000</td></tr></table>'}]
+        ),
+    )
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO document_page_blocks (
+          document_index_id, page_number, layout_status, blocks_json, diagnostics_json
+        ) VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            "idx_doc_table",
+            1,
+            "structured",
+            json.dumps(
+                [
+                    {
+                        "type": "table",
+                        "schemaVersion": "TableBlockV1",
+                        "cells": [{"row": 0, "column": 0, "text": "3000"}],
+                    }
+                ]
+            ),
+            json.dumps({"tableCount": 1}),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    document = query_engine._load_ready_documents(str(db_path))[0]
+    monkeypatch.setattr(
+        "pageindex.retrieve.get_page_content",
+        lambda *_args: json.dumps(
+            [{"page": 1, "content": '<table><tr><td>3000</td></tr></table>'}]
+        ),
+    )
+
+    page_evidence = query_engine._load_page_excerpt(document, "1")
+    result = query_engine._assemble_document_result(
+        "What is the total?",
+        document,
+        "1",
+        page_evidence,
+    )
+
+    assert page_evidence[0]["layoutStatus"] == "structured"
+    assert page_evidence[0]["blocks"][0]["schemaVersion"] == "TableBlockV1"
+    assert result["contextBlock"]["evidence"] == [
+        {"page": 1, "content": '<table><tr><td>3000</td></tr></table>'}
+    ]
+    assert "blocks" not in result["contextBlock"]["evidence"][0]
+    assert result["evidenceBlock"]["pageBlocks"][0]["blocks"][0][
+        "schemaVersion"
+    ] == "TableBlockV1"
+
+
+def test_query_response_serializes_structured_page_blocks():
+    response = QueryResponse.model_validate(
+        {
+            "answer": "",
+            "citations": [],
+            "selectedDocuments": [{"documentId": "doc_table"}],
+            "evidence": [
+                {
+                    "projectId": "proj_1",
+                    "projectName": "Alpha",
+                    "documentId": "doc_table",
+                    "documentName": "policy.pdf",
+                    "pages": "1",
+                    "evidenceKind": "pdf_text",
+                    "content": "<table></table>",
+                    "pageBlocks": [
+                        {
+                            "page": 1,
+                            "layoutStatus": "structured",
+                            "blocks": [{"schemaVersion": "TableBlockV1"}],
+                            "diagnostics": {"tableCount": 1},
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    serialized = response.model_dump()
+    assert serialized["evidence"][0]["pageBlocks"][0]["layoutStatus"] == "structured"
+    assert serialized["evidence"][0]["pageBlocks"][0]["blocks"] == [
+        {"schemaVersion": "TableBlockV1"}
+    ]
 
 
 def test_evidence_mode_never_returns_answer_text_when_no_documents_match(

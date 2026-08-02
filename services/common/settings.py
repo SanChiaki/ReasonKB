@@ -21,6 +21,12 @@ SOURCE_WORKER_POLL_SECONDS = float(os.getenv("SOURCE_WORKER_POLL_SECONDS", "1"))
 INDEX_DEBUG_METRICS = os.getenv("INDEX_DEBUG_METRICS", "false").lower() == "true"
 
 
+def get_pdf_table_mode(env: dict[str, str] | None = None) -> str:
+    values = env if env is not None else os.environ
+    mode = values.get("REASONKB_PDF_TABLE_MODE", "html").strip().lower()
+    return mode if mode in {"off", "detect", "html"} else "html"
+
+
 def corpus_source_from_env(env: dict[str, str] | None = None) -> str:
     values = env if env is not None else os.environ
     source = values.get("REASONKB_CORPUS_SOURCE", "local").strip().lower()

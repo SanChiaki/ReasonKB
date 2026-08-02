@@ -28,6 +28,12 @@ export type RetrievalEvidence = {
   excerpt?: string | null;
   content: string;
   visualAssets?: Array<Record<string, unknown>>;
+  pageBlocks?: Array<{
+    page: number;
+    layoutStatus: "no_table" | "structured" | "ambiguous" | "visual_only";
+    blocks: Array<Record<string, unknown>>;
+    diagnostics: Record<string, unknown>;
+  }>;
 };
 
 export type RetrievalMode = "answer" | "evidence";

@@ -29,6 +29,13 @@ class SelectedDocument(BaseModel):
     sourceRelativePath: str | None = None
 
 
+class EvidencePageBlocks(BaseModel):
+    page: int
+    layoutStatus: Literal["no_table", "structured", "ambiguous", "visual_only"]
+    blocks: list[dict] = Field(default_factory=list)
+    diagnostics: dict = Field(default_factory=dict)
+
+
 class EvidenceItem(BaseModel):
     projectId: str
     projectName: str
@@ -46,6 +53,10 @@ class EvidenceItem(BaseModel):
     excerpt: str | None = None
     content: str
     visualAssets: list[dict] = []
+    pageBlocks: list[EvidencePageBlocks] = Field(
+        default_factory=list,
+        exclude_if=lambda value: not value,
+    )
 
 
 class QueryResponse(BaseModel):

@@ -118,6 +118,7 @@ describe("multi-source schema migration", () => {
       { version: 4 },
       { version: 5 },
       { version: 6 },
+      { version: 7 },
     ]);
     expect(
       migrated
@@ -197,6 +198,7 @@ describe("multi-source schema migration", () => {
       { version: 4, name: "index-job-revision-lookup" },
       { version: 5, name: "repair-legacy-smb-uri-scope" },
       { version: 6, name: "source-exclusion-rules" },
+      { version: 7, name: "document-page-layout-blocks" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -206,6 +208,7 @@ describe("multi-source schema migration", () => {
           "source_collections",
           "source_items",
           "source_exclusion_rules",
+          "document_page_blocks",
           "source_discovery_runs",
           "sync_runs",
           "admin_credentials",
@@ -636,6 +639,7 @@ describe("multi-source schema migration", () => {
       { version: 4 },
       { version: 5 },
       { version: 6 },
+      { version: 7 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,

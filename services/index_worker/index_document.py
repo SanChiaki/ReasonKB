@@ -1,6 +1,7 @@
 import json
 import inspect
 import asyncio
+import logging
 import uuid
 from contextlib import nullcontext
 from datetime import datetime, timezone
@@ -17,14 +18,19 @@ from pageindex.page_index import page_index
 from pageindex.page_index_md import md_to_tree
 from services.common.index_metrics import current_index_metrics, index_run_metrics
 from services.common.models import IndexedDocumentPayload
+from services.common.settings import get_pdf_table_mode
 from services.common.sqlite_store import open_db
 from services.index_worker.office_conversion import convert_office_to_pdf
+from services.index_worker.pdf_layout import extract_pdf_layout
 from services.index_worker.remote_fetch import prepared_index_file
 from services.index_worker.vision import VisionExtractionSkipped, extract_image_evidence_text
 
 
 class DocumentIndexSkipped(RuntimeError):
     pass
+
+
+logger = logging.getLogger(__name__)
 
 
 def build_pageindex_payload(file_path: str, document: dict | None = None) -> IndexedDocumentPayload:
@@ -109,10 +115,16 @@ def _build_pdf_payload(file_path: str, document: dict | None) -> IndexedDocument
         )
     with _timer("text_extraction_ms"):
         reader = PdfReader(file_path)
-        pages = [
+        legacy_pages = [
             {"page": index + 1, "content": page.extract_text() or ""}
             for index, page in enumerate(reader.pages)
         ]
+        table_mode = get_pdf_table_mode()
+        pages, page_blocks, layout_metadata = _extract_pdf_pages(
+            file_path,
+            legacy_pages,
+            table_mode,
+        )
     return {
         "doc_name": result["doc_name"],
         "doc_description": _with_source_description(result.get("doc_description", ""), document),
@@ -121,7 +133,113 @@ def _build_pdf_payload(file_path: str, document: dict | None) -> IndexedDocument
         "page_count": len(pages),
         "evidence_kind": "pdf_text",
         "visual_assets": [],
-        "source_metadata": _source_metadata(document),
+        "source_metadata": {
+            **_source_metadata(document),
+            **layout_metadata,
+        },
+        "page_blocks": page_blocks,
+        "index_version": "v2-layout" if table_mode != "off" else "v1",
+    }
+
+
+def _extract_pdf_pages(
+    file_path: str,
+    legacy_pages: list[dict],
+    table_mode: str,
+) -> tuple[list[dict], list[dict], dict]:
+    if table_mode == "off":
+        return legacy_pages, [], {"pdfTableMode": table_mode}
+
+    try:
+        layout = extract_pdf_layout(file_path)
+    except Exception as exc:
+        logger.warning(
+            "PDF layout extraction failed; preserving legacy page text path=%s error=%s",
+            file_path,
+            type(exc).__name__,
+        )
+        warning = {
+            "code": "layout_extraction_failed",
+            "exceptionType": type(exc).__name__,
+            "message": str(exc),
+        }
+        page_blocks = [
+            {
+                "page": page["page"],
+                "layout_status": "ambiguous",
+                "blocks": [],
+                "diagnostics": {
+                    "extractor": "pymupdf",
+                    "mode": table_mode,
+                    "tableCount": 0,
+                    "warnings": [warning],
+                },
+            }
+            for page in legacy_pages
+        ]
+        return legacy_pages, page_blocks, {
+            "pdfTableMode": table_mode,
+            "pdfLayoutExtractor": "pymupdf",
+            "pdfLayoutStatus": "fallback",
+        }
+
+    layout_by_page = {page["page"]: page for page in layout["pages"]}
+    pages: list[dict] = []
+    page_blocks: list[dict] = []
+    for legacy_page in legacy_pages:
+        page_number = legacy_page["page"]
+        layout_page = layout_by_page.get(page_number)
+        if layout_page is None:
+            pages.append(legacy_page)
+            page_blocks.append(
+                {
+                    "page": page_number,
+                    "layout_status": "ambiguous",
+                    "blocks": [],
+                    "diagnostics": {
+                        "extractor": layout["extractor"],
+                        "extractorVersion": layout["extractor_version"],
+                        "mode": table_mode,
+                        "tableCount": 0,
+                        "warnings": [{"code": "layout_page_missing"}],
+                    },
+                }
+            )
+            continue
+
+        use_projection = table_mode == "html" and layout_page["layout_status"] == "structured"
+        pages.append(
+            {
+                "page": page_number,
+                "content": (
+                    layout_page["content"]
+                    if use_projection
+                    else legacy_page["content"]
+                ),
+            }
+        )
+        page_blocks.append(
+            {
+                "page": page_number,
+                "layout_status": layout_page["layout_status"],
+                "blocks": layout_page["blocks"],
+                "diagnostics": {
+                    **layout_page["diagnostics"],
+                    "extractor": layout["extractor"],
+                    "extractorVersion": layout["extractor_version"],
+                    "mode": table_mode,
+                },
+            }
+        )
+
+    structured_page_count = sum(
+        page["layout_status"] == "structured" for page in page_blocks
+    )
+    return pages, page_blocks, {
+        "pdfTableMode": table_mode,
+        "pdfLayoutExtractor": layout["extractor"],
+        "pdfLayoutExtractorVersion": layout["extractor_version"],
+        "pdfStructuredPageCount": structured_page_count,
     }
 
 
@@ -447,6 +565,7 @@ def _persist_completed_document(
         if superseded:
             pass
         else:
+            index_id = f"idx_{document['document_id']}"
             conn.execute(
                 """
                 INSERT INTO document_indexes (
@@ -469,7 +588,7 @@ def _persist_completed_document(
                   retired_at = NULL
                 """,
                 (
-                    f"idx_{document['document_id']}",
+                    index_id,
                     document["document_id"],
                     payload["doc_name"],
                     payload["doc_description"],
@@ -478,11 +597,33 @@ def _persist_completed_document(
                     payload.get("evidence_kind", "pdf_text"),
                     json.dumps(payload.get("visual_assets", []), ensure_ascii=False),
                     json.dumps(payload.get("source_metadata", {}), ensure_ascii=False),
-                    "v1",
+                    payload.get("index_version", "v1"),
                     finished_at,
                     document.get("job_expected_source_revision")
                     or document.get("source_revision"),
                 ),
+            )
+            conn.execute(
+                "DELETE FROM document_page_blocks WHERE document_index_id = ?",
+                (index_id,),
+            )
+            conn.executemany(
+                """
+                INSERT INTO document_page_blocks (
+                  document_index_id, page_number, layout_status,
+                  blocks_json, diagnostics_json
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        index_id,
+                        page["page"],
+                        page["layout_status"],
+                        json.dumps(page.get("blocks", []), ensure_ascii=False),
+                        json.dumps(page.get("diagnostics", {}), ensure_ascii=False),
+                    )
+                    for page in payload.get("page_blocks", [])
+                ],
             )
 
             conn.execute(

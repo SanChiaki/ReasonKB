@@ -8,6 +8,7 @@ import math
 import os
 from queue import Empty, Queue
 import re
+import sqlite3
 from threading import Condition, Event
 from time import monotonic, perf_counter
 from typing import Any, Generator, Iterable, Literal
@@ -1132,8 +1133,72 @@ def _load_page_excerpt(document: dict[str, Any], pages: str) -> list[dict[str, A
         parsed = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return []
+    if not isinstance(parsed, list):
+        return []
 
-    return parsed if isinstance(parsed, list) else []
+    page_numbers = [
+        item["page"]
+        for item in parsed
+        if isinstance(item, dict) and _is_page_number(item.get("page"))
+    ]
+    page_blocks = _load_page_blocks(document, page_numbers)
+    if not page_blocks:
+        return parsed
+    return [
+        {
+            **item,
+            **page_blocks.get(item.get("page"), {}),
+        }
+        if isinstance(item, dict)
+        else item
+        for item in parsed
+    ]
+
+
+def _load_page_blocks(
+    document: dict[str, Any],
+    page_numbers: list[int],
+) -> dict[int, dict[str, Any]]:
+    db_path = document.get("_db_path")
+    index_id = document.get("_document_index_id")
+    unique_pages = sorted(set(page_numbers))
+    if not isinstance(db_path, str) or not isinstance(index_id, str) or not unique_pages:
+        return {}
+
+    placeholders = ",".join("?" for _ in unique_pages)
+    try:
+        with open_db(db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT page_number, layout_status, blocks_json, diagnostics_json
+                  FROM document_page_blocks
+                 WHERE document_index_id = ?
+                   AND page_number IN ({placeholders})
+                """,
+                [index_id, *unique_pages],
+            ).fetchall()
+    except sqlite3.OperationalError:
+        return {}
+
+    result: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        blocks = [
+            block
+            for block in _parse_json_list(row["blocks_json"])
+            if isinstance(block, dict) and block.get("type") == "table"
+        ]
+        try:
+            diagnostics = json.loads(row["diagnostics_json"] or "{}")
+        except (json.JSONDecodeError, TypeError):
+            diagnostics = {}
+        if row["layout_status"] == "no_table":
+            continue
+        result[row["page_number"]] = {
+            "layoutStatus": row["layout_status"],
+            "blocks": blocks,
+            "layoutDiagnostics": diagnostics if isinstance(diagnostics, dict) else {},
+        }
+    return result
 
 
 def _compact_evidence_for_assessment(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1438,6 +1503,11 @@ def _assemble_document_result(
     evidence: list[dict[str, Any]],
 ) -> dict[str, Any]:
     focus_page, excerpt = _select_citation_anchor(query, evidence)
+    prompt_evidence = [
+        {"page": item.get("page"), "content": item.get("content", "")}
+        for item in evidence
+        if isinstance(item, dict) and isinstance(item.get("content"), str)
+    ]
     context_block = {
         "project": document["project_name"],
         "source": document.get("source_display_name"),
@@ -1446,7 +1516,7 @@ def _assemble_document_result(
         "sourceRelativePath": document.get("source_relative_path"),
         "projectRelativePath": document.get("project_relative_path"),
         "pages": pages,
-        "evidence": evidence,
+        "evidence": prompt_evidence,
     }
     citation = build_citation(
         project={
@@ -1477,6 +1547,20 @@ def _assemble_document_result(
         "content": _join_evidence_content(evidence),
         "visualAssets": document.get("visual_assets", []),
     }
+    page_blocks = [
+        {
+            "page": item["page"],
+            "layoutStatus": item["layoutStatus"],
+            "blocks": item.get("blocks", []),
+            "diagnostics": item.get("layoutDiagnostics", {}),
+        }
+        for item in evidence
+        if isinstance(item, dict)
+        and _is_page_number(item.get("page"))
+        and isinstance(item.get("layoutStatus"), str)
+    ]
+    if page_blocks:
+        evidence_block["pageBlocks"] = page_blocks
     if document.get("document_url"):
         evidence_block["documentUrl"] = document["document_url"]
     if document.get("source_display_name"):
@@ -1485,6 +1569,7 @@ def _assemble_document_result(
     return {
         "document": document,
         "contextBlock": context_block,
+        "pageEvidence": evidence,
         "citation": citation,
         "evidenceBlock": evidence_block,
     }
@@ -1950,7 +2035,10 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
         )
         supporting_evidence = [
             item
-            for item in result.get("contextBlock", {}).get("evidence", [])
+            for item in result.get(
+                "pageEvidence",
+                result.get("contextBlock", {}).get("evidence", []),
+            )
             if isinstance(item, dict)
             and item.get("page") in supporting_pages
             and isinstance(item.get("content"), str)
@@ -2025,6 +2113,7 @@ def _load_ready_documents(
                    d.source_item_external_id,
                    s.display_name AS source_display_name, s.kind AS source_kind,
                    s.scope_json AS source_scope_json,
+                   di.id AS document_index_id,
                    di.doc_description, di.structure_json, di.pages_json,
                    di.evidence_kind, di.visual_assets_json
               FROM documents d
@@ -2079,6 +2168,8 @@ def _load_ready_documents(
             "visual_assets": _parse_json_list(row["visual_assets_json"]),
             "structure": structure,
             "pages": pages,
+            "_db_path": db_path,
+            "_document_index_id": row["document_index_id"],
         }
         if row["source_kind"] == "seeyon":
             try:

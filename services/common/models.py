@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
 class IndexedPage(TypedDict):
@@ -12,3 +12,8 @@ class IndexedDocumentPayload(TypedDict):
     structure: list[dict]
     pages: list[IndexedPage]
     page_count: int
+    evidence_kind: NotRequired[str]
+    visual_assets: NotRequired[list[dict[str, Any]]]
+    source_metadata: NotRequired[dict[str, Any]]
+    page_blocks: NotRequired[list[dict[str, Any]]]
+    index_version: NotRequired[str]
