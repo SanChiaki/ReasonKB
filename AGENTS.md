@@ -141,3 +141,25 @@ Summarize:
 - changed files
 - any high-conflict files touched
 - whether the branch was rebased or merged before handoff
+
+## Post-Merge Validation Cleanup
+
+After a change is merged into `main`, check for Docker containers created to
+validate that change. This includes Compose projects named for the branch or
+worktree and one-off `docker run` containers.
+
+- Resolve the exact containers from their names, Compose project labels,
+  mounts, and published ports before removing anything.
+- Remove all validation containers for the merged change, including stopped
+  migration containers and Compose orphans.
+- Use the matching Compose project and run
+  `docker compose -p <project> down --remove-orphans`; remove one-off
+  containers explicitly by name.
+- Never use a broad prune as a substitute for identifying the validation
+  containers.
+- Do not remove the installed `reasonkb` deployment, containers used by other
+  active worktrees, volumes, images, or build cache unless that cleanup is
+  separately requested.
+
+Report which validation containers were removed and which deployment or active
+task containers were intentionally preserved.
