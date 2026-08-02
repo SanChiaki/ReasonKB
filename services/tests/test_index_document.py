@@ -10,6 +10,7 @@ import pytest
 from services.common.sqlite_store import open_db
 from services.common.system_settings import get_index_worker_concurrency
 from services.index_worker.index_document import process_document_job
+from services.index_worker import index_document
 from services.index_worker.remote_fetch import (
     RemoteFetchError,
     _source_cache_file_name,
@@ -169,6 +170,15 @@ def test_process_document_job_records_completed_index_run(tmp_path, monkeypatch)
             "evidence_kind": "pdf_text",
             "visual_assets": [],
             "source_metadata": {"sourceRelativePath": "Alpha/alpha.pdf"},
+            "index_version": "v2-layout",
+            "page_blocks": [
+                {
+                    "page": 1,
+                    "layout_status": "structured",
+                    "blocks": [{"type": "table", "schemaVersion": "TableBlockV1"}],
+                    "diagnostics": {"tableCount": 1},
+                }
+            ],
         },
     )
 
@@ -192,9 +202,16 @@ def test_process_document_job_records_completed_index_run(tmp_path, monkeypatch)
     ).fetchone()
     index_metadata = conn.execute(
         """
-        SELECT evidence_kind, visual_assets_json, source_metadata_json
+        SELECT evidence_kind, visual_assets_json, source_metadata_json, index_version
           FROM document_indexes
          WHERE document_id = 'doc_1'
+        """
+    ).fetchone()
+    page_blocks = conn.execute(
+        """
+        SELECT page_number, layout_status, blocks_json, diagnostics_json
+          FROM document_page_blocks
+         WHERE document_index_id = 'idx_doc_1'
         """
     ).fetchone()
     conn.close()
@@ -208,6 +225,65 @@ def test_process_document_job_records_completed_index_run(tmp_path, monkeypatch)
     assert index_metadata[0] == "pdf_text"
     assert json.loads(index_metadata[1]) == []
     assert json.loads(index_metadata[2]) == {"sourceRelativePath": "Alpha/alpha.pdf"}
+    assert index_metadata[3] == "v2-layout"
+    assert page_blocks[:2] == (1, "structured")
+    assert json.loads(page_blocks[2]) == [
+        {"type": "table", "schemaVersion": "TableBlockV1"}
+    ]
+    assert json.loads(page_blocks[3]) == {"tableCount": 1}
+
+
+def test_extract_pdf_pages_only_projects_structured_pages_in_html_mode(monkeypatch):
+    legacy_pages = [
+        {"page": 1, "content": "legacy table text"},
+        {"page": 2, "content": "legacy ambiguous text"},
+    ]
+    monkeypatch.setattr(
+        index_document,
+        "extract_pdf_layout",
+        lambda _path: {
+            "extractor": "pymupdf",
+            "extractor_version": "1.26.4",
+            "pages": [
+                {
+                    "page": 1,
+                    "content": "<table><tr><td>3000</td></tr></table>",
+                    "layout_status": "structured",
+                    "blocks": [{"type": "table"}],
+                    "diagnostics": {"tableCount": 1, "warnings": []},
+                },
+                {
+                    "page": 2,
+                    "content": "uncertain projection",
+                    "layout_status": "ambiguous",
+                    "blocks": [{"type": "text"}],
+                    "diagnostics": {"tableCount": 1, "warnings": ["uncertain"]},
+                },
+            ],
+        },
+    )
+
+    html_pages, page_blocks, metadata = index_document._extract_pdf_pages(
+        "/tmp/policy.pdf",
+        legacy_pages,
+        "html",
+    )
+    detect_pages, _, _ = index_document._extract_pdf_pages(
+        "/tmp/policy.pdf",
+        legacy_pages,
+        "detect",
+    )
+
+    assert html_pages == [
+        {"page": 1, "content": "<table><tr><td>3000</td></tr></table>"},
+        {"page": 2, "content": "legacy ambiguous text"},
+    ]
+    assert detect_pages == legacy_pages
+    assert [page["layout_status"] for page in page_blocks] == [
+        "structured",
+        "ambiguous",
+    ]
+    assert metadata["pdfStructuredPageCount"] == 1
 
 
 def test_process_document_job_indexes_plain_text_document(tmp_path):

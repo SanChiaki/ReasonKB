@@ -35,6 +35,7 @@ describe("migrateDatabase", () => {
         "projects",
         "documents",
         "document_indexes",
+        "document_page_blocks",
         "conversations",
         "conversation_projects",
         "conversation_messages",

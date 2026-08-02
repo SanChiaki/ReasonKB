@@ -317,6 +317,8 @@ if [ "$INSTALL_ACTION" = "install" ]; then
 # RETRIEVAL_LLM_CONCURRENCY=2
 # 单个请求并行检索的文档数：默认 2，可设置 1-5。
 # RETRIEVAL_DOCUMENT_CONCURRENCY=2
+# PDF/Office 表格布局处理：html（默认）、detect 或 off。
+# REASONKB_PDF_TABLE_MODE=html
 
 # VISION_EXTRACTION_ENABLED=false
 # VISION_MODEL=

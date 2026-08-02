@@ -228,6 +228,13 @@ VISION_EXTRACTION_ENABLED=true
 VISION_MODEL=gpt-4.1
 ```
 
+Digital PDF and converted Office pages use layout-aware table extraction by default. Tables with
+a complete, non-overlapping grid are projected as compact structural HTML while their cells,
+spans, and bounding boxes are stored separately for Evidence. Ambiguous pages keep the legacy
+text instead of publishing uncertain structure. Use `REASONKB_PDF_TABLE_MODE=detect` to store
+diagnostics without changing page text, or `off` for full rollback. Existing indexes require
+re-indexing before they gain table structure.
+
 Office files are converted through Gotenberg. Runtime settings are stored in SQLite and take precedence over startup defaults.
 
 ## Agent / CLI / MCP Access
