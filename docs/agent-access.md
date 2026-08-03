@@ -102,8 +102,9 @@ candidate routing, PageIndex node/page selection, tree sufficiency checks, and
 evidence validation. Administrator settings stored in SQLite take precedence
 over these environment defaults.
 
-Structured retrieval stages request hidden thinking to be disabled when the
-provider supports explicit reasoning control. The bounded third tree
+PageIndex indexing and structured retrieval stages request hidden thinking to
+be disabled when the provider supports explicit reasoning control. Indexing
+does not inherit the final Answer reasoning mode. The bounded third tree
 assessment may request `low` reasoning for complex comparison, cross-document,
 or multi-hop questions after earlier non-thinking rounds remain insufficient.
 The request is honored only when the provider exposes an enforceable low-effort

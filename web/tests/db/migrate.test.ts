@@ -97,6 +97,13 @@ describe("migrateDatabase", () => {
     const runTable = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
       .get("document_index_runs") as { name: string } | undefined;
+    const runColumns = (
+      db.prepare("PRAGMA table_info(document_index_runs)").all() as Array<{
+        name: string;
+        notnull: number;
+        dflt_value: string | null;
+      }>
+    );
 
     expect(documentColumns).toEqual(
       expect.arrayContaining([
@@ -120,6 +127,15 @@ describe("migrateDatabase", () => {
       ]),
     );
     expect(runTable?.name).toBe("document_index_runs");
+    expect(runColumns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "reasoning_tokens",
+          notnull: 0,
+          dflt_value: null,
+        }),
+      ]),
+    );
     db.close();
   });
 });

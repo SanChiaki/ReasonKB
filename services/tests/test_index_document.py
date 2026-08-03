@@ -188,7 +188,8 @@ def test_process_document_job_records_completed_index_run(tmp_path, monkeypatch)
     conn = sqlite3.connect(db_path)
     run = conn.execute(
         """
-        SELECT status, duration_ms, llm_call_count, total_tokens, token_source
+        SELECT status, duration_ms, llm_call_count, reasoning_tokens,
+               total_tokens, token_source
           FROM document_index_runs
          WHERE document_id = 'doc_1'
         """
@@ -219,7 +220,7 @@ def test_process_document_job_records_completed_index_run(tmp_path, monkeypatch)
 
     assert run[0] == "completed"
     assert run[1] >= 0
-    assert run[2:] == (0, 0, "estimated")
+    assert run[2:] == (0, None, 0, "estimated")
     assert document_metrics[0] == run[1]
     assert document_metrics[1:3] == (0, 0)
     assert document_metrics[3] is not None

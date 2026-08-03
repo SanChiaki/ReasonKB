@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { useI18n, type TranslationKey } from "@/lib/i18n";
 import type {
   ServiceHealthId,
@@ -92,6 +93,7 @@ export function ServiceHealthPanel() {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone: DISPLAY_TIME_ZONE,
   });
 
   function serviceMetadata(service: ServiceHealthItem | undefined) {

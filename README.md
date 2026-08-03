@@ -210,13 +210,14 @@ validated page text directly; Answer performs one additional synthesis call over
 EvidenceSet. Separate Answer and Evidence requests rerun retrieval independently, so provider
 non-determinism can still produce different byte-level results unless a caller reuses one result.
 
-Structured retrieval calls use the retrieval model with hidden thinking disabled when the
-provider supports explicit reasoning control. A bounded third tree-assessment round may request
-`low` reasoning for complex comparison, cross-document, or multi-hop questions when earlier
-non-thinking rounds still need more evidence. The escalation is honored only when the provider
-offers an enforceable low-effort budget. DeepSeek-compatible endpoints expose a thinking switch
-but no portable independent reasoning-token cap, so `low` falls back to explicitly disabled
-thinking on those endpoints. Answer synthesis uses the answer model with
+PageIndex indexing and structured retrieval calls explicitly disable hidden thinking when the
+provider supports reasoning control. Indexing remains deterministic non-thinking structural
+extraction; it does not inherit the final Answer reasoning mode. A bounded third tree-assessment
+round may request `low` reasoning for complex comparison, cross-document, or multi-hop questions
+when earlier non-thinking rounds still need more evidence. The escalation is honored only when the
+provider offers an enforceable low-effort budget. DeepSeek-compatible endpoints expose a
+thinking switch but no portable independent reasoning-token cap, so `low` falls back to
+explicitly disabled thinking on those endpoints. Answer synthesis uses the answer model with
 `ANSWER_REASONING_MODE=auto` by default: ordinary synthesis explicitly
 disables hidden thinking, while clearly multi-step questions or broad cross-document evidence use
 the same provider-aware `low` policy. Set `disabled`, `low`, or `default` to override this policy.

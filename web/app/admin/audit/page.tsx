@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin-shell";
 import { appConfig } from "@/lib/config";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { listAdminAuditEvents } from "@/lib/repos/source-observability-store";
 import { requireAdminPage } from "@/lib/security/admin-page-auth";
 
@@ -23,7 +24,12 @@ export default async function AdminAuditPage() {
           <tbody className="divide-y divide-[var(--pi-border)]">
             {events.length ? events.map((event) => (
               <tr key={String(event.id)}>
-                <td className="whitespace-nowrap px-3 py-2.5">{new Date(String(event.createdAt)).toLocaleString("zh-CN", { hour12: false })}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {new Date(String(event.createdAt)).toLocaleString("zh-CN", {
+                    hour12: false,
+                    timeZone: DISPLAY_TIME_ZONE,
+                  })}
+                </td>
                 <td className="px-3 py-2.5 font-medium">{String(event.action)}</td>
                 <td className="px-3 py-2.5">{String(event.targetType)}</td>
                 <td className="max-w-[280px] truncate px-3 py-2.5 font-mono text-[11px]">{event.targetId ? String(event.targetId) : "-"}</td>

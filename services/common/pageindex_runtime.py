@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from services.common.index_metrics import current_index_metrics
 from services.common.llm_environment import configure_litellm_environment
+from services.common.llm_reasoning import reasoning_options_for_model
 from services.common.pageindex_vendor import ensure_pageindex_vendor_path
 from services.common.settings import DB_PATH
 from services.common.system_settings import get_llm_runtime_settings
@@ -471,6 +472,7 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     "messages": messages,
                     "temperature": 0,
                     "max_retries": 0,
+                    **reasoning_options_for_model(normalized_model, "disabled")[0],
                 }
                 if remaining is not None:
                     completion_options["timeout"] = remaining
@@ -556,6 +558,7 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                     "messages": messages,
                     "temperature": 0,
                     "max_retries": 0,
+                    **reasoning_options_for_model(normalized_model, "disabled")[0],
                 }
                 if remaining is not None:
                     completion_options["timeout"] = remaining
@@ -608,6 +611,10 @@ def _record_llm_metrics(
     usage = getattr(response, "usage", None)
     prompt_tokens = _usage_value(usage, "prompt_tokens")
     completion_tokens = _usage_value(usage, "completion_tokens")
+    completion_details = _usage_value(usage, "completion_tokens_details")
+    reasoning_tokens = _usage_value(completion_details, "reasoning_tokens")
+    if reasoning_tokens is None:
+        reasoning_tokens = _usage_value(usage, "reasoning_tokens")
     token_source = "provider_usage"
     if prompt_tokens is None or completion_tokens is None:
         token_source = "estimated"
@@ -618,6 +625,9 @@ def _record_llm_metrics(
         model=model,
         prompt_tokens=int(prompt_tokens or 0),
         completion_tokens=int(completion_tokens or 0),
+        reasoning_tokens=(
+            int(reasoning_tokens) if reasoning_tokens is not None else None
+        ),
         elapsed_ms=elapsed_ms,
         token_source=token_source,
     )
@@ -636,7 +646,7 @@ def _message_text(messages: list[dict[str, Any]]) -> str:
     return "\n".join(parts)
 
 
-def _usage_value(usage: Any, key: str) -> int | None:
+def _usage_value(usage: Any, key: str) -> Any:
     if usage is None:
         return None
     if isinstance(usage, dict):

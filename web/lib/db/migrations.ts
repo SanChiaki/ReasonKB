@@ -399,4 +399,13 @@ export const schemaMigrations: SchemaMigration[] = [
       `);
     },
   },
+  {
+    version: 8,
+    name: "index-run-reasoning-tokens",
+    up(db) {
+      ensureColumns(db, "document_index_runs", [
+        ["reasoning_tokens", "reasoning_tokens INTEGER"],
+      ]);
+    },
+  },
 ];

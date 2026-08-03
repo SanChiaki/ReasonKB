@@ -514,6 +514,7 @@ def _empty_metrics_snapshot() -> dict:
         "llm_call_count": 0,
         "prompt_tokens": 0,
         "completion_tokens": 0,
+        "reasoning_tokens": None,
         "total_tokens": 0,
         "token_source": "estimated",
         "models": {},
@@ -733,7 +734,7 @@ def _finish_run(
                    text_extraction_ms = ?, pageindex_ms = ?,
                    vision_extraction_ms = ?, persist_ms = ?,
                    llm_call_count = ?, prompt_tokens = ?,
-                   completion_tokens = ?, total_tokens = ?,
+                   completion_tokens = ?, reasoning_tokens = ?, total_tokens = ?,
                    token_source = ?, models_json = ?, error_message = ?
              WHERE id = ?
             """,
@@ -748,6 +749,7 @@ def _finish_run(
                 snapshot["llm_call_count"],
                 snapshot["prompt_tokens"],
                 snapshot["completion_tokens"],
+                snapshot["reasoning_tokens"],
                 snapshot["total_tokens"],
                 snapshot["token_source"],
                 json.dumps(snapshot["models"], ensure_ascii=False),

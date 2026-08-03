@@ -3,6 +3,7 @@
 import { Ban, Check, Copy, KeyRound, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { readAdminCsrfToken } from "@/components/admin-shell";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { useI18n } from "@/lib/i18n";
 
 const scopeOptions = [
@@ -40,6 +41,7 @@ function formatDate(value: string | null, locale: "zh" | "en", never: string) {
   if (!value) return never;
   return new Date(value).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
     hour12: false,
+    timeZone: DISPLAY_TIME_ZONE,
   });
 }
 

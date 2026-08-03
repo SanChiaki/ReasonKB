@@ -370,7 +370,7 @@ export function listDocumentIndexRuns(dbPath: string, documentId: string) {
       `SELECT id, status, started_at, finished_at, duration_ms,
               text_extraction_ms, pageindex_ms, vision_extraction_ms,
               persist_ms, llm_call_count, prompt_tokens, completion_tokens,
-              total_tokens, token_source, models_json, error_message
+              reasoning_tokens, total_tokens, token_source, models_json, error_message
          FROM document_index_runs
         WHERE document_id = ?
         ORDER BY started_at DESC`,
@@ -388,6 +388,7 @@ export function listDocumentIndexRuns(dbPath: string, documentId: string) {
     llm_call_count: number;
     prompt_tokens: number;
     completion_tokens: number;
+    reasoning_tokens: number | null;
     total_tokens: number;
     token_source: string;
     models_json: string;
@@ -408,6 +409,7 @@ export function listDocumentIndexRuns(dbPath: string, documentId: string) {
     llmCallCount: row.llm_call_count,
     promptTokens: row.prompt_tokens,
     completionTokens: row.completion_tokens,
+    reasoningTokens: row.reasoning_tokens,
     totalTokens: row.total_tokens,
     tokenSource: row.token_source,
     models: parseModelsJson(row.models_json),

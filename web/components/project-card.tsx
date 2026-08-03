@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { useI18n, type Locale } from "@/lib/i18n";
 
 function formatUpdatedAt(value: string, locale: Locale) {
@@ -12,6 +13,7 @@ function formatUpdatedAt(value: string, locale: Locale) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: DISPLAY_TIME_ZONE,
   });
 }
 

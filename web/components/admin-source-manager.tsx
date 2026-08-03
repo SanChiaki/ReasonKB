@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { readAdminCsrfToken } from "@/components/admin-shell";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 
 export type AdminSource = {
   id: string;
@@ -97,7 +98,12 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 function formatDate(value: string | null) {
   if (!value) return "-";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("zh-CN", {
+        hour12: false,
+        timeZone: DISPLAY_TIME_ZONE,
+      });
 }
 
 const kindLabels = { local: "本地目录", smb: "SMB 共享", seeyon: "致远文档库" };
