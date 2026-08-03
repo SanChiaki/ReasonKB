@@ -18,6 +18,8 @@ from services.source_worker.connectors.seeyon import (
 )
 from services.common.worker_health import write_worker_heartbeat
 
+ABRUPT_WORKER_FAILURE_MAX_ATTEMPTS = 2
+
 
 @dataclass
 class ActiveDocumentJob:
@@ -116,7 +118,7 @@ def run_document_job_with_timeout(
         raise RuntimeError(error_message)
 
     if process.exitcode:
-        raise RuntimeError(f"Document index job {job_id} exited with code {process.exitcode}")
+        raise RuntimeError(_process_exit_error(job_id, process.exitcode))
 
 
 def start_document_job(db_path: str, job_id: str) -> ActiveDocumentJob:
@@ -193,7 +195,7 @@ def collect_finished_jobs(
             fail_document_job(
                 db_path,
                 job_id,
-                f"Document index job {job_id} exited with code {process.exitcode}",
+                _process_exit_error(job_id, process.exitcode),
             )
         del active_jobs[job_id]
         finished_count += 1
@@ -221,7 +223,7 @@ def stop_active_jobs(active_jobs: dict[str, ActiveDocumentJob], db_path: str | N
                 fail_document_job(
                     db_path,
                     job_id,
-                    error_message or f"Document index job {job_id} exited with code {process.exitcode}",
+                    error_message or _process_exit_error(job_id, process.exitcode),
                 )
         del active_jobs[job_id]
 
@@ -234,6 +236,15 @@ def _child_error_message(error_queue) -> str | None:
     except queue.Empty:
         return None
     return f"{error_type}: {error_message}"
+
+
+def _process_exit_error(job_id: str, exit_code: int) -> str:
+    if exit_code == -signal.SIGKILL:
+        return (
+            f"ResourceExhausted: Document index job {job_id} was killed with SIGKILL; "
+            "the worker may have exceeded its memory limit"
+        )
+    return f"Document index job {job_id} exited with code {exit_code}"
 
 
 def fail_document_job(db_path: str, job_id: str, error_message: str) -> None:
@@ -319,7 +330,10 @@ def fail_document_job(db_path: str, job_id: str, error_message: str) -> None:
             _finish_running_index_runs(conn, job_id, "failed", now, summary)
             return
 
-        if _is_transient_failure(error_message) and job["attempt_count"] < job["max_attempts"]:
+        retry_limit = int(job["max_attempts"])
+        if _is_abrupt_worker_failure(error_message):
+            retry_limit = min(retry_limit, ABRUPT_WORKER_FAILURE_MAX_ATTEMPTS)
+        if _is_transient_failure(error_message) and job["attempt_count"] < retry_limit:
             retry_at = (
                 datetime.now(timezone.utc)
                 + timedelta(seconds=_retry_delay_seconds(int(job["attempt_count"]), job_id))
@@ -393,10 +407,17 @@ def _is_transient_failure(error_message: str) -> bool:
         "keyerror: 'completed'",
         "unsupported operand type(s) for +: 'int' and 'nonetype'",
         "failed to complete toc transformation",
+        "resourceexhausted:",
+        "workerlost:",
         "left running by a previous worker",
         "stopped before completion",
     )
     return any(marker in lowered for marker in transient_markers)
+
+
+def _is_abrupt_worker_failure(error_message: str) -> bool:
+    normalized = error_message.replace(" ", "").lower()
+    return normalized.startswith(("resourceexhausted:", "workerlost:"))
 
 
 def _is_access_denied_failure(error_message: str) -> bool:
@@ -478,7 +499,7 @@ def fail_orphaned_running_jobs(db_path: str) -> int:
         fail_document_job(
             db_path,
             row["id"],
-            f"Document index job {row['id']} was left running by a previous worker process",
+            f"WorkerLost: Document index job {row['id']} was left running by a previous worker process",
         )
     return len(rows)
 
