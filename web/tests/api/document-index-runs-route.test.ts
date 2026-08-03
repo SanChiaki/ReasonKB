@@ -52,8 +52,8 @@ describe("document index runs route", () => {
         id, document_id, job_id, status, started_at, finished_at,
         duration_ms, text_extraction_ms, pageindex_ms, vision_extraction_ms,
         persist_ms, llm_call_count, prompt_tokens, completion_tokens,
-        total_tokens, token_source, models_json, error_message
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        reasoning_tokens, total_tokens, token_source, models_json, error_message
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       "run_new",
       document.id,
@@ -69,6 +69,7 @@ describe("document index runs route", () => {
       12,
       38000,
       4200,
+      3100,
       42200,
       "provider_usage",
       JSON.stringify({ "gpt-4.1": 12 }),
@@ -99,6 +100,7 @@ describe("document index runs route", () => {
           llmCallCount: 12,
           promptTokens: 38000,
           completionTokens: 4200,
+          reasoningTokens: 3100,
           totalTokens: 42200,
           tokenSource: "provider_usage",
           models: { "gpt-4.1": 12 },

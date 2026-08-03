@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS document_index_runs (
   llm_call_count INTEGER NOT NULL DEFAULT 0,
   prompt_tokens INTEGER NOT NULL DEFAULT 0,
   completion_tokens INTEGER NOT NULL DEFAULT 0,
+  reasoning_tokens INTEGER NOT NULL DEFAULT 0,
   total_tokens INTEGER NOT NULL DEFAULT 0,
   token_source TEXT NOT NULL DEFAULT 'estimated',
   models_json TEXT NOT NULL DEFAULT '{}',

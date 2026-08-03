@@ -6,14 +6,14 @@ import logging
 import math
 import time
 from time import monotonic, perf_counter
-from typing import Any, Literal
+from typing import Any
 
 import litellm
 
 from services.common.llm_environment import configure_litellm_environment
+from services.common.llm_reasoning import ReasoningMode, reasoning_options_for_model
 
 
-ReasoningMode = Literal["disabled", "low", "default"]
 logger = logging.getLogger(__name__)
 # Uvicorn configures its own loggers but leaves application loggers at the
 # root WARNING level. Retrieval metrics are an operational contract, so keep
@@ -259,62 +259,30 @@ def _reasoning_options(
     model: str | None,
     reasoning: ReasoningMode,
 ) -> tuple[dict[str, Any], str]:
-    if reasoning == "default":
-        return {}, "provider_default"
-
-    lowered = (model or "").lower()
-    if "deepseek" in lowered:
-        if reasoning == "low":
-            # DeepSeek-compatible endpoints do not provide a portable,
-            # independently enforceable reasoning-token budget. max_tokens
-            # limits visible output on some endpoints while hidden reasoning
-            # can still run to the provider cap, so treating it as bounded
-            # "low" recreates the retrieval tail latency this module avoids.
-            logger.warning(
-                "retrieval_llm_low_reasoning_unavailable %s",
-                json.dumps(
-                    {"model": model, "fallbackReasoning": "disabled"},
-                    ensure_ascii=True,
-                    separators=(",", ":"),
-                    sort_keys=True,
-                ),
-            )
-            return {
-                "extra_body": {"thinking": {"type": "disabled"}}
-            }, "deepseek_low_fallback_disabled"
-        return {
-            "extra_body": {"thinking": {"type": "disabled"}}
-        }, "deepseek_disabled"
-
-    if "qwen" in lowered:
-        options = {"extra_body": {"enable_thinking": reasoning == "low"}}
-        if reasoning == "low":
-            options["reasoning_effort"] = "low"
-        return options, f"qwen_{reasoning}"
-
-    if lowered.startswith("anthropic/"):
-        if reasoning == "low":
-            # LiteLLM maps this to manual or adaptive thinking according to the
-            # Claude model version. Keep that compatibility decision in the
-            # provider adapter instead of hard-coding one Anthropic wire format.
-            return {"reasoning_effort": "low"}, "anthropic_low"
-        return {}, "anthropic_default_off"
-
-    if reasoning == "low":
-        return {"reasoning_effort": "low"}, "reasoning_effort_low"
-    if any(name in lowered for name in ("gpt-5", "/o1", "/o3", "/o4")):
-        return {"reasoning_effort": "none"}, "reasoning_effort_none"
-
-    logger.warning(
-        "retrieval_llm_reasoning_control_unsupported %s",
-        json.dumps(
-            {"model": model, "requestedReasoning": reasoning},
-            ensure_ascii=True,
-            separators=(",", ":"),
-            sort_keys=True,
-        ),
-    )
-    return {}, "unsupported"
+    options, control = reasoning_options_for_model(model, reasoning)
+    if control == "deepseek_low_fallback_disabled":
+        # DeepSeek-compatible endpoints do not provide a portable,
+        # independently enforceable reasoning-token budget.
+        logger.warning(
+            "retrieval_llm_low_reasoning_unavailable %s",
+            json.dumps(
+                {"model": model, "fallbackReasoning": "disabled"},
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    elif control == "unsupported":
+        logger.warning(
+            "retrieval_llm_reasoning_control_unsupported %s",
+            json.dumps(
+                {"model": model, "requestedReasoning": reasoning},
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    return options, control
 
 
 def _exception_status_code(exc: Exception) -> int | None:

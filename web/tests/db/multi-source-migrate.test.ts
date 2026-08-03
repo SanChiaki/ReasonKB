@@ -119,6 +119,7 @@ describe("multi-source schema migration", () => {
       { version: 5 },
       { version: 6 },
       { version: 7 },
+      { version: 8 },
     ]);
     expect(
       migrated
@@ -199,6 +200,7 @@ describe("multi-source schema migration", () => {
       { version: 5, name: "repair-legacy-smb-uri-scope" },
       { version: 6, name: "source-exclusion-rules" },
       { version: 7, name: "document-page-layout-blocks" },
+      { version: 8, name: "index-run-reasoning-tokens" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -640,6 +642,7 @@ describe("multi-source schema migration", () => {
       { version: 5 },
       { version: 6 },
       { version: 7 },
+      { version: 8 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,

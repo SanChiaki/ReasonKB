@@ -32,9 +32,69 @@ def test_index_run_metrics_aggregates_llm_calls():
     assert snapshot["llm_call_count"] == 1
     assert snapshot["prompt_tokens"] == 100
     assert snapshot["completion_tokens"] == 25
+    assert snapshot["reasoning_tokens"] == 0
     assert snapshot["total_tokens"] == 125
     assert snapshot["token_source"] == "provider_usage"
     assert snapshot["models"] == {"gpt-test": 1}
+
+
+def test_llm_completion_disables_deepseek_thinking_and_records_reasoning_tokens(
+    monkeypatch,
+):
+    captured = {}
+
+    def fake_completion(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content="answer"),
+                    finish_reason="stop",
+                )
+            ],
+            usage=SimpleNamespace(
+                prompt_tokens=12,
+                completion_tokens=14,
+                total_tokens=26,
+                completion_tokens_details=SimpleNamespace(reasoning_tokens=9),
+            ),
+        )
+
+    monkeypatch.setattr("litellm.completion", fake_completion)
+
+    with index_run_metrics() as metrics:
+        assert (
+            utils.llm_completion(
+                model="litellm/openai/deepseek-v4-flash",
+                prompt="question",
+            )
+            == "answer"
+        )
+
+    assert captured["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert metrics.snapshot()["reasoning_tokens"] == 9
+
+
+def test_llm_acompletion_disables_deepseek_thinking(monkeypatch):
+    captured = {}
+
+    async def fake_acompletion(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))],
+            usage=SimpleNamespace(prompt_tokens=3, completion_tokens=2),
+        )
+
+    monkeypatch.setattr("litellm.acompletion", fake_acompletion)
+
+    async def run_completion():
+        return await utils.llm_acompletion(
+            model="litellm/openai/deepseek-v4-flash",
+            prompt="question",
+        )
+
+    assert asyncio.run(run_completion()) == "answer"
+    assert captured["extra_body"] == {"thinking": {"type": "disabled"}}
 
 
 def test_llm_completion_records_provider_usage(monkeypatch):
