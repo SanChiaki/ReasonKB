@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, FolderTree, RefreshCcw, X } from "lucide-react";
+import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { useI18n, type Locale, type TranslationKey } from "@/lib/i18n";
 import { readAdminCsrfToken } from "@/components/admin-shell";
 
@@ -64,6 +65,7 @@ function formatUploadedAt(value: string, locale: Locale, unknownLabel: string) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: DISPLAY_TIME_ZONE,
   });
 }
 

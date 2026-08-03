@@ -1,8 +1,10 @@
 /** @vitest-environment jsdom */
 
 import "@testing-library/jest-dom/vitest";
-import React from "react";
+import React, { act } from "react";
 import { render, screen } from "@testing-library/react";
+import { hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ProjectGrid } from "@/components/project-grid";
 
@@ -36,5 +38,47 @@ describe("ProjectGrid", () => {
     render(<ProjectGrid projects={[]} />);
 
     expect(screen.getByText("No projects yet")).toBeInTheDocument();
+  });
+
+  it("hydrates project dates consistently across server and browser time zones", async () => {
+    const previousTimeZone = process.env.TZ;
+    const project = {
+      id: "proj_boundary",
+      name: "Hydration Boundary",
+      documentCount: 0,
+      updatedAt: "2026-08-03T16:30:00.000Z",
+      source: {
+        id: "src_boundary",
+        displayName: "Boundary source",
+        kind: "local" as const,
+      },
+    };
+    let root: Root | undefined;
+    let container: HTMLDivElement | undefined;
+
+    try {
+      process.env.TZ = "UTC";
+      const serverMarkup = renderToString(<ProjectGrid projects={[project]} />);
+      container = document.createElement("div");
+      container.innerHTML = serverMarkup;
+      document.body.append(container);
+      process.env.TZ = "Asia/Shanghai";
+      const hydrationErrors: Error[] = [];
+
+      await act(async () => {
+        root = hydrateRoot(container, <ProjectGrid projects={[project]} />, {
+          onRecoverableError(error) {
+            hydrationErrors.push(error);
+          },
+        });
+      });
+
+      expect(hydrationErrors).toEqual([]);
+      expect(container).toHaveTextContent("Updated Aug 4, 2026");
+    } finally {
+      await act(async () => root?.unmount());
+      container?.remove();
+      process.env.TZ = previousTimeZone;
+    }
   });
 });

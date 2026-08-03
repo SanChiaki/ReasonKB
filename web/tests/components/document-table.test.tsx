@@ -1,8 +1,10 @@
 /** @vitest-environment jsdom */
 
 import "@testing-library/jest-dom/vitest";
-import React from "react";
+import React, { act } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocumentTable } from "@/components/document-table";
 
@@ -44,6 +46,46 @@ describe("DocumentTable", () => {
     expect(screen.getByText("1.5s")).toBeInTheDocument();
     expect(screen.getByText("4.2K tokens")).toBeInTheDocument();
     expect(screen.getByText("6 calls")).toBeInTheDocument();
+  });
+
+  it("hydrates document dates consistently across server and browser time zones", async () => {
+    const previousTimeZone = process.env.TZ;
+    const document = {
+      id: "doc_boundary",
+      fileName: "boundary.pdf",
+      pageCount: 1,
+      status: "ready",
+      createdAt: "2026-08-03T16:30:00.000Z",
+    };
+    let root: Root | undefined;
+    let container: HTMLDivElement | undefined;
+
+    try {
+      process.env.TZ = "UTC";
+      const serverMarkup = renderToString(
+        <DocumentTable documents={[document]} />,
+      );
+      container = window.document.createElement("div");
+      container.innerHTML = serverMarkup;
+      window.document.body.append(container);
+      process.env.TZ = "Asia/Shanghai";
+      const hydrationErrors: Error[] = [];
+
+      await act(async () => {
+        root = hydrateRoot(container, <DocumentTable documents={[document]} />, {
+          onRecoverableError(error) {
+            hydrationErrors.push(error);
+          },
+        });
+      });
+
+      expect(hydrationErrors).toEqual([]);
+      expect(container).toHaveTextContent("Aug 4, 2026");
+    } finally {
+      await act(async () => root?.unmount());
+      container?.remove();
+      process.env.TZ = previousTimeZone;
+    }
   });
 
   it("renders failed and skipped document reasons", () => {
