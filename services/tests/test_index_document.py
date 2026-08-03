@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import json
+import signal
 import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
@@ -1011,6 +1012,43 @@ def test_collect_finished_jobs_records_child_exception_message(tmp_path):
     assert document == ("failed", "ValueError: bad document")
 
 
+def test_collect_finished_jobs_retries_sigkill_once_as_resource_exhaustion(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET attempt_count = 1 WHERE id = 'job_1'")
+    conn.commit()
+    conn.close()
+
+    class FakeProcess:
+        exitcode = -signal.SIGKILL
+
+        def join(self, timeout=None):
+            return None
+
+        def is_alive(self):
+            return False
+
+    active_jobs = {
+        "job_1": ActiveDocumentJob(
+            process=FakeProcess(),
+            error_queue=None,
+            started_at=0,
+        )
+    }
+
+    assert collect_finished_jobs(str(db_path), active_jobs) == 1
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute(
+        "SELECT status, error_message, available_at FROM jobs WHERE id = 'job_1'"
+    ).fetchone()
+    conn.close()
+
+    assert job[0] == "queued"
+    assert job[1].startswith("ResourceExhausted:")
+    assert job[2] is not None
+
+
 def test_stop_active_jobs_terminates_running_children():
     events = []
 
@@ -1076,6 +1114,30 @@ def test_fail_orphaned_running_jobs_schedules_retry(tmp_path):
     assert job[2] is not None
     assert document == ("uploaded", None)
     assert run == ("failed", job[1])
+
+
+def test_fail_orphaned_running_jobs_stops_after_second_worker_loss(tmp_path):
+    db_path = _seed_single_document_job_db(tmp_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE jobs SET attempt_count = 2 WHERE id = 'job_1'")
+    conn.commit()
+    conn.close()
+
+    assert fail_orphaned_running_jobs(str(db_path)) == 1
+
+    conn = sqlite3.connect(db_path)
+    job = conn.execute(
+        "SELECT status, error_message, finished_at FROM jobs WHERE id = 'job_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, error_message FROM documents WHERE id = 'doc_1'"
+    ).fetchone()
+    conn.close()
+
+    assert job[0] == "failed"
+    assert job[1].startswith("WorkerLost:")
+    assert job[2] is not None
+    assert document == ("failed", job[1])
 
 
 def test_run_document_job_with_timeout_raises_timeout(monkeypatch):

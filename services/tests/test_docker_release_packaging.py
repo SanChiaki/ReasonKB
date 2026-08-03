@@ -403,6 +403,53 @@ def test_release_compose_health_checks_background_workers():
         assert healthcheck["start_period"] == "15s"
 
 
+def test_compose_recovers_long_running_services_and_exposes_shared_health_signals():
+    long_running_services = (
+        "web",
+        "mcp-server",
+        "retrieval-api",
+        "index-worker",
+        "source-worker",
+        "gotenberg",
+    )
+
+    for compose_name in ("compose.yml", "compose.release.yml"):
+        compose = yaml.safe_load((ROOT / "docker" / compose_name).read_text())
+
+        for service_name in long_running_services:
+            assert compose["services"][service_name]["restart"] == "unless-stopped"
+
+        assert "restart" not in compose["services"]["migrate"]
+        index_worker = compose["services"]["index-worker"]
+        source_worker = compose["services"]["source-worker"]
+        web = compose["services"]["web"]
+
+        assert index_worker["mem_limit"] == "${INDEX_WORKER_MEMORY_LIMIT:-1g}"
+        assert index_worker["environment"]["REASONKB_WORKER_HEARTBEAT_FILE"] == (
+            "/app/var/worker-health/index-worker.heartbeat"
+        )
+        assert source_worker["environment"]["REASONKB_WORKER_HEARTBEAT_FILE"] == (
+            "/app/var/worker-health/source-worker.heartbeat"
+        )
+        assert web["environment"]["REASONKB_INDEX_WORKER_HEARTBEAT_FILE"] == (
+            "/app/var/worker-health/index-worker.heartbeat"
+        )
+        assert web["environment"]["REASONKB_SOURCE_WORKER_HEARTBEAT_FILE"] == (
+            "/app/var/worker-health/source-worker.heartbeat"
+        )
+        assert web["environment"]["REASONKB_MCP_HEALTH_URL"] == (
+            "http://mcp-server:3002/health"
+        )
+        assert web["environment"]["REASONKB_GOTENBERG_HEALTH_URL"] == (
+            "http://gotenberg:3000/health"
+        )
+        assert "mcp-server" in compose["services"]["mcp-server"]["environment"][
+            "REASONKB_MCP_ALLOWED_HOSTS"
+        ].split(",")
+        assert "healthcheck" in compose["services"]["web"]
+        assert "healthcheck" in compose["services"]["gotenberg"]
+
+
 def test_credential_entrypoints_validate_master_key_before_starting():
     for entrypoint in ("migrate.sh", "web.sh", "source-worker.sh", "index-worker.sh"):
         content = (ROOT / "docker" / "entrypoints" / entrypoint).read_text()

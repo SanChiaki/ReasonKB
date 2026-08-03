@@ -2,6 +2,8 @@ import path from "node:path";
 
 const repoRoot = path.resolve(process.cwd(), "..");
 const varRoot = process.env.APP_VAR_ROOT ?? path.join(repoRoot, ".reasonkb", "var");
+const retrievalBaseUrl =
+  process.env.RETRIEVAL_API_BASE_URL ?? "http://127.0.0.1:8001";
 const corpusSource: "local" | "smb" =
   process.env.REASONKB_CORPUS_SOURCE?.trim().toLowerCase() === "smb"
     ? "smb"
@@ -53,8 +55,7 @@ export const appConfig = {
     process.env.REASONKB_LOCAL_SOURCE_ACCESS_ROOT ??
     process.env.PROJECTS_ROOT ??
     path.join(repoRoot, ".reasonkb", "projects"),
-  retrievalBaseUrl:
-    process.env.RETRIEVAL_API_BASE_URL ?? "http://127.0.0.1:8001",
+  retrievalBaseUrl,
   currentProjectsRootHostPath:
     process.env.REASONKB_CURRENT_PROJECTS_ROOT ??
     process.env.REASONKB_PROJECTS_ROOT ??
@@ -71,4 +72,26 @@ export const appConfig = {
     "",
   corpusSource,
   smbCorpusTarget: buildSmbCorpusTarget(),
+  serviceHealth: {
+    retrievalHealthUrl: `${retrievalBaseUrl.replace(/\/$/, "")}/health`,
+    mcpHealthUrl:
+      process.env.REASONKB_MCP_HEALTH_URL ?? "http://127.0.0.1:43173/health",
+    gotenbergHealthUrl:
+      process.env.REASONKB_GOTENBERG_HEALTH_URL ??
+      `${(process.env.GOTENBERG_URL ?? "http://127.0.0.1:43172").replace(/\/$/, "")}/health`,
+    indexWorkerHeartbeatPath:
+      process.env.REASONKB_INDEX_WORKER_HEARTBEAT_FILE ??
+      "/tmp/reasonkb-index-worker.heartbeat",
+    sourceWorkerHeartbeatPath:
+      process.env.REASONKB_SOURCE_WORKER_HEARTBEAT_FILE ??
+      "/tmp/reasonkb-source-worker.heartbeat",
+    requestTimeoutMs: Number.parseInt(
+      process.env.REASONKB_SERVICE_HEALTH_TIMEOUT_MS ?? "2000",
+      10,
+    ),
+    workerHeartbeatMaxAgeMs: Number.parseInt(
+      process.env.REASONKB_WORKER_HEARTBEAT_MAX_AGE_MS ?? "120000",
+      10,
+    ),
+  },
 };

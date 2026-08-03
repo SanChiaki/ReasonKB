@@ -22,6 +22,7 @@ afterEach(() => {
   vi.unmock("@/lib/repos/system-settings-store");
   vi.unmock("@/components/app-shell");
   vi.unmock("@/components/api-key-manager");
+  vi.unmock("@/components/service-health-panel");
   vi.unmock("@/lib/security/admin-page-auth");
   routerMocks.refresh.mockClear();
 });
@@ -68,6 +69,9 @@ describe("SettingsPage", () => {
     }));
     vi.doMock("@/components/api-key-manager", () => ({
       ApiKeyManager: () => <div>API key manager</div>,
+    }));
+    vi.doMock("@/components/service-health-panel", () => ({
+      ServiceHealthPanel: () => <div>Service health</div>,
     }));
     vi.doMock("@/lib/security/admin-page-auth", () => ({
       requireAdminPage: async () => undefined,

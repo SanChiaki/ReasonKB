@@ -223,7 +223,9 @@ Source endpoint、SMB scope 或 Local 根路径定义 source 身份边界，不�
 - 管理审计默认保留 180 天。
 - 临时下载始终在任务结束时删除；异常残留由维护任务清理。
 
-source worker 与 index worker 都提供基于工作循环心跳的 Docker healthcheck。source worker 重启时会把遗留的 Running Sync Run/Discovery Run 标记失败、丢弃未提交观测并释放队列；index worker 会恢复遗留索引任务和运行记录。
+所有常驻服务都使用 `unless-stopped` 重启策略。index worker 默认限制为 1 GiB 内存，可通过 `.env` 中的 `INDEX_WORKER_MEMORY_LIMIT` 调整；低内存部署应保持索引并发数为 1。source worker 与 index worker 都提供基于工作循环心跳的 Docker healthcheck，管理页的“服务健康”区域会同时显示 Web、Retrieval API、MCP、两个 worker 和 Gotenberg 的最近探测结果。
+
+source worker 重启时会把遗留的 Running Sync Run/Discovery Run 标记失败、丢弃未提交观测并释放队列；index worker 会恢复遗留索引任务和运行记录。索引子进程被 SIGKILL 或 worker 容器异常消失时，同一文档最多自动重试一次；第二次失败后该文档会被隔离为 Index Failed，worker 继续处理后续队列。
 
 ReasonKB 的删除只影响自身 SQLite、索引和转换产物，不会删除 Local、SMB 或致远中的源文件。
 

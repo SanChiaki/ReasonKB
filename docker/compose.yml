@@ -31,6 +31,7 @@ services:
       - ${REASONKB_SECRETS_ROOT:-./secrets}:/run/reasonkb-legacy-secrets:ro
 
   web:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -63,6 +64,10 @@ services:
       REASONKB_API_KEY_PEPPER_FILE: /run/secrets/reasonkb_api_key_pepper
       REASONKB_ADMIN_COOKIE_SECURE: ${REASONKB_ADMIN_COOKIE_SECURE:-auto}
       REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
+      REASONKB_INDEX_WORKER_HEARTBEAT_FILE: /app/var/worker-health/index-worker.heartbeat
+      REASONKB_SOURCE_WORKER_HEARTBEAT_FILE: /app/var/worker-health/source-worker.heartbeat
+      REASONKB_MCP_HEALTH_URL: http://mcp-server:3002/health
+      REASONKB_GOTENBERG_HEALTH_URL: http://gotenberg:3000/health
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
@@ -73,8 +78,19 @@ services:
     depends_on:
       retrieval-api:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
 
   mcp-server:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -86,7 +102,7 @@ services:
       REASONKB_URL: http://web:3000
       REASONKB_MCP_HOST: 0.0.0.0
       REASONKB_MCP_PORT: 3002
-      REASONKB_MCP_ALLOWED_HOSTS: ${REASONKB_MCP_ALLOWED_HOSTS:-localhost,127.0.0.1,[::1]}
+      REASONKB_MCP_ALLOWED_HOSTS: localhost,127.0.0.1,[::1],mcp-server,${REASONKB_MCP_ALLOWED_HOSTS:-}
       REASONKB_MCP_ALLOWED_ORIGINS: ${REASONKB_MCP_ALLOWED_ORIGINS:-}
       REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS: ${REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS:-30}
       REASONKB_MCP_REQUEST_TIMEOUT_SECONDS: ${REASONKB_MCP_REQUEST_TIMEOUT_SECONDS:-600}
@@ -110,6 +126,7 @@ services:
       start_period: 10s
 
   retrieval-api:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -143,6 +160,8 @@ services:
       start_period: 10s
 
   index-worker:
+    restart: unless-stopped
+    mem_limit: "${INDEX_WORKER_MEMORY_LIMIT:-1g}"
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -167,7 +186,7 @@ services:
       REASONKB_REMOTE_CACHE_ROOT: ${REASONKB_REMOTE_CACHE_ROOT:-/app/var/remote-cache}
       REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
       REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
-      REASONKB_WORKER_HEARTBEAT_FILE: /tmp/reasonkb-index-worker.heartbeat
+      REASONKB_WORKER_HEARTBEAT_FILE: /app/var/worker-health/index-worker.heartbeat
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
@@ -178,13 +197,14 @@ services:
       gotenberg:
         condition: service_started
     healthcheck:
-      test: ["CMD", "python", "-m", "services.common.worker_health", "/tmp/reasonkb-index-worker.heartbeat", "120"]
+      test: ["CMD", "python", "-m", "services.common.worker_health", "/app/var/worker-health/index-worker.heartbeat", "120"]
       interval: 10s
       timeout: 3s
       retries: 6
       start_period: 15s
 
   source-worker:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -198,7 +218,7 @@ services:
       SOURCE_WORKER_POLL_SECONDS: ${SOURCE_WORKER_POLL_SECONDS:-1}
       REASONKB_MASTER_KEY_FILE: /run/secrets/reasonkb_master_key
       REASONKB_LOCAL_SOURCE_ACCESS_ROOT: /data/projects
-      REASONKB_WORKER_HEARTBEAT_FILE: /tmp/reasonkb-source-worker.heartbeat
+      REASONKB_WORKER_HEARTBEAT_FILE: /app/var/worker-health/source-worker.heartbeat
     volumes:
       - ${REASONKB_VAR_ROOT:-../.reasonkb/var}:/app/var
       - ${REASONKB_PROJECTS_ROOT:-../.reasonkb/projects}:/data/projects:ro
@@ -207,13 +227,20 @@ services:
       retrieval-api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-m", "services.common.worker_health", "/tmp/reasonkb-source-worker.heartbeat", "120"]
+      test: ["CMD", "python", "-m", "services.common.worker_health", "/app/var/worker-health/source-worker.heartbeat", "120"]
       interval: 10s
       timeout: 3s
       retries: 6
       start_period: 15s
 
   gotenberg:
+    restart: unless-stopped
     image: gotenberg/gotenberg:8
     ports:
       - "${GOTENBERG_PORT:-43172}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
