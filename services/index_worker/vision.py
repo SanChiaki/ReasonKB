@@ -4,6 +4,7 @@ import base64
 import mimetypes
 from pathlib import Path
 from time import perf_counter
+from typing import Any
 
 import litellm
 
@@ -18,7 +19,7 @@ class VisionExtractionSkipped(RuntimeError):
     pass
 
 
-def _extract_usage_value(usage, key: str) -> int | None:
+def _extract_usage_value(usage: Any, key: str) -> Any:
     if usage is None:
         return None
     if isinstance(usage, dict):
@@ -34,6 +35,10 @@ def _record_vision_metrics(model: str, prompt: str, content: str, response, elap
     usage = getattr(response, "usage", None)
     prompt_tokens = _extract_usage_value(usage, "prompt_tokens")
     completion_tokens = _extract_usage_value(usage, "completion_tokens")
+    completion_details = _extract_usage_value(usage, "completion_tokens_details")
+    reasoning_tokens = _extract_usage_value(completion_details, "reasoning_tokens")
+    if reasoning_tokens is None:
+        reasoning_tokens = _extract_usage_value(usage, "reasoning_tokens")
     token_source = "provider_usage"
     if prompt_tokens is None or completion_tokens is None:
         token_source = "estimated"
@@ -44,6 +49,9 @@ def _record_vision_metrics(model: str, prompt: str, content: str, response, elap
         model=model,
         prompt_tokens=int(prompt_tokens or 0),
         completion_tokens=int(completion_tokens or 0),
+        reasoning_tokens=(
+            int(reasoning_tokens) if reasoning_tokens is not None else None
+        ),
         elapsed_ms=elapsed_ms,
         token_source=token_source,
     )

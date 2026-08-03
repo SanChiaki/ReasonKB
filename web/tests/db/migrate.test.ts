@@ -100,8 +100,10 @@ describe("migrateDatabase", () => {
     const runColumns = (
       db.prepare("PRAGMA table_info(document_index_runs)").all() as Array<{
         name: string;
+        notnull: number;
+        dflt_value: string | null;
       }>
-    ).map((row) => row.name);
+    );
 
     expect(documentColumns).toEqual(
       expect.arrayContaining([
@@ -125,7 +127,15 @@ describe("migrateDatabase", () => {
       ]),
     );
     expect(runTable?.name).toBe("document_index_runs");
-    expect(runColumns).toContain("reasoning_tokens");
+    expect(runColumns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "reasoning_tokens",
+          notnull: 0,
+          dflt_value: null,
+        }),
+      ]),
+    );
     db.close();
   });
 });

@@ -404,7 +404,7 @@ export const schemaMigrations: SchemaMigration[] = [
     name: "index-run-reasoning-tokens",
     up(db) {
       ensureColumns(db, "document_index_runs", [
-        ["reasoning_tokens", "reasoning_tokens INTEGER NOT NULL DEFAULT 0"],
+        ["reasoning_tokens", "reasoning_tokens INTEGER"],
       ]);
     },
   },

@@ -388,7 +388,7 @@ export function listDocumentIndexRuns(dbPath: string, documentId: string) {
     llm_call_count: number;
     prompt_tokens: number;
     completion_tokens: number;
-    reasoning_tokens: number;
+    reasoning_tokens: number | null;
     total_tokens: number;
     token_source: string;
     models_json: string;

@@ -625,7 +625,9 @@ def _record_llm_metrics(
         model=model,
         prompt_tokens=int(prompt_tokens or 0),
         completion_tokens=int(completion_tokens or 0),
-        reasoning_tokens=int(reasoning_tokens or 0),
+        reasoning_tokens=(
+            int(reasoning_tokens) if reasoning_tokens is not None else None
+        ),
         elapsed_ms=elapsed_ms,
         token_source=token_source,
     )
@@ -644,7 +646,7 @@ def _message_text(messages: list[dict[str, Any]]) -> str:
     return "\n".join(parts)
 
 
-def _usage_value(usage: Any, key: str) -> int | None:
+def _usage_value(usage: Any, key: str) -> Any:
     if usage is None:
         return None
     if isinstance(usage, dict):

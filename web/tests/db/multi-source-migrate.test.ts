@@ -104,6 +104,15 @@ describe("multi-source schema migration", () => {
       `INSERT INTO conversation_projects (conversation_id, project_id, created_at)
        VALUES ('conv_empty_demo', 'proj_empty_demo', '2026-01-01T00:00:00Z')`,
     ).run();
+    db.prepare(
+      `INSERT INTO document_index_runs (
+         id, document_id, status, started_at, llm_call_count,
+         prompt_tokens, completion_tokens, total_tokens, token_source
+       ) VALUES (
+         'run_legacy', 'doc_legacy', 'completed', '2026-01-01T00:00:00Z',
+         2, 100, 20, 120, 'provider_usage'
+       )`,
+    ).run();
     db.close();
 
     migrateDatabase(dbPath, { legacyLocalRoot: "/data/projects" });
@@ -155,6 +164,13 @@ describe("multi-source schema migration", () => {
         )
         .get(),
     ).toBeUndefined();
+    expect(
+      migrated
+        .prepare(
+          "SELECT reasoning_tokens FROM document_index_runs WHERE id = 'run_legacy'",
+        )
+        .get(),
+    ).toEqual({ reasoning_tokens: null });
     migrated.close();
   });
 

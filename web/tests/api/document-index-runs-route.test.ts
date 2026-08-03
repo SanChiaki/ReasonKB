@@ -75,6 +75,33 @@ describe("document index runs route", () => {
       JSON.stringify({ "gpt-4.1": 12 }),
       null,
     );
+    db.prepare(
+      `INSERT INTO document_index_runs (
+        id, document_id, job_id, status, started_at, finished_at,
+        duration_ms, text_extraction_ms, pageindex_ms, vision_extraction_ms,
+        persist_ms, llm_call_count, prompt_tokens, completion_tokens,
+        total_tokens, token_source, models_json, error_message
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      "run_old",
+      document.id,
+      null,
+      "completed",
+      "2026-04-25T09:00:00Z",
+      "2026-04-25T09:00:10Z",
+      10000,
+      100,
+      9000,
+      0,
+      100,
+      2,
+      1000,
+      200,
+      1200,
+      "provider_usage",
+      JSON.stringify({ "gpt-4.1": 2 }),
+      null,
+    );
     db.close();
 
     const { GET } = await import("@/app/api/documents/[documentId]/index-runs/route");
@@ -104,6 +131,25 @@ describe("document index runs route", () => {
           totalTokens: 42200,
           tokenSource: "provider_usage",
           models: { "gpt-4.1": 12 },
+          errorMessage: null,
+        },
+        {
+          id: "run_old",
+          status: "completed",
+          startedAt: "2026-04-25T09:00:00Z",
+          finishedAt: "2026-04-25T09:00:10Z",
+          durationMs: 10000,
+          textExtractionMs: 100,
+          pageindexMs: 9000,
+          visionExtractionMs: 0,
+          persistMs: 100,
+          llmCallCount: 2,
+          promptTokens: 1000,
+          completionTokens: 200,
+          reasoningTokens: null,
+          totalTokens: 1200,
+          tokenSource: "provider_usage",
+          models: { "gpt-4.1": 2 },
           errorMessage: null,
         },
       ],

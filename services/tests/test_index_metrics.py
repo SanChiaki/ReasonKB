@@ -32,7 +32,7 @@ def test_index_run_metrics_aggregates_llm_calls():
     assert snapshot["llm_call_count"] == 1
     assert snapshot["prompt_tokens"] == 100
     assert snapshot["completion_tokens"] == 25
-    assert snapshot["reasoning_tokens"] == 0
+    assert snapshot["reasoning_tokens"] is None
     assert snapshot["total_tokens"] == 125
     assert snapshot["token_source"] == "provider_usage"
     assert snapshot["models"] == {"gpt-test": 1}
@@ -73,6 +73,57 @@ def test_llm_completion_disables_deepseek_thinking_and_records_reasoning_tokens(
 
     assert captured["extra_body"] == {"thinking": {"type": "disabled"}}
     assert metrics.snapshot()["reasoning_tokens"] == 9
+
+
+def test_index_run_metrics_sums_reasoning_tokens_when_every_call_reports_them():
+    with index_run_metrics() as metrics:
+        metrics.record_llm_call(
+            model="gpt-test",
+            prompt_tokens=10,
+            completion_tokens=5,
+            reasoning_tokens=0,
+            elapsed_ms=1,
+            token_source="provider_usage",
+        )
+        metrics.record_llm_call(
+            model="gpt-test",
+            prompt_tokens=20,
+            completion_tokens=8,
+            reasoning_tokens=3,
+            elapsed_ms=1,
+            token_source="provider_usage",
+        )
+
+    assert metrics.snapshot()["reasoning_tokens"] == 3
+
+
+def test_index_run_metrics_keeps_reasoning_tokens_unknown_if_any_call_omits_them():
+    with index_run_metrics() as metrics:
+        metrics.record_llm_call(
+            model="gpt-test",
+            prompt_tokens=10,
+            completion_tokens=5,
+            reasoning_tokens=2,
+            elapsed_ms=1,
+            token_source="provider_usage",
+        )
+        metrics.record_llm_call(
+            model="gpt-test",
+            prompt_tokens=20,
+            completion_tokens=8,
+            elapsed_ms=1,
+            token_source="provider_usage",
+        )
+        metrics.record_llm_call(
+            model="gpt-test",
+            prompt_tokens=30,
+            completion_tokens=9,
+            reasoning_tokens=4,
+            elapsed_ms=1,
+            token_source="provider_usage",
+        )
+
+    assert metrics.snapshot()["reasoning_tokens"] is None
 
 
 def test_llm_acompletion_disables_deepseek_thinking(monkeypatch):

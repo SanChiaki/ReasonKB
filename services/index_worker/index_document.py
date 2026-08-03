@@ -514,7 +514,7 @@ def _empty_metrics_snapshot() -> dict:
         "llm_call_count": 0,
         "prompt_tokens": 0,
         "completion_tokens": 0,
-        "reasoning_tokens": 0,
+        "reasoning_tokens": None,
         "total_tokens": 0,
         "token_source": "estimated",
         "models": {},
