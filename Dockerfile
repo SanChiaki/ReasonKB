@@ -1,3 +1,6 @@
+ARG UV_VERSION=0.12.1
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
 FROM node:22-bookworm
 
 ARG REASONKB_GIT_SHA=unknown
@@ -5,19 +8,22 @@ LABEL org.opencontainers.image.revision=$REASONKB_GIT_SHA
 
 WORKDIR /app
 
-ENV PYTHONUNBUFFERED=1
-ENV PATH="/opt/venv/bin:${PATH}"
+COPY --from=uv /uv /uvx /bin/
+
+ENV PYTHONUNBUFFERED=1 \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON=/usr/bin/python3 \
+    UV_PYTHON_DOWNLOADS=never \
+    PATH="/opt/venv/bin:${PATH}"
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-venv python3-pip build-essential pkg-config \
+  && apt-get install -y --no-install-recommends python3 build-essential pkg-config \
   && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable
 
-COPY services/requirements.txt ./services/requirements.txt
-RUN python3 -m venv /opt/venv \
-  && /opt/venv/bin/pip install --upgrade pip \
-  && /opt/venv/bin/pip install -r services/requirements.txt
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev
 
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
 COPY web/patches ./web/patches

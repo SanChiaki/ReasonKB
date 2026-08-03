@@ -16,7 +16,7 @@ Verified on 2026-07-13 from worktree `multi-source-corpus-design`.
 ## Final Commands
 
 ```text
-./.venv/bin/python -m pytest -q services/tests
+uv run pytest -q services/tests
 186 passed
 
 pnpm -C web test -- --run
@@ -31,7 +31,7 @@ REASONKB_E2E_PROJECTS_ROOT=/tmp/reasonkb-multisource-e2e/projects \
 pnpm -C web exec playwright test --reporter=list
 2 passed
 
-./.venv/bin/python -m services.tests.source_capacity_check
+uv run python -m services.tests.source_capacity_check
 100 sources; 1,000 Projects; 100,000 documents; 23.584 seconds;
 0.3 MiB peak traced memory; 0.882 seconds maximum SQLite lock wait;
 238.8 MiB database

@@ -31,23 +31,25 @@ Keep ReasonKB behavior outside `vendor/pageindex/pageindex`. Runtime integration
 
 ## Local Development
 
-Install dependencies and migrate SQLite:
+Install uv 0.12.1, synchronize the locked dependencies, and migrate SQLite:
 
 ```bash
-python3 -m venv .venv
-./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install -r services/requirements.txt
+uv sync --frozen
 pnpm -C web install
 pnpm -C web db:migrate
 ```
+
+The checked-in `.python-version` selects Python 3.12 for local development.
+ReasonKB supports Python 3.11 through 3.13; uv itself is pinned by
+`pyproject.toml` so local and Docker dependency resolution use the same version.
 
 Run the services in separate terminals:
 
 ```bash
 pnpm -C web dev
-./.venv/bin/uvicorn services.retrieval_api.app:app --reload --port 8001
-./.venv/bin/python -m services.source_worker.worker
-./.venv/bin/python -m services.index_worker.worker
+uv run uvicorn services.retrieval_api.app:app --reload --port 8001
+uv run python -m services.source_worker.worker
+uv run python -m services.index_worker.worker
 ```
 
 The source worker reads source changes from SQLite continuously, so API and UI changes can be developed natively without rebuilding a worker image. Run Gotenberg in Docker when Office conversion is required.
@@ -281,7 +283,7 @@ configuration, headless Key administration, and source-development commands.
 ## Verification
 
 ```bash
-./.venv/bin/python -m pytest -q services/tests
+uv run pytest -q services/tests
 pnpm -C web test
 pnpm -C web exec tsc --noEmit
 docker compose -f docker/compose.yml config --quiet
