@@ -75,6 +75,31 @@ def test_retrieval_llm_timeout_rejects_invalid_values_and_caps_large_values(monk
     assert query_engine._retrieval_llm_timeout_seconds() == 600.0
 
 
+def test_query_timeout_defaults_allow_five_minute_calls_with_ten_minute_deadline(
+    monkeypatch,
+):
+    monkeypatch.delenv("RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("ANSWER_LLM_REQUEST_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("RETRIEVAL_REQUEST_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setattr(query_engine, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(
+        query_engine,
+        "get_llm_runtime_settings",
+        lambda _db_path: SimpleNamespace(
+            retrieve_model="retrieval-model",
+            model="answer-model",
+            api_key="test-key",
+            base_url="https://provider.example/v1",
+        ),
+    )
+
+    context = query_engine._new_query_llm_context("unused.db", None)
+
+    assert query_engine._retrieval_llm_timeout_seconds() == 300.0
+    assert query_engine._answer_llm_timeout_seconds() == 300.0
+    assert context.deadline == 700.0
+
+
 @pytest.mark.parametrize(
     ("configured", "expected"),
     [

@@ -120,12 +120,12 @@ document tree; it does not require hidden thinking for every provider request.
 The retrieval service also accepts these deployment controls:
 
 ```env
-# Whole-query deadline in seconds. Default 240; values are capped at 600.
-RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
+# Whole-query deadline in seconds. Default and maximum 600.
+RETRIEVAL_REQUEST_TIMEOUT_SECONDS=600
 
-# Per-call timeouts. Retrieval defaults to 30; final Answer defaults to 120.
-RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
-ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
+# Per-call timeouts. Retrieval and final Answer both default to 300.
+RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=300
+ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=300
 
 # Retrieval attempts per call, including the first attempt. Default/max 2.
 RETRIEVAL_LLM_MAX_ATTEMPTS=2
