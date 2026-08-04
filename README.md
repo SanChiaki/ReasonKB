@@ -175,9 +175,9 @@ PAGEINDEX_LLM_API_KEY=your_key
 PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
 PAGEINDEX_LLM_MODEL=openai/answer-model
 PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/retrieval-model
-RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
-ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
-RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
+RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=300
+ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=300
+RETRIEVAL_REQUEST_TIMEOUT_SECONDS=600
 RETRIEVAL_LLM_MAX_ATTEMPTS=2
 ANSWER_LLM_MAX_ATTEMPTS=1
 PAGEINDEX_LLM_MAX_ATTEMPTS=2
@@ -187,8 +187,10 @@ RETRIEVAL_LLM_CONCURRENCY=2
 RETRIEVAL_DOCUMENT_CONCURRENCY=2
 ```
 
-`RETRIEVAL_REQUEST_TIMEOUT_SECONDS` is the deadline for the complete retrieval request and is
-bounded to 600 seconds. Retrieval calls accept `1` or `2` attempts through
+`RETRIEVAL_REQUEST_TIMEOUT_SECONDS` is the deadline for the complete retrieval request and
+defaults to its 600-second maximum. Retrieval and final Answer model calls each default to a
+300-second per-call timeout while remaining bounded by the shared request deadline. Retrieval
+calls accept `1` or `2` attempts through
 `RETRIEVAL_LLM_MAX_ATTEMPTS`; Answer calls default to one attempt and can be set to `1` or `2`
 through `ANSWER_LLM_MAX_ATTEMPTS`. Provider SDK retries are disabled so these attempts remain
 inside the request deadline. The legacy PageIndex sync/async runtime wrappers used by indexing

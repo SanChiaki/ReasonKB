@@ -297,12 +297,12 @@ if [ "$INSTALL_ACTION" = "install" ]; then
 # PAGEINDEX_LLM_MODEL=openai/deepseek-v4-flash
 # PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/deepseek-v4-flash
 
-# 检索请求的总时限（秒）：默认 240，最大 600。
-# RETRIEVAL_REQUEST_TIMEOUT_SECONDS=240
-# 单次检索模型调用时限（秒）：默认 30，最大 600。
-# RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=30
-# 最终回答模型调用时限（秒）：默认 120，最大 600。
-# ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=120
+# 检索请求的总时限（秒）：默认且最大 600。
+# RETRIEVAL_REQUEST_TIMEOUT_SECONDS=600
+# 单次检索模型调用时限（秒）：默认 300，最大 600。
+# RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=300
+# 最终回答模型调用时限（秒）：默认 300，最大 600。
+# ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=300
 # 检索模型每次调用的总尝试次数（包含首次调用）：默认且最多 2。
 # RETRIEVAL_LLM_MAX_ATTEMPTS=2
 # PageIndex 运行层（索引及无上下文回退）每次调用的总尝试次数：默认且最多 2。
