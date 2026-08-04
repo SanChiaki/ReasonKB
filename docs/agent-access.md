@@ -343,12 +343,18 @@ It listens on `http://127.0.0.1:43173` by default.
 
 ## MCP Tools
 
-- `reasonkb_list_projects`
-- `reasonkb_list_documents`
-- `reasonkb_query`
-- `reasonkb_evidence`
-- `reasonkb_get_pages`
-- `reasonkb_get_structure`
+MCP tool discovery reflects the scopes of the API Key that initialized the
+stdio process or HTTP session:
+
+- `read:projects` exposes `reasonkb_list_projects`.
+- `read:documents` exposes `reasonkb_list_documents`, `reasonkb_get_pages`, and
+  `reasonkb_get_structure`.
+- `query` exposes `reasonkb_query`.
+- `evidence` exposes `reasonkb_evidence`.
+
+Tools without a matching scope are omitted from `tools/list`. The corresponding
+Agent routes still enforce scopes independently, so tool discovery is not an
+authorization boundary.
 
 Query citations and evidence items may include an optional `documentUrl`. It
 is present only when an original-document link is available. For Seeyon

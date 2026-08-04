@@ -6,5 +6,5 @@ export async function POST(request: Request) {
   if (isAuthResponse(auth)) {
     return auth;
   }
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ scopes: auth.key.scopes });
 }

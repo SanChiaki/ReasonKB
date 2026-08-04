@@ -29,7 +29,7 @@ function makeTempDb() {
 }
 
 describe("agent API key verification route", () => {
-  it("accepts a valid key without requiring a tool scope", async () => {
+  it("returns a valid key's scopes without recording tool usage", async () => {
     const dbPath = makeTempDb();
     const key = createApiKey(dbPath, {
       ownerUserId: "user_demo",
@@ -44,7 +44,8 @@ describe("agent API key verification route", () => {
       }),
     );
 
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ scopes: ["query"] });
     const db = new Database(dbPath, { readonly: true });
     const row = db
       .prepare("SELECT last_used_at FROM api_keys WHERE id = ?")
