@@ -31,6 +31,36 @@ const MAX_TIMER_DELAY_MS = 2_147_483_647;
 const MAX_TIMER_DELAY_SECONDS = Math.floor(MAX_TIMER_DELAY_MS / 1000);
 const REQUEST_SIGNAL_AUTH_INFO_KEY = "reasonkbRequestSignal";
 const MAX_RETRIEVAL_SSE_FRAME_CHARS = 32 * 1024 * 1024;
+const AGENT_SCOPES = [
+  "read:projects",
+  "read:documents",
+  "query",
+  "evidence",
+];
+const AGENT_SCOPE_SET = new Set(AGENT_SCOPES);
+
+function authorizedScopeSet(scopes = AGENT_SCOPES) {
+  if (!Array.isArray(scopes)) {
+    throw new Error("ReasonKB API key scopes must be an array.");
+  }
+  const normalized = new Set();
+  for (const scope of scopes) {
+    if (typeof scope !== "string" || !AGENT_SCOPE_SET.has(scope)) {
+      throw new Error("ReasonKB returned an unsupported API key scope.");
+    }
+    normalized.add(scope);
+  }
+  return normalized;
+}
+
+async function verifiedKeyCapabilities(response) {
+  // ReasonKB versions before scoped discovery returned an empty success response.
+  if (response.status === 204) {
+    return { scopes: [...AGENT_SCOPES] };
+  }
+  const payload = await response.json();
+  return { scopes: [...authorizedScopeSet(payload?.scopes)] };
+}
 
 function normalizedBaseUrl(value) {
   return value.replace(/\/+$/, "");
@@ -301,6 +331,7 @@ async function reasonkbRetrievalRequest(pathname, init, context, onProgress) {
 export function createReasonkbMcpServer({
   apiKey,
   baseUrl,
+  scopes,
   fetchImpl = fetch,
   abortSignal,
   toolExecutor,
@@ -308,6 +339,7 @@ export function createReasonkbMcpServer({
   if (!apiKey) {
     throw new Error("REASONKB_API_KEY is required.");
   }
+  const authorizedScopes = authorizedScopeSet(scopes);
   const server = new McpServer(SERVER_INFO);
   const runTool = (operation, extra) =>
     toolExecutor ? toolExecutor(operation, extra) : operation();
@@ -345,49 +377,53 @@ export function createReasonkbMcpServer({
       onProgress,
     );
 
-  server.registerTool(
-    "reasonkb_list_projects",
-    {
-      description: "List ReasonKB projects visible to the configured API key.",
-      inputSchema: z.object({}).strict(),
-    },
-    async (_arguments, extra) =>
-      runTool(
-        async (executionSignal) =>
-          toolResult(
-            await request(
-              "/api/agent/projects",
-              {},
-              combineAbortSignals(extra.signal, executionSignal),
-              extra.authInfo,
+  if (authorizedScopes.has("read:projects")) {
+    server.registerTool(
+      "reasonkb_list_projects",
+      {
+        description: "List ReasonKB projects visible to the configured API key.",
+        inputSchema: z.object({}).strict(),
+      },
+      async (_arguments, extra) =>
+        runTool(
+          async (executionSignal) =>
+            toolResult(
+              await request(
+                "/api/agent/projects",
+                {},
+                combineAbortSignals(extra.signal, executionSignal),
+                extra.authInfo,
+              ),
             ),
-          ),
-        extra,
-      ),
-  );
+          extra,
+        ),
+    );
+  }
 
-  server.registerTool(
-    "reasonkb_list_documents",
-    {
-      description: "List documents in a ReasonKB project.",
-      inputSchema: z.object({ projectId: z.string().trim().min(1) }).strict(),
-    },
-    async ({ projectId }, extra) =>
-      runTool(
-        async (executionSignal) =>
-          toolResult(
-            await request(
-              "/api/agent/projects/" +
-                encodeURIComponent(projectId) +
-                "/documents",
-              {},
-              combineAbortSignals(extra.signal, executionSignal),
-              extra.authInfo,
+  if (authorizedScopes.has("read:documents")) {
+    server.registerTool(
+      "reasonkb_list_documents",
+      {
+        description: "List documents in a ReasonKB project.",
+        inputSchema: z.object({ projectId: z.string().trim().min(1) }).strict(),
+      },
+      async ({ projectId }, extra) =>
+        runTool(
+          async (executionSignal) =>
+            toolResult(
+              await request(
+                "/api/agent/projects/" +
+                  encodeURIComponent(projectId) +
+                  "/documents",
+                {},
+                combineAbortSignals(extra.signal, executionSignal),
+                extra.authInfo,
+              ),
             ),
-          ),
-        extra,
-      ),
-  );
+          extra,
+        ),
+    );
+  }
 
   for (const [name, route, description] of [
     [
@@ -401,6 +437,9 @@ export function createReasonkbMcpServer({
       "Retrieve document evidence snippets without generating an answer.",
     ],
   ]) {
+    if (!authorizedScopes.has(route)) {
+      continue;
+    }
     server.registerTool(
       name,
       {
@@ -446,65 +485,98 @@ export function createReasonkbMcpServer({
     );
   }
 
-  server.registerTool(
-    "reasonkb_get_pages",
-    {
-      description:
-        "Read indexed page text for a document, optionally filtered by page range.",
-      inputSchema: z
-        .object({
-          documentId: z.string().trim().min(1),
-          pages: z.string().trim().min(1).optional(),
-        })
-        .strict(),
-    },
-    async ({ documentId, pages }, extra) =>
-      runTool(async (executionSignal) => {
-        const suffix = pages ? "?pages=" + encodeURIComponent(pages) : "";
-        return toolResult(
-          await request(
-            "/api/agent/documents/" +
-              encodeURIComponent(documentId) +
-              "/pages" +
-              suffix,
-            {},
-            combineAbortSignals(extra.signal, executionSignal),
-            extra.authInfo,
-          ),
-        );
-      }, extra),
-  );
-
-  server.registerTool(
-    "reasonkb_get_structure",
-    {
-      description: "Read the PageIndex tree structure for a document.",
-      inputSchema: z.object({ documentId: z.string().trim().min(1) }).strict(),
-    },
-    async ({ documentId }, extra) =>
-      runTool(
-        async (executionSignal) =>
-          toolResult(
+  if (authorizedScopes.has("read:documents")) {
+    server.registerTool(
+      "reasonkb_get_pages",
+      {
+        description:
+          "Read indexed page text for a document, optionally filtered by page range.",
+        inputSchema: z
+          .object({
+            documentId: z.string().trim().min(1),
+            pages: z.string().trim().min(1).optional(),
+          })
+          .strict(),
+      },
+      async ({ documentId, pages }, extra) =>
+        runTool(async (executionSignal) => {
+          const suffix = pages ? "?pages=" + encodeURIComponent(pages) : "";
+          return toolResult(
             await request(
               "/api/agent/documents/" +
                 encodeURIComponent(documentId) +
-                "/structure",
+                "/pages" +
+                suffix,
               {},
               combineAbortSignals(extra.signal, executionSignal),
               extra.authInfo,
             ),
-          ),
-        extra,
-      ),
-  );
+          );
+        }, extra),
+    );
+
+    server.registerTool(
+      "reasonkb_get_structure",
+      {
+        description: "Read the PageIndex tree structure for a document.",
+        inputSchema: z.object({ documentId: z.string().trim().min(1) }).strict(),
+      },
+      async ({ documentId }, extra) =>
+        runTool(
+          async (executionSignal) =>
+            toolResult(
+              await request(
+                "/api/agent/documents/" +
+                  encodeURIComponent(documentId) +
+                  "/structure",
+                {},
+                combineAbortSignals(extra.signal, executionSignal),
+                extra.authInfo,
+              ),
+            ),
+          extra,
+        ),
+    );
+  }
 
   return server;
 }
 
-export async function startReasonkbMcpStdioServer() {
+export async function startReasonkbMcpStdioServer({ fetchImpl = fetch } = {}) {
+  const apiKey = process.env.REASONKB_API_KEY || "";
+  const baseUrl = configuredBaseUrl();
+  if (!apiKey) {
+    throw new Error("REASONKB_API_KEY is required.");
+  }
+  let authResponse;
+  try {
+    authResponse = await verifyApiKey(apiKey, {
+      reasonkbUrl: baseUrl,
+      fetchImpl,
+    });
+  } catch {
+    throw new Error("ReasonKB authentication service is unavailable.");
+  }
+  if (!authResponse.ok) {
+    throw new Error(
+      authResponse.status === 401
+        ? "Invalid or revoked API key."
+        : "ReasonKB authentication service is unavailable.",
+    );
+  }
+  let capabilities;
+  try {
+    capabilities = await verifiedKeyCapabilities(authResponse);
+  } catch {
+    throw new Error(
+      "ReasonKB authentication service returned an invalid response.",
+    );
+  }
   const server = createReasonkbMcpServer({
-    apiKey: process.env.REASONKB_API_KEY || "",
-    baseUrl: configuredBaseUrl(),
+    apiKey,
+    baseUrl,
+    scopes: capabilities.scopes,
+    fetchImpl,
   });
   await server.connect(new StdioServerTransport());
   if (process.env.REASONKB_MCP_DEBUG === "1") {
@@ -846,19 +918,23 @@ export function createReasonkbMcpHttpApp({
     if (activeAuthRequests >= effectiveMaxConcurrentAuthRequests) {
       response.set("Retry-After", "1");
       jsonRpcError(response, 503, "MCP authentication service is busy.");
-      return false;
+      return undefined;
     }
     activeAuthRequests += 1;
     let authResponse;
+    let capabilities;
     try {
       authResponse = await verifyApiKey(apiKey, {
         reasonkbUrl,
         fetchImpl,
         signal: context.abortController.signal,
       });
+      if (authResponse.ok) {
+        capabilities = await verifiedKeyCapabilities(authResponse);
+      }
     } catch (error) {
       if (context.abortController.signal.aborted) {
-        return false;
+        return undefined;
       }
       console.error(
         "[reasonkb-mcp-http] authentication service unavailable:",
@@ -869,12 +945,12 @@ export function createReasonkbMcpHttpApp({
         502,
         "ReasonKB authentication service is unavailable.",
       );
-      return false;
+      return undefined;
     } finally {
       activeAuthRequests -= 1;
     }
     if (authResponse.ok) {
-      return true;
+      return capabilities;
     }
     response.set("WWW-Authenticate", "Bearer");
     jsonRpcError(
@@ -887,7 +963,7 @@ export function createReasonkbMcpHttpApp({
     if (authResponse.status === 401 && session) {
       void closeSession(session);
     }
-    return false;
+    return undefined;
   }
 
   async function executeTool(operation, extra) {
@@ -1027,11 +1103,11 @@ export function createReasonkbMcpHttpApp({
     }
   }
 
-  function setRequestAuthInfo(request, fingerprint, context) {
+  function setRequestAuthInfo(request, fingerprint, context, scopes) {
     request.auth = {
       token: fingerprint.toString("hex"),
       clientId: "reasonkb-api-key",
-      scopes: [],
+      scopes,
       extra: {
         [REQUEST_SIGNAL_AUTH_INFO_KEY]: context.abortController.signal,
       },
@@ -1065,6 +1141,7 @@ export function createReasonkbMcpHttpApp({
     context,
     apiKey,
     fingerprint,
+    scopes,
   ) {
     const entry = {
       apiKeyFingerprint: fingerprint,
@@ -1078,6 +1155,7 @@ export function createReasonkbMcpHttpApp({
       pendingRequests: new Map(),
       server: undefined,
       sessionId: undefined,
+      scopes: [...scopes],
       transport: undefined,
     };
     pendingSessions.add(entry);
@@ -1100,6 +1178,7 @@ export function createReasonkbMcpHttpApp({
     entry.server = createReasonkbMcpServer({
       apiKey,
       baseUrl: reasonkbUrl,
+      scopes,
       fetchImpl,
       toolExecutor: executeTool,
     });
@@ -1232,11 +1311,12 @@ export function createReasonkbMcpHttpApp({
         controlSlot = true;
       }
       try {
-        if (
-          !control.cancellationOnly &&
-          !(await authenticate(apiKey, response, context, session))
-        ) {
-          return;
+        let capabilities = { scopes: session.scopes };
+        if (!control.cancellationOnly) {
+          capabilities = await authenticate(apiKey, response, context, session);
+          if (!capabilities) {
+            return;
+          }
         }
         clearRequestDeadline(context);
         if (
@@ -1253,7 +1333,12 @@ export function createReasonkbMcpHttpApp({
           return;
         }
         attachSession(context, session, !control.allControl);
-        setRequestAuthInfo(request, fingerprint, context);
+        setRequestAuthInfo(
+          request,
+          fingerprint,
+          context,
+          capabilities.scopes,
+        );
         if (pendingRequest) {
           pendingRequest.dispatched = true;
         }
@@ -1289,7 +1374,8 @@ export function createReasonkbMcpHttpApp({
       return;
     }
 
-    if (!(await authenticate(apiKey, response, context))) {
+    const capabilities = await authenticate(apiKey, response, context);
+    if (!capabilities) {
       return;
     }
     clearRequestDeadline(context);
@@ -1302,8 +1388,15 @@ export function createReasonkbMcpHttpApp({
     }
 
     try {
-      setRequestAuthInfo(request, fingerprint, context);
-      await initializeSession(request, response, context, apiKey, fingerprint);
+      setRequestAuthInfo(request, fingerprint, context, capabilities.scopes);
+      await initializeSession(
+        request,
+        response,
+        context,
+        apiKey,
+        fingerprint,
+        capabilities.scopes,
+      );
     } catch (error) {
       if (context.abortController.signal.aborted) {
         return;
@@ -1333,7 +1426,8 @@ export function createReasonkbMcpHttpApp({
       jsonRpcError(response, 404, "MCP session not found.", -32001);
       return;
     }
-    if (!(await authenticate(apiKey, response, context, session))) {
+    const capabilities = await authenticate(apiKey, response, context, session);
+    if (!capabilities) {
       return;
     }
     clearRequestDeadline(context);
@@ -1342,7 +1436,7 @@ export function createReasonkbMcpHttpApp({
       return;
     }
     attachSession(context, session, false);
-    setRequestAuthInfo(request, fingerprint, context);
+    setRequestAuthInfo(request, fingerprint, context, capabilities.scopes);
     try {
       await session.transport.handleRequest(request, response);
     } catch (error) {

@@ -6,6 +6,23 @@ import { describe, expect, it } from "vitest";
 
 describe("stdio MCP server", () => {
   it("keeps the existing launcher compatible with official MCP clients", async () => {
+    const upstream = http.createServer((request, response) => {
+      if (request.url === "/api/agent/auth/verify") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            scopes: ["read:projects", "read:documents", "query", "evidence"],
+          }),
+        );
+        return;
+      }
+      response.writeHead(404).end();
+    });
+    await new Promise((resolve, reject) => {
+      upstream.listen(0, "127.0.0.1", resolve);
+      upstream.on("error", reject);
+    });
+    const address = upstream.address();
     const transport = new StdioClientTransport({
       command: process.execPath,
       args: [path.resolve("..", "tools", "reasonkb-mcp.mjs")],
@@ -13,7 +30,7 @@ describe("stdio MCP server", () => {
       env: {
         ...process.env,
         REASONKB_API_KEY: "test-api-key",
-        REASONKB_URL: "http://reasonkb.test",
+        REASONKB_URL: `http://127.0.0.1:${address.port}`,
       },
       stderr: "pipe",
     });
@@ -32,6 +49,50 @@ describe("stdio MCP server", () => {
       ]);
     } finally {
       await client.close();
+      await new Promise((resolve, reject) => {
+        upstream.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it("lists only tools allowed by the configured API key", async () => {
+    const upstream = http.createServer((request, response) => {
+      if (request.url === "/api/agent/auth/verify") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ scopes: ["evidence"] }));
+        return;
+      }
+      response.writeHead(404).end();
+    });
+    await new Promise((resolve, reject) => {
+      upstream.listen(0, "127.0.0.1", resolve);
+      upstream.on("error", reject);
+    });
+    const address = upstream.address();
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [path.resolve("..", "tools", "reasonkb-mcp.mjs")],
+      cwd: path.resolve(".."),
+      env: {
+        ...process.env,
+        REASONKB_API_KEY: "evidence-only-key",
+        REASONKB_URL: `http://127.0.0.1:${address.port}`,
+      },
+      stderr: "pipe",
+    });
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+
+    try {
+      await client.connect(transport);
+      const tools = await client.listTools();
+      expect(tools.tools.map((tool) => tool.name)).toEqual([
+        "reasonkb_evidence",
+      ]);
+    } finally {
+      await client.close();
+      await new Promise((resolve, reject) => {
+        upstream.close((error) => (error ? reject(error) : resolve()));
+      });
     }
   });
 
@@ -49,6 +110,11 @@ describe("stdio MCP server", () => {
     };
     let upstreamHeaders;
     const upstream = http.createServer((request, response) => {
+      if (request.url === "/api/agent/auth/verify") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ scopes: ["query"] }));
+        return;
+      }
       upstreamHeaders = request.headers;
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.write(`data: ${JSON.stringify(progressEvent)}\n\n`);
@@ -125,7 +191,12 @@ describe("stdio MCP server", () => {
       stage: "retrieval_started",
       data: {},
     };
-    const upstream = http.createServer((_request, response) => {
+    const upstream = http.createServer((request, response) => {
+      if (request.url === "/api/agent/auth/verify") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ scopes: ["query"] }));
+        return;
+      }
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.write(`data: ${JSON.stringify(progressEvent)}\n\n`);
       response.on("close", resolveUpstreamClosed);

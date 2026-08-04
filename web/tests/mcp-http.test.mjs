@@ -330,6 +330,79 @@ describe("Streamable HTTP MCP server", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    [["read:projects"], ["reasonkb_list_projects"]],
+    [
+      ["read:documents"],
+      [
+        "reasonkb_list_documents",
+        "reasonkb_get_pages",
+        "reasonkb_get_structure",
+      ],
+    ],
+    [["query"], ["reasonkb_query"]],
+    [["evidence"], ["reasonkb_evidence"]],
+  ])("lists only the tools authorized by scopes %j", async (scopes, names) => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return jsonResponse({ scopes });
+      }
+      return jsonResponse({ error: "Unexpected upstream request." }, 500);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    const transport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+      requestInit: {
+        headers: { Authorization: "Bearer scoped-api-key" },
+      },
+    });
+
+    await client.connect(transport);
+    const tools = await client.listTools();
+
+    expect(tools.tools.map((tool) => tool.name)).toEqual(names);
+  });
+
+  it("rejects direct calls to tools hidden by the API key scopes", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return jsonResponse({ scopes: ["evidence"] });
+      }
+      return jsonResponse({ error: "Unexpected upstream request." }, 500);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    const transport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+      requestInit: {
+        headers: { Authorization: "Bearer evidence-only-key" },
+      },
+    });
+
+    await client.connect(transport);
+
+    const result = await client.callTool({
+      name: "reasonkb_query",
+      arguments: { query: "This must not run", projectIds: [] },
+    });
+
+    expect(result).toMatchObject({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: expect.stringMatching(/tool reasonkb_query not found/i),
+        },
+      ],
+    });
+    expect(
+      fetchImpl.mock.calls.some(([url]) =>
+        String(url).endsWith("/api/agent/query"),
+      ),
+    ).toBe(false);
+  });
+
   it("lists and calls tools through the official MCP client", async () => {
     const requests = [];
     const fetchImpl = vi.fn(async (url, init = {}) => {
