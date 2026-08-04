@@ -408,4 +408,38 @@ export const schemaMigrations: SchemaMigration[] = [
       ]);
     },
   },
+  {
+    version: 9,
+    name: "llm-provider-observability",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS llm_provider_events (
+          id TEXT PRIMARY KEY,
+          occurred_at TEXT NOT NULL,
+          request_id TEXT,
+          operation TEXT NOT NULL
+            CHECK (operation IN ('index', 'retrieval', 'answer', 'health_test')),
+          stage TEXT NOT NULL,
+          model TEXT,
+          provider_host TEXT,
+          outcome TEXT NOT NULL CHECK (outcome IN ('success', 'failure')),
+          error_class TEXT,
+          status_code INTEGER,
+          exception_type TEXT,
+          elapsed_ms INTEGER NOT NULL DEFAULT 0,
+          attempt INTEGER NOT NULL DEFAULT 1,
+          retryable INTEGER NOT NULL DEFAULT 0,
+          provider_request_id TEXT,
+          retry_after TEXT,
+          prompt_tokens INTEGER,
+          completion_tokens INTEGER,
+          reasoning_tokens INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_llm_provider_events_occurred
+          ON llm_provider_events(occurred_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_llm_provider_events_provider
+          ON llm_provider_events(operation, model, provider_host, occurred_at DESC);
+      `);
+    },
+  },
 ];

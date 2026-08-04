@@ -23,6 +23,7 @@ afterEach(() => {
   vi.unmock("@/components/app-shell");
   vi.unmock("@/components/api-key-manager");
   vi.unmock("@/components/service-health-panel");
+  vi.unmock("@/components/model-provider-health-panel");
   vi.unmock("@/lib/security/admin-page-auth");
   routerMocks.refresh.mockClear();
 });
@@ -72,6 +73,9 @@ describe("SettingsPage", () => {
     }));
     vi.doMock("@/components/service-health-panel", () => ({
       ServiceHealthPanel: () => <div>Service health</div>,
+    }));
+    vi.doMock("@/components/model-provider-health-panel", () => ({
+      ModelProviderHealthPanel: () => <div>Model provider health</div>,
     }));
     vi.doMock("@/lib/security/admin-page-auth", () => ({
       requireAdminPage: async () => undefined,

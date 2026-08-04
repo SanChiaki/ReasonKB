@@ -6,12 +6,14 @@ import logging
 import math
 import time
 from time import monotonic, perf_counter
-from typing import Any
+from typing import Any, Literal
 
 import litellm
 
 from services.common.llm_environment import configure_litellm_environment
 from services.common.llm_reasoning import ReasoningMode, reasoning_options_for_model
+from services.common.llm_errors import classify_llm_error, exception_status_code
+from services.common.llm_observability import record_llm_event
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,7 @@ def complete(
     model: str | None,
     prompt: str,
     stage: str,
+    operation: Literal["retrieval", "answer"] = "retrieval",
     reasoning: ReasoningMode,
     timeout_seconds: float,
     deadline: float,
@@ -68,6 +71,7 @@ def complete(
     api_key: str | None = None,
     base_url: str | None = None,
     request_id: str | None = None,
+    db_path: str | None = None,
 ) -> CompletionResult:
     normalized_model = model.removeprefix("litellm/") if model else model
     attempts = max(1, min(int(max_attempts), 2))
@@ -162,6 +166,41 @@ def complete(
                 reasoning_control=reasoning_control,
                 status=response_status,
             )
+            content_is_valid = isinstance(content, str) and bool(content.strip())
+            if response_status == "ok" and content_is_valid:
+                record_llm_event(
+                    db_path,
+                    operation=operation,
+                    stage=stage,
+                    model=normalized_model,
+                    base_url=base_url,
+                    request_id=request_id,
+                    outcome="success",
+                    elapsed_ms=elapsed_ms,
+                    attempt=attempt,
+                    response=response,
+                )
+            else:
+                error_class = (
+                    classify_llm_error(error_type="RequestCancelled")
+                    if response_status == "cancelled"
+                    else classify_llm_error(error_type="RequestDeadlineExceeded")
+                    if response_status == "deadline_exceeded"
+                    else "provider_error"
+                )
+                record_llm_event(
+                    db_path,
+                    operation=operation,
+                    stage=stage,
+                    model=normalized_model,
+                    base_url=base_url,
+                    request_id=request_id,
+                    outcome="failure",
+                    elapsed_ms=elapsed_ms,
+                    attempt=attempt,
+                    response=response,
+                    error_class=error_class,
+                )
             if response_status == "cancelled":
                 return CompletionResult(
                     None,
@@ -201,6 +240,20 @@ def complete(
                 status_code=status_code,
                 retryable=retryable,
                 reasoning_control=reasoning_control,
+            )
+            record_llm_event(
+                db_path,
+                operation=operation,
+                stage=stage,
+                model=normalized_model,
+                base_url=base_url,
+                request_id=request_id,
+                outcome="failure",
+                elapsed_ms=elapsed_ms,
+                attempt=attempt,
+                retryable=retryable,
+                exception=exc,
+                status_code=status_code,
             )
             if (
                 not retryable

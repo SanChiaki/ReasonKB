@@ -15,6 +15,8 @@ from typing import Any, Callable
 
 from services.common.index_metrics import current_index_metrics
 from services.common.llm_environment import configure_litellm_environment
+from services.common.llm_errors import classify_llm_error, exception_status_code
+from services.common.llm_observability import record_llm_event
 from services.common.llm_reasoning import reasoning_options_for_model
 from services.common.pageindex_vendor import ensure_pageindex_vendor_path
 from services.common.settings import DB_PATH
@@ -461,12 +463,12 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
             remaining = _llm_time_remaining()
             if _llm_call_cancelled() or remaining == 0:
                 return cancelled_result()
+            started_at = perf_counter()
             try:
                 configure_litellm_environment()
                 remaining = _llm_time_remaining()
                 if _llm_call_cancelled() or remaining == 0:
                     return cancelled_result()
-                started_at = perf_counter()
                 completion_options = {
                     "model": normalized_model,
                     "messages": messages,
@@ -480,8 +482,40 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     **completion_options,
                 )
                 if _llm_call_cancelled() or _llm_time_remaining() == 0:
+                    _record_provider_event(
+                        model=normalized_model,
+                        stage="pageindex",
+                        attempt=attempt + 1,
+                        elapsed_ms=int((perf_counter() - started_at) * 1000),
+                        outcome="failure",
+                        response=response,
+                        error_class=classify_llm_error(
+                            error_type=(
+                                "RequestCancelled"
+                                if _llm_call_cancelled()
+                                else "RequestDeadlineExceeded"
+                            )
+                        ),
+                    )
                     return cancelled_result()
                 content = response.choices[0].message.content
+                _record_provider_event(
+                    model=normalized_model,
+                    stage="pageindex",
+                    attempt=attempt + 1,
+                    elapsed_ms=int((perf_counter() - started_at) * 1000),
+                    outcome=(
+                        "success"
+                        if isinstance(content, str) and content.strip()
+                        else "failure"
+                    ),
+                    response=response,
+                    error_class=(
+                        None
+                        if isinstance(content, str) and content.strip()
+                        else "provider_error"
+                    ),
+                )
                 _record_llm_metrics(
                     utils_module,
                     model=normalized_model,
@@ -500,6 +534,20 @@ def _wrap_sync_completion(utils_module, original: Callable[..., Any]) -> Callabl
                     return content, finish_reason
                 return content
             except Exception as exc:
+                elapsed_ms = int((perf_counter() - started_at) * 1000)
+                status_code = exception_status_code(exc)
+                error_class = classify_llm_error(exc, status_code=status_code)
+                _record_provider_event(
+                    model=normalized_model,
+                    stage="pageindex",
+                    attempt=attempt + 1,
+                    elapsed_ms=elapsed_ms,
+                    outcome="failure",
+                    exception=exc,
+                    status_code=status_code,
+                    retryable=error_class
+                    in {"timeout", "connection_error", "provider_unavailable", "rate_limited"},
+                )
                 remaining = _llm_time_remaining()
                 if _llm_call_cancelled() or remaining == 0:
                     return cancelled_result()
@@ -547,12 +595,12 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
             remaining = _llm_time_remaining()
             if _llm_call_cancelled() or remaining == 0:
                 return ""
+            started_at = perf_counter()
             try:
                 configure_litellm_environment()
                 remaining = _llm_time_remaining()
                 if _llm_call_cancelled() or remaining == 0:
                     return ""
-                started_at = perf_counter()
                 completion_options = {
                     "model": normalized_model,
                     "messages": messages,
@@ -566,8 +614,40 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                     **completion_options,
                 )
                 if _llm_call_cancelled() or _llm_time_remaining() == 0:
+                    _record_provider_event(
+                        model=normalized_model,
+                        stage="pageindex",
+                        attempt=attempt + 1,
+                        elapsed_ms=int((perf_counter() - started_at) * 1000),
+                        outcome="failure",
+                        response=response,
+                        error_class=classify_llm_error(
+                            error_type=(
+                                "RequestCancelled"
+                                if _llm_call_cancelled()
+                                else "RequestDeadlineExceeded"
+                            )
+                        ),
+                    )
                     return ""
                 content = response.choices[0].message.content
+                _record_provider_event(
+                    model=normalized_model,
+                    stage="pageindex",
+                    attempt=attempt + 1,
+                    elapsed_ms=int((perf_counter() - started_at) * 1000),
+                    outcome=(
+                        "success"
+                        if isinstance(content, str) and content.strip()
+                        else "failure"
+                    ),
+                    response=response,
+                    error_class=(
+                        None
+                        if isinstance(content, str) and content.strip()
+                        else "provider_error"
+                    ),
+                )
                 _record_llm_metrics(
                     utils_module,
                     model=normalized_model,
@@ -578,6 +658,20 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
                 )
                 return content
             except Exception as exc:
+                elapsed_ms = int((perf_counter() - started_at) * 1000)
+                status_code = exception_status_code(exc)
+                error_class = classify_llm_error(exc, status_code=status_code)
+                _record_provider_event(
+                    model=normalized_model,
+                    stage="pageindex",
+                    attempt=attempt + 1,
+                    elapsed_ms=elapsed_ms,
+                    outcome="failure",
+                    exception=exc,
+                    status_code=status_code,
+                    retryable=error_class
+                    in {"timeout", "connection_error", "provider_unavailable", "rate_limited"},
+                )
                 remaining = _llm_time_remaining()
                 if _llm_call_cancelled() or remaining == 0:
                     return ""
@@ -593,6 +687,40 @@ def _wrap_async_completion(utils_module, original: Callable[..., Any]) -> Callab
 
     wrapped._reasonkb_patched = True
     return wrapped
+
+
+def _record_provider_event(
+    *,
+    model: str | None,
+    stage: str,
+    attempt: int,
+    elapsed_ms: int,
+    outcome: str,
+    response: Any = None,
+    exception: BaseException | None = None,
+    status_code: int | None = None,
+    error_class: str | None = None,
+    retryable: bool = False,
+) -> None:
+    metrics = current_index_metrics()
+    if metrics is None or not metrics.db_path:
+        return
+    record_llm_event(
+        metrics.db_path,
+        operation="index",
+        stage=stage,
+        model=model,
+        base_url=metrics.provider_base_url,
+        request_id=metrics.request_id,
+        outcome=outcome,
+        elapsed_ms=elapsed_ms,
+        attempt=attempt,
+        retryable=retryable,
+        response=response,
+        exception=exception,
+        status_code=status_code,
+        error_class=error_class,
+    )
 
 
 def _record_llm_metrics(

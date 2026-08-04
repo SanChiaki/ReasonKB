@@ -15,6 +15,9 @@ _CURRENT_METRICS: ContextVar[IndexRunMetrics | None] = ContextVar(
 
 @dataclass
 class IndexRunMetrics:
+    db_path: str | None = None
+    request_id: str | None = None
+    provider_base_url: str | None = None
     text_extraction_ms: int = 0
     pageindex_ms: int = 0
     vision_extraction_ms: int = 0
@@ -84,8 +87,16 @@ class IndexRunMetrics:
 
 
 @contextmanager
-def index_run_metrics() -> Iterator[IndexRunMetrics]:
-    metrics = IndexRunMetrics()
+def index_run_metrics(
+    db_path: str | None = None,
+    request_id: str | None = None,
+    provider_base_url: str | None = None,
+) -> Iterator[IndexRunMetrics]:
+    metrics = IndexRunMetrics(
+        db_path=db_path,
+        request_id=request_id,
+        provider_base_url=provider_base_url,
+    )
     token = _CURRENT_METRICS.set(metrics)
     try:
         yield metrics

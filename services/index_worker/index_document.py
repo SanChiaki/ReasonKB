@@ -20,6 +20,7 @@ from services.common.index_metrics import current_index_metrics, index_run_metri
 from services.common.models import IndexedDocumentPayload
 from services.common.settings import get_pdf_table_mode
 from services.common.sqlite_store import open_db
+from services.common.system_settings import get_llm_runtime_settings
 from services.index_worker.office_conversion import convert_office_to_pdf
 from services.index_worker.pdf_layout import extract_pdf_layout
 from services.index_worker.remote_fetch import prepared_index_file
@@ -408,7 +409,11 @@ def process_document_job(db_path: str, job_id: str):
 
     metrics = None
     try:
-        with index_run_metrics() as metrics:
+        with index_run_metrics(
+            db_path=db_path,
+            request_id=run_id,
+            provider_base_url=get_llm_runtime_settings(db_path).base_url,
+        ) as metrics:
             with prepared_index_file(document, db_path) as prepared_file:
                 document_for_payload = {
                     **document,

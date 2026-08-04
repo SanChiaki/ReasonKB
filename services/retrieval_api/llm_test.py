@@ -6,6 +6,8 @@ from typing import Any
 
 import litellm
 
+from services.common.llm_errors import classify_llm_error, exception_status_code
+from services.common.llm_observability import record_llm_event
 from services.common.system_settings import get_llm_runtime_settings
 
 
@@ -87,22 +89,51 @@ def test_llm_configuration(db_path: str, request: LlmTestInput) -> dict[str, Any
             max_retries=0,
         )
         output = (response.choices[0].message.content or "").strip()
+        elapsed_ms = int((perf_counter() - started_at) * 1000)
+        record_llm_event(
+            db_path,
+            operation="health_test",
+            stage="connectivity_test",
+            model=model,
+            base_url=base_url,
+            request_id=None,
+            outcome="success",
+            elapsed_ms=elapsed_ms,
+            response=response,
+        )
         return {
             "success": True,
             "model": model,
-            "elapsedMs": int((perf_counter() - started_at) * 1000),
+            "elapsedMs": elapsed_ms,
             "output": output[:500],
             "errorType": None,
             "message": "Model test succeeded.",
             "details": "",
         }
     except Exception as exc:
+        elapsed_ms = int((perf_counter() - started_at) * 1000)
+        status_code = exception_status_code(exc)
+        error_class = classify_llm_error(exc, status_code=status_code)
+        record_llm_event(
+            db_path,
+            operation="health_test",
+            stage="connectivity_test",
+            model=model,
+            base_url=base_url,
+            request_id=None,
+            outcome="failure",
+            elapsed_ms=elapsed_ms,
+            retryable=error_class
+            in {"timeout", "connection_error", "provider_unavailable", "rate_limited"},
+            exception=exc,
+            status_code=status_code,
+        )
         details = str(exc)
         error_type = _error_type(details)
         return {
             "success": False,
             "model": model,
-            "elapsedMs": int((perf_counter() - started_at) * 1000),
+            "elapsedMs": elapsed_ms,
             "output": "",
             "errorType": error_type,
             "message": _public_message(error_type),
