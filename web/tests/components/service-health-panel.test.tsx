@@ -37,7 +37,7 @@ describe("ServiceHealthPanel", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "服务健康" })).toBeInTheDocument();
-    expect(screen.getByText("4 / 6 正常")).toBeInTheDocument();
+    expect(await screen.findByText("4 / 6 正常")).toBeInTheDocument();
     expect(screen.getByText("索引 Worker")).toBeInTheDocument();
     expect(screen.getByText("源同步 Worker")).toBeInTheDocument();
     expect(screen.getAllByText("不可用")).toHaveLength(2);

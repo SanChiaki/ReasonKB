@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { AdminPasswordForm } from "@/components/admin-password-form";
 import { ApiKeyManager } from "@/components/api-key-manager";
 import { ServiceHealthPanel } from "@/components/service-health-panel";
+import { ModelProviderHealthPanel } from "@/components/model-provider-health-panel";
 import { SystemSettingsForm } from "@/components/system-settings-form";
 import { appConfig } from "@/lib/config";
 import { LocalizedText } from "@/lib/i18n";
@@ -59,6 +60,7 @@ export default async function SettingsPage() {
 
         <div className="space-y-6 pt-6">
           <ServiceHealthPanel />
+          <ModelProviderHealthPanel />
           <SystemSettingsForm
             initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
             initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}

@@ -81,6 +81,7 @@ class _QueryLlmContext:
     base_url: str
     deadline: float
     cancellation_event: Any = None
+    db_path: str = ""
 
 
 _QUERY_LLM_CONTEXT: ContextVar[_QueryLlmContext | None] = ContextVar(
@@ -446,6 +447,7 @@ def _new_query_llm_context(
 ) -> _QueryLlmContext:
     settings = get_llm_runtime_settings(db_path)
     return _QueryLlmContext(
+        db_path=db_path,
         request_id=uuid4().hex,
         retrieval_model=settings.retrieve_model or settings.model,
         answer_model=settings.model or settings.retrieve_model,
@@ -503,6 +505,7 @@ def _active_completion(
             ),
             prompt=prompt,
             stage=stage,
+            operation=model_role,
             reasoning=reasoning,
             max_output_tokens=max_output_tokens,
             timeout_seconds=(
@@ -520,6 +523,7 @@ def _active_completion(
             api_key=context.api_key,
             base_url=context.base_url,
             request_id=context.request_id,
+            db_path=context.db_path,
         )
     finally:
         if capacity_acquired:
