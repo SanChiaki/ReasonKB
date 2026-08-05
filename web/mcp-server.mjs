@@ -14,10 +14,11 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { z } from "zod";
+import { retrievalToolContract } from "./mcp-tool-results.mjs";
 
 const DEFAULT_BASE_URL = "http://localhost:43170";
 const DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
-const SERVER_INFO = { name: "reasonkb-mcp", version: "0.2.0" };
+const SERVER_INFO = { name: "reasonkb-mcp", version: "0.3.0" };
 const MAX_PROJECT_IDS = 100;
 const DEFAULT_REQUEST_TIMEOUT_SECONDS = 600;
 const DEFAULT_PRE_AUTH_TIMEOUT_SECONDS = 30;
@@ -440,6 +441,7 @@ export function createReasonkbMcpServer({
     if (!authorizedScopes.has(route)) {
       continue;
     }
+    const resultContract = retrievalToolContract(route);
     server.registerTool(
       name,
       {
@@ -453,6 +455,7 @@ export function createReasonkbMcpServer({
               .default([]),
           })
           .strict(),
+        outputSchema: resultContract.outputSchema,
       },
       async ({ query, projectIds }, extra) =>
         runTool(async (executionSignal) => {
@@ -469,7 +472,7 @@ export function createReasonkbMcpServer({
                       message: JSON.stringify(event),
                     },
                   });
-          return toolResult(
+          return resultContract.present(
             await retrievalRequest(
               "/api/agent/" + route,
               {
