@@ -356,6 +356,16 @@ Tools without a matching scope are omitted from `tools/list`. The corresponding
 Agent routes still enforce scopes independently, so tool discovery is not an
 authorization boundary.
 
+`reasonkb_query` and `reasonkb_evidence` publish an `outputSchema` and return
+the complete Agent result in `structuredContent`. Their text `content` is a
+model-readable projection rather than a serialized copy of that object. Query
+text contains the answer, retrieval status, and citation anchors. Evidence text
+contains each document/page anchor and the complete evidence body, including
+HTML table projections, but omits machine-only `pageBlocks`, bounding boxes,
+layout diagnostics, and visual metadata. Programmatic clients that need the
+complete response must read `structuredContent` instead of parsing
+`content[0].text` as JSON.
+
 Query citations and evidence items may include an optional `documentUrl`. It
 is present only when an original-document link is available. For Seeyon
 sources, it points to the original document viewer and is built from the

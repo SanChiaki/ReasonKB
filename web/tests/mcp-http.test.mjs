@@ -441,6 +441,20 @@ describe("Streamable HTTP MCP server", () => {
       "reasonkb_get_pages",
       "reasonkb_get_structure",
     ]);
+    for (const toolName of ["reasonkb_query", "reasonkb_evidence"]) {
+      expect(
+        tools.tools.find((tool) => tool.name === toolName)?.outputSchema,
+      ).toMatchObject({
+        type: "object",
+        required: expect.arrayContaining([
+          "answer",
+          "citations",
+          "selectedDocuments",
+          "evidence",
+          "retrievalStatus",
+        ]),
+      });
+    }
     expect(result.structuredContent).toEqual({
       projects: [{ id: "proj_alpha", name: "Alpha" }],
     });
@@ -476,7 +490,22 @@ describe("Streamable HTTP MCP server", () => {
         answer: route === "query" ? "Grounded answer" : "",
         citations: [],
         selectedDocuments: [],
-        evidence: [{ documentId: "doc-1", text: "Relevant evidence" }],
+        evidence:
+          route === "evidence"
+            ? [
+                {
+                  projectId: "proj-1",
+                  projectName: "Project one",
+                  documentId: "doc-1",
+                  documentName: "Evidence.pdf",
+                  pages: "2",
+                  evidenceKind: "pdf_text",
+                  content: "Relevant evidence",
+                  visualAssets: [],
+                },
+              ]
+            : [],
+        retrievalStatus: "matched",
       };
       let upstreamRequest;
       let resolveUpstreamCancelled;
@@ -567,6 +596,12 @@ describe("Streamable HTTP MCP server", () => {
         },
       ]);
       expect(result.structuredContent).toEqual(finalResult);
+      expect(result.content[0].text).toContain(
+        route === "query" ? "Grounded answer" : "Relevant evidence",
+      );
+      expect(result.content[0].text).not.toBe(
+        JSON.stringify(finalResult, null, 2),
+      );
       await expect(
         Promise.race([
           upstreamCancelled,
@@ -588,6 +623,7 @@ describe("Streamable HTTP MCP server", () => {
       citations: [],
       selectedDocuments: [],
       evidence: [],
+      retrievalStatus: "matched",
     };
     const fetchImpl = vi.fn(async (url) => {
       if (String(url).endsWith("/api/agent/auth/verify")) {
@@ -650,6 +686,7 @@ describe("Streamable HTTP MCP server", () => {
       citations: [],
       selectedDocuments: [],
       evidence: [],
+      retrievalStatus: "matched",
     };
     const fetchImpl = vi.fn(async (url) => {
       if (String(url).endsWith("/api/agent/auth/verify")) {
@@ -713,6 +750,7 @@ describe("Streamable HTTP MCP server", () => {
       citations: [],
       selectedDocuments: [],
       evidence: [],
+      retrievalStatus: "matched",
     };
     let upstreamRequest;
     const fetchImpl = vi.fn(async (url, init = {}) => {
@@ -747,6 +785,43 @@ describe("Streamable HTTP MCP server", () => {
     expect(result.structuredContent).toEqual(finalResult);
   });
 
+  it("rejects malformed retrieval results without echoing private content", async () => {
+    const privateContent = "PRIVATE malformed upstream content";
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/query")) {
+        return jsonResponse({
+          answer: privateContent,
+          citations: [],
+          selectedDocuments: [],
+          evidence: [],
+          retrievalStatus: "invalid",
+        });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const baseUrl = await startApp(fetchImpl);
+    const client = new Client({ name: "reasonkb-test", version: "1.0.0" });
+    clients.push(client);
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: {
+          headers: { Authorization: "Bearer test-api-key" },
+        },
+      }),
+    );
+
+    const result = await client.callTool({
+      name: "reasonkb_query",
+      arguments: { query: "Reject malformed output", projectIds: [] },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result)).not.toContain(privateContent);
+  });
+
   it("accepts a fragmented legitimate Evidence result larger than one MiB", async () => {
     const evidenceContent = "e".repeat(1_100_000);
     const finalResult = {
@@ -755,12 +830,25 @@ describe("Streamable HTTP MCP server", () => {
       selectedDocuments: [{ documentId: "doc-large" }],
       evidence: [
         {
+          projectId: "proj-large",
+          projectName: "Large project",
           documentId: "doc-large",
           documentName: "large.pdf",
           pages: "1-16",
+          evidenceKind: "pdf_text",
           content: evidenceContent,
+          visualAssets: [],
+          pageBlocks: [
+            {
+              page: 1,
+              layoutStatus: "structured",
+              blocks: [{ marker: "PAGE_BLOCK_SENTINEL" }],
+              diagnostics: { marker: "DIAGNOSTICS_SENTINEL" },
+            },
+          ],
         },
       ],
+      retrievalStatus: "matched",
     };
     const fetchImpl = vi.fn(async (url) => {
       if (String(url).endsWith("/api/agent/auth/verify")) {
@@ -805,6 +893,12 @@ describe("Streamable HTTP MCP server", () => {
     });
 
     expect(result.structuredContent.evidence[0].content).toHaveLength(1_100_000);
+    expect(result.content[0].text.endsWith(evidenceContent)).toBe(true);
+    expect(result.content[0].text).not.toContain("PAGE_BLOCK_SENTINEL");
+    expect(result.content[0].text).not.toContain("DIAGNOSTICS_SENTINEL");
+    expect(
+      result.structuredContent.evidence[0].pageBlocks[0].blocks[0].marker,
+    ).toBe("PAGE_BLOCK_SENTINEL");
   });
 
   it("reports malformed Agent SSE without echoing its contents", async () => {

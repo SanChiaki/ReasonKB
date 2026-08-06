@@ -107,6 +107,7 @@ describe("stdio MCP server", () => {
       citations: [],
       selectedDocuments: [],
       evidence: [],
+      retrievalStatus: "matched",
     };
     let upstreamHeaders;
     const upstream = http.createServer((request, response) => {
@@ -173,6 +174,10 @@ describe("stdio MCP server", () => {
         },
       ]);
       expect(result.structuredContent).toEqual(finalResult);
+      expect(result.content[0].text).toContain("Grounded stdio answer");
+      expect(result.content[0].text).not.toBe(
+        JSON.stringify(finalResult, null, 2),
+      );
     } finally {
       await client.close();
       await new Promise((resolve, reject) => {
