@@ -725,13 +725,15 @@ def test_fallback_evidence_validation_returns_no_match_for_topical_but_unsupport
     assert validation.document_results == ()
 
 
-def test_evidence_validation_rejects_wrong_partner_tier_before_model(
-    monkeypatch,
-):
-    def unexpected_completion(*_args, **_kwargs):
-        raise AssertionError("wrong dealer tier must be rejected deterministically")
+def test_domain_qualifier_mismatch_is_left_to_evidence_validation(monkeypatch):
+    prompts = []
 
-    monkeypatch.setattr("pageindex.utils.llm_completion", unexpected_completion)
+    def reject_mismatch(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        prompts.append(prompt)
+        return '{"matches":[]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", reject_mismatch)
 
     validation = query_engine._validate_retrieved_evidence(
         "铂金经销商的业绩门槛是多少？",
@@ -742,6 +744,7 @@ def test_evidence_validation_rejects_wrong_partner_tier_before_model(
     assert validation.document_results == ()
     assert validation.attempted_count == 1
     assert validation.accepted_count == 0
+    assert len(prompts) == 1
 
 
 def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
