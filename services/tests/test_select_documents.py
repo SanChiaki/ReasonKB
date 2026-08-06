@@ -107,48 +107,14 @@ def test_prefilter_prioritizes_matches_and_caps_candidate_budget():
         ]
     )
 
-    selected = prefilter_candidate_documents("生成终验交付报告", docs, limit=10)
+    selected = prefilter_candidate_documents(
+        "final acceptance handover quality inspection",
+        docs,
+        limit=10,
+    )
 
-    assert [doc["id"] for doc in selected[:2]] == ["doc_handover", "doc_quality"]
+    assert {doc["id"] for doc in selected[:2]} == {"doc_handover", "doc_quality"}
     assert len(selected) == 10
-
-
-def test_prefilter_does_not_rank_latin_expansions_inside_other_words_as_matches():
-    docs = [
-        {
-            "id": "doc_design",
-            "project_id": "proj_1",
-            "project_name": "office-test",
-            "file_name": "detailed-design-report.pdf",
-            "project_relative_path": "design/detailed-design-report.pdf",
-            "source_relative_path": "office-test/design/detailed-design-report.pdf",
-            "doc_description": "Architecture design report and implementation notes.",
-        },
-        {
-            "id": "doc_annual",
-            "project_id": "proj_1",
-            "project_name": "office-test",
-            "file_name": "annual-report.pdf",
-            "project_relative_path": "annual-report.pdf",
-            "source_relative_path": "office-test/annual-report.pdf",
-            "doc_description": "Annual business report and market discussion.",
-            "structure": [{"title": "Delivery of shareholder documents"}],
-        },
-        {
-            "id": "doc_handover",
-            "project_id": "proj_2",
-            "project_name": "Alpha",
-            "file_name": "final-acceptance-handover.pdf",
-            "project_relative_path": "delivery/final-acceptance-handover.pdf",
-            "source_relative_path": "Alpha/delivery/final-acceptance-handover.pdf",
-            "doc_description": "Final acceptance handover report and sign-off checklist.",
-        },
-    ]
-
-    selected = prefilter_candidate_documents("生成终验交付报告", docs, limit=10)
-
-    assert selected[0]["id"] == "doc_handover"
-    assert len(selected) == len(docs)
 
 
 def test_prefilter_uses_remaining_budget_for_cross_language_exploration():
@@ -496,7 +462,7 @@ def test_select_candidate_documents_sends_prefiltered_candidates_to_llm(monkeypa
     monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
 
     selected = select_candidate_documents(
-        "生成终验交付报告",
+        "final acceptance handover report",
         docs,
         limit=5,
         model="gpt-retrieval",
@@ -925,51 +891,44 @@ def test_strong_anchor_runs_after_model_selection_without_page_scan(monkeypatch)
     assert events == [("model", None), ("strong", False)]
 
 
-def test_unrepresented_partner_tier_skips_model_selection(monkeypatch):
-    docs = _policy_candidate_documents()
+def test_candidate_selection_does_not_apply_domain_specific_tier_filters(monkeypatch):
+    docs = [
+        {
+            "id": "doc_silver",
+            "project_id": "proj_1",
+            "file_name": "银牌经销商发展政策.pdf",
+            "doc_description": "银牌经销商的认证要求。",
+        },
+        {
+            "id": "doc_diamond",
+            "project_id": "proj_1",
+            "file_name": "钻石经销商发展政策.pdf",
+            "doc_description": "钻石经销商的认证要求。",
+        },
+    ]
+    prompts = []
 
-    def unexpected_completion(*_args, **_kwargs):
-        raise AssertionError("unrepresented tier should be rejected before model selection")
+    def select_target(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        prompts.append(prompt)
+        assert "银牌经销商发展政策.pdf" in prompt
+        assert "钻石经销商发展政策.pdf" in prompt
+        return '{"answer":["doc_diamond"]}'
 
-    monkeypatch.setattr(
-        "pageindex.utils.llm_completion",
-        unexpected_completion,
-    )
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_target)
 
-    selected = select_candidate_documents(
-        "铂金经销商的PGI评估指标有哪些？",
-        docs,
-        limit=3,
-        mode="answer",
-    )
+    for query in (
+        "我现在是银牌经销商，怎么提升到钻石的",
+        "我现在是银牌经销商，怎么提升到钻石",
+        "我现在是银牌经销商，怎么提升到钻石经销商",
+    ):
+        selected = select_candidate_documents(query, docs, limit=3, mode="evidence")
+        assert "doc_diamond" in {document["id"] for document in selected}
 
-    assert selected == []
-    assert selected.model_outcome == "not_run"
-    assert selected.strategy == "hard_constraint_no_match"
-
-
-def test_model_selection_cannot_substitute_an_unrepresented_partner_tier(monkeypatch):
-    docs = _policy_candidate_documents()
-    monkeypatch.setattr(
-        "pageindex.utils.llm_completion",
-        lambda model, prompt, chat_history=None, return_finish_reason=False: (
-            '{"thinking":"closest policy","answer":["doc_gold"]}'
-        ),
-    )
-
-    selected = select_candidate_documents(
-        "铂金经销商的PGI评估指标有哪些？",
-        docs,
-        limit=3,
-        mode="answer",
-    )
-
-    assert selected == []
-    assert selected.model_outcome == "not_run"
-    assert selected.strategy == "hard_constraint_no_match"
+    assert len(prompts) == 3
 
 
-def test_represented_partner_tier_remains_available_to_model_selection(monkeypatch):
+def test_model_selection_receives_the_full_candidate_scope(monkeypatch):
     docs = [
         *_policy_candidate_documents(),
         {
@@ -982,7 +941,7 @@ def test_represented_partner_tier_remains_available_to_model_selection(monkeypat
 
     def select_platinum(model, prompt, chat_history=None, return_finish_reason=False):
         del model, chat_history, return_finish_reason
-        assert "钻石经销商" not in prompt
+        assert "钻石经销商" in prompt
         return '{"answer":["doc_platinum"]}'
 
     monkeypatch.setattr("pageindex.utils.llm_completion", select_platinum)
@@ -998,7 +957,7 @@ def test_represented_partner_tier_remains_available_to_model_selection(monkeypat
     assert selected.model_outcome == "selected"
 
 
-def test_partner_tier_filter_keeps_page_only_support_with_metadata_matches(monkeypatch):
+def test_model_selection_receives_candidates_with_page_only_keyword_support(monkeypatch):
     docs = [
         {
             "id": "doc_named",
@@ -1035,7 +994,7 @@ def test_partner_tier_filter_keeps_page_only_support_with_metadata_matches(monke
     assert [doc["id"] for doc in selected] == ["doc_named", "doc_page_only"]
 
 
-def test_negated_partner_tier_does_not_exclude_other_tier_documents(monkeypatch):
+def test_domain_negation_is_left_to_model_and_evidence_validation(monkeypatch):
     docs = [
         {
             "id": "doc_diamond",
@@ -1064,10 +1023,10 @@ def test_negated_partner_tier_does_not_exclude_other_tier_documents(monkeypatch)
         "除钻石经销商外，其他经销商有哪些权益？",
     ):
         selected = select_candidate_documents(query, docs, limit=2, mode="answer")
-        assert [doc["id"] for doc in selected] == ["doc_gold"]
+        assert "doc_gold" in {doc["id"] for doc in selected}
 
 
-def test_separate_partner_tiers_remain_available_for_comparison(monkeypatch):
+def test_model_can_select_multiple_documents_for_comparison(monkeypatch):
     docs = [
         {
             "id": "doc_diamond",
@@ -1101,7 +1060,7 @@ def test_separate_partner_tiers_remain_available_for_comparison(monkeypatch):
     assert [doc["id"] for doc in selected] == ["doc_diamond", "doc_gold"]
 
 
-def test_relative_partner_tier_range_is_left_to_model_selection(monkeypatch):
+def test_range_semantics_are_left_to_model_selection(monkeypatch):
     docs = [
         {
             "id": "doc_diamond",
@@ -1208,41 +1167,7 @@ def test_provider_failure_does_not_treat_all_dealers_as_a_tier(monkeypatch):
     assert selected.strategy == "technical_failure_strong_fallback"
 
 
-def test_provider_failure_requires_tier_next_to_dealer_entity(monkeypatch):
-    docs = [
-        {
-            "id": f"doc_diamond_{index}",
-            "project_id": "proj_1",
-            "file_name": f"钻石经销商激励权益-{index}.pdf",
-            "doc_description": "钻石经销商激励和权益政策。",
-            "pages": [{"page": 1, "content": "奖金适用条件。"}],
-        }
-        for index in range(2)
-    ]
-    docs.append(
-        {
-            "id": "doc_gold",
-            "project_id": "proj_1",
-            "file_name": "金牌经销商激励权益.pdf",
-            "doc_description": "金牌经销商激励和权益政策。",
-        }
-    )
-    monkeypatch.setattr(
-        "pageindex.utils.llm_completion",
-        lambda model, prompt, chat_history=None, return_finish_reason=False: ("", "error"),
-    )
-
-    selected = select_candidate_documents(
-        "金经销商有哪些激励和权益？",
-        docs,
-        limit=2,
-        mode="answer",
-    )
-
-    assert [doc["id"] for doc in selected] == ["doc_gold"]
-
-
-def test_provider_failure_recognizes_and_separated_dealer_tiers(monkeypatch):
+def test_provider_failure_can_retain_multiple_lexical_matches(monkeypatch):
     docs = [
         {
             "id": "doc_gold",
@@ -1373,7 +1298,7 @@ def test_provider_failure_does_not_probe_unrepresented_year(monkeypatch):
     assert selected.strategy == "technical_failure_no_strong_match"
 
 
-def test_explicit_empty_can_probe_slash_separated_partner_tiers(monkeypatch):
+def test_explicit_empty_can_probe_slash_separated_query_terms(monkeypatch):
     docs = [
         {
             "id": "doc_gold_silver",

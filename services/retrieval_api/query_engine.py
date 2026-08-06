@@ -28,7 +28,6 @@ from services.common.system_settings import (
 from services.retrieval_api.select_documents import (
     EVIDENCE_VALIDATION_REASON_KEY,
     candidate_completion_scope,
-    document_supports_query_dealer_tier,
     select_candidate_documents,
 )
 
@@ -1917,29 +1916,6 @@ def _validate_retrieved_evidence(
     query: str,
     document_results: list[dict[str, Any]],
 ) -> _EvidenceValidationResult:
-    supported_results: list[dict[str, Any]] = []
-    deterministically_rejected_count = 0
-    for result in document_results:
-        page_texts = (
-            item.get("content")
-            for item in result.get("contextBlock", {}).get("evidence", [])
-            if isinstance(item, dict)
-        )
-        if document_supports_query_dealer_tier(
-            query,
-            result.get("document", {}),
-            page_texts,
-        ):
-            supported_results.append(result)
-        else:
-            deterministically_rejected_count += 1
-
-    if deterministically_rejected_count:
-        logger.info(
-            "Rejected retrieved evidence with conflicting dealer tier count=%d",
-            deterministically_rejected_count,
-        )
-    document_results = supported_results
     validation_indexes = [
         index
         for index, result in enumerate(document_results)
@@ -1949,7 +1925,7 @@ def _validate_retrieved_evidence(
         return _EvidenceValidationResult(
             tuple(document_results),
             "matched" if document_results else "no_match",
-            attempted_count=deterministically_rejected_count,
+            attempted_count=0,
         )
 
     validation_results = [document_results[index] for index in validation_indexes]
@@ -2013,9 +1989,7 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
             retained,
             "degraded",
             degraded_reason="evidence_validation_failed",
-            attempted_count=(
-                len(validation_indexes) + deterministically_rejected_count
-            ),
+            attempted_count=len(validation_indexes),
             accepted_count=0,
         )
 
@@ -2070,7 +2044,7 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
     return _EvidenceValidationResult(
         tuple(retained_results),
         "matched" if retained_results else "no_match",
-        attempted_count=len(validation_indexes) + deterministically_rejected_count,
+        attempted_count=len(validation_indexes),
         accepted_count=accepted_count,
     )
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import json
 import logging
 import re
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
@@ -18,33 +18,6 @@ _HARD_NUMBER_RE = re.compile(r"(?<![a-z0-9])\d+(?:\.\d+)?(?![a-z0-9])", re.I)
 _HARD_ACRONYM_RE = re.compile(r"(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?![A-Za-z0-9])")
 _HARD_CODE_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
-)
-_DEALER_TIER_MARKERS = (
-    ("钻石", "diamond"),
-    ("铂金", "platinum"),
-    ("白金", "platinum"),
-    ("黄金", "gold"),
-    ("金牌", "gold"),
-    ("银牌", "silver"),
-    ("铜牌", "bronze"),
-    ("金", "gold"),
-    ("银", "silver"),
-    ("铜", "bronze"),
-)
-_DEALER_TIER_TERM_PATTERN = "(?:" + "|".join(
-    re.escape(marker) for marker, _canonical in _DEALER_TIER_MARKERS
-) + ")"
-_DEALER_TIER_RE = re.compile(
-    rf"({_DEALER_TIER_TERM_PATTERN}"
-    rf"(?:[/、或和与及]{_DEALER_TIER_TERM_PATTERN})*)经销商"
-)
-_NEGATED_DEALER_TIER_RE = re.compile(
-    r"(?:(?:非|不是|并非|除|排除|不含|不包括)[^，。；;！？!?]{0,20}经销商"
-    r"|经销商(?:以外|之外|除外))"
-)
-_RELATIVE_DEALER_TIER_RE = re.compile(
-    rf"(?:{_DEALER_TIER_TERM_PATTERN}(?:经销商)?(?:及)?(?:以上|以下)"
-    rf"|(?:不低于|不高于|高于|低于|至少|至多){_DEALER_TIER_TERM_PATTERN}(?:经销商)?)"
 )
 DEFAULT_PREFILTER_LIMIT = 50
 STRUCTURE_SEARCH_TEXT_LIMIT = 30000
@@ -106,16 +79,6 @@ def candidate_completion_scope(completion):
     finally:
         _CANDIDATE_COMPLETION.reset(token)
 
-_QUERY_EXPANSIONS = {
-    "终验": ["final", "acceptance", "handover", "sign", "off"],
-    "验收": ["acceptance", "sign", "off"],
-    "交付": ["delivery", "handover", "deliverable"],
-    "报告": ["report"],
-    "质检": ["quality", "inspection"],
-    "检查": ["check", "inspection"],
-    "进展": ["progress", "status"],
-    "覆盖": ["coverage"],
-}
 _GENERIC_TOKENS = {
     "生成",
     "报告",
@@ -158,15 +121,6 @@ def _tokenize_query(text: str) -> list[str]:
             "".join(cjk_chars[index : index + 2]) for index in range(len(cjk_chars) - 1)
         )
     return [token for token in [*latin_tokens, *cjk_tokens] if token]
-
-
-def _expanded_query_tokens(text: str) -> list[str]:
-    tokens = _tokenize_query(text)
-    lowered = text.lower()
-    for trigger, expansions in _QUERY_EXPANSIONS.items():
-        if trigger in text or trigger in lowered:
-            tokens.extend(expansions)
-    return tokens
 
 
 def _structure_search_text(structure: Any, limit: int = STRUCTURE_SEARCH_TEXT_LIMIT) -> str:
@@ -222,7 +176,7 @@ def _is_strong_token(token: str) -> bool:
 
 
 def _keyword_score_parts(query: str, doc: dict) -> tuple[int, int]:
-    tokens = Counter(_expanded_query_tokens(query))
+    tokens = Counter(_tokenize_query(query))
     strong_tokens = Counter(
         token for token in tokens.elements() if _is_strong_token(token)
     )
@@ -259,7 +213,7 @@ def keyword_score(query: str, doc: dict) -> int:
 
 
 def _has_strong_query_signal(query: str) -> bool:
-    return any(_is_strong_token(token) for token in _expanded_query_tokens(query))
+    return any(_is_strong_token(token) for token in _tokenize_query(query))
 
 
 def _passes_prefilter(query: str, score: int, strong_score: int) -> bool:
@@ -313,9 +267,6 @@ def _strong_keyword_select_documents(
 ) -> list[dict]:
     if limit <= 0:
         return []
-    if _query_has_semantic_dealer_tier_constraint(query):
-        return []
-
     query_terms = _fallback_query_terms(query)
     if len(query_terms) < MIN_FALLBACK_QUERY_TERMS:
         return []
@@ -426,126 +377,6 @@ def _pages_search_text(
     return " ".join(parts)
 
 
-def _dealer_tier_marker(term: str) -> str | None:
-    return next(
-        (
-            f"tier:{canonical}"
-            for marker, canonical in _DEALER_TIER_MARKERS
-            if term.endswith(marker)
-        ),
-        None,
-    )
-
-
-def _iter_dealer_tier_markers(text: str):
-    for match in _DEALER_TIER_RE.finditer(text):
-        for term in re.split(r"[/、或和与及]", match.group(1)):
-            marker = _dealer_tier_marker(term)
-            if marker:
-                yield marker
-
-
-def _query_dealer_tier_markers(query: str) -> frozenset[str]:
-    if _query_has_semantic_dealer_tier_constraint(query):
-        return frozenset()
-    return frozenset(_iter_dealer_tier_markers(query))
-
-
-def _query_has_negated_dealer_tier(query: str) -> bool:
-    return bool(_NEGATED_DEALER_TIER_RE.search(query))
-
-
-def _query_has_semantic_dealer_tier_constraint(query: str) -> bool:
-    return _query_has_negated_dealer_tier(query) or bool(
-        _RELATIVE_DEALER_TIER_RE.search(query)
-    )
-
-
-def _document_has_dealer_tier(
-    document: dict,
-    query_tiers: frozenset[str],
-    *,
-    include_page_text: bool,
-) -> bool:
-    return any(
-        query_tiers.intersection(_iter_dealer_tier_markers(search_text))
-        for search_text in _iter_hard_search_texts(
-            document,
-            include_page_text=include_page_text,
-        )
-    )
-
-
-def _document_dealer_tiers(
-    document: dict,
-    *,
-    include_page_text: bool,
-) -> frozenset[str]:
-    return frozenset(
-        marker
-        for search_text in _iter_hard_search_texts(
-            document,
-            include_page_text=include_page_text,
-        )
-        for marker in _iter_dealer_tier_markers(search_text)
-    )
-
-
-def document_supports_query_dealer_tier(
-    query: str,
-    document: dict,
-    page_texts: Iterable[str] = (),
-) -> bool:
-    query_tiers = _query_dealer_tier_markers(query)
-    if not query_tiers:
-        return True
-
-    metadata_tiers = _document_dealer_tiers(
-        document,
-        include_page_text=False,
-    )
-    page_tiers = {
-        marker
-        for text in page_texts
-        if isinstance(text, str)
-        for marker in _iter_dealer_tier_markers(text)
-    }
-    if query_tiers.intersection(page_tiers):
-        return True
-    if page_tiers:
-        return False
-    if query_tiers.intersection(metadata_tiers):
-        return True
-    return not metadata_tiers
-
-
-def _documents_matching_dealer_tier(query: str, documents: list[dict]) -> list[dict]:
-    query_tiers = _query_dealer_tier_markers(query)
-    if not query_tiers:
-        return documents
-
-    metadata_matches = [
-        document
-        for document in documents
-        if _document_has_dealer_tier(
-            document,
-            query_tiers,
-            include_page_text=False,
-        )
-    ]
-    metadata_match_ids = {id(document) for document in metadata_matches}
-    return [
-        document
-        for document in documents
-        if id(document) in metadata_match_ids
-        or _document_has_dealer_tier(
-            document,
-            query_tiers,
-            include_page_text=True,
-        )
-    ]
-
-
 def _hard_fallback_term_groups(query: str) -> tuple[frozenset[str], ...]:
     groups: list[frozenset[str]] = [
         frozenset({match.group(0).lower()}) for match in _HARD_NUMBER_RE.finditer(query)
@@ -553,16 +384,6 @@ def _hard_fallback_term_groups(query: str) -> tuple[frozenset[str], ...]:
     groups.extend(
         frozenset({match.group(0).lower()}) for match in _HARD_ACRONYM_RE.finditer(query)
     )
-    for match in _DEALER_TIER_RE.finditer(query):
-        alternatives = {
-            marker
-            for term in re.split(r"[/、或和与及]", match.group(1))
-            if term
-            for marker in [_dealer_tier_marker(term)]
-            if marker
-        }
-        if alternatives:
-            groups.append(frozenset(alternatives))
     return tuple(dict.fromkeys(groups))
 
 
@@ -590,8 +411,6 @@ def _passes_hard_fallback_constraints(
 
 
 def _hard_term_matches(term: str, text: str) -> bool:
-    if term.startswith("tier:"):
-        return any(marker == term for marker in _iter_dealer_tier_markers(text))
     if _HARD_NUMBER_RE.fullmatch(term):
         return any(
             match.group(0).lower() == term for match in _HARD_NUMBER_RE.finditer(text)
@@ -989,20 +808,6 @@ def select_candidate_documents(
             model_outcome="not_run",
             strategy="empty_scope",
         )
-    tier_constrained_docs = _documents_matching_dealer_tier(query, docs)
-    if not tier_constrained_docs:
-        logger.info(
-            "Candidate document selection strategy=hard_constraint_no_match "
-            "model_outcome=not_run documents=%d",
-            len(docs),
-        )
-        return CandidateDocuments(
-            [],
-            model_outcome="not_run",
-            strategy="hard_constraint_no_match",
-        )
-    docs = tier_constrained_docs
-
     candidate_batches = _candidate_document_batches(query, docs)
     llm_candidates = candidate_batches[0]
     is_batched = len(candidate_batches) > 1
