@@ -10,6 +10,7 @@ import re
 from typing import Any, Literal
 
 from services.common.document_search import rank_documents_by_bm25, structure_search_text
+from services.common.semantic_index import SemanticSearchResult, semantic_search_documents
 
 
 _CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
@@ -20,10 +21,10 @@ _HARD_CODE_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
 )
 DEFAULT_PREFILTER_LIMIT = 50
-MAX_ADAPTIVE_PREFILTER_BATCHES = 3
 ADAPTIVE_BOUNDARY_SCORE_RATIO = 0.85
 FALLBACK_PAGE_SEARCH_TEXT_LIMIT = 200000
 CANDIDATE_FALLBACK_LIMIT = 3
+RRF_RANK_CONSTANT = 60
 EVIDENCE_VALIDATION_REASON_KEY = "_reasonkb_evidence_validation_reason"
 MIN_FALLBACK_QUERY_TERMS = 2
 MIN_FALLBACK_SUMMARY_COVERAGE = 0.5
@@ -73,10 +74,14 @@ class CandidateDocuments(list[dict]):
         *,
         model_outcome: str,
         strategy: str,
+        semantic_status: str = "not_run",
+        semantic_elapsed_ms: int = 0,
     ) -> None:
         super().__init__(documents)
         self.model_outcome = model_outcome
         self.strategy = strategy
+        self.semantic_status = semantic_status
+        self.semantic_elapsed_ms = semantic_elapsed_ms
 
 
 @contextmanager
@@ -599,19 +604,23 @@ def _llm_select_document_batches(
     *,
     limit: int,
     model: str | None,
+    exhaustive: bool = False,
 ) -> tuple[_LlmSelection, int]:
     outcomes: list[_LlmSelectionOutcome] = []
     selected_documents: list[dict] = []
     attempted_batches = 0
     previous_batch: _CandidateDocumentBatch | None = None
-    for batch_index, batch in enumerate(batches[:MAX_ADAPTIVE_PREFILTER_BATCHES]):
-        if batch_index > 0 and not _should_expand_candidate_search(
-            previous_batch,
-            batch,
-            selected_count=len(_deduplicate_documents(selected_documents)),
-            limit=limit,
-        ):
-            break
+    for batch_index, batch in enumerate(batches):
+        if batch_index > 0 and not exhaustive:
+            selected_count = len(_deduplicate_documents(selected_documents))
+            should_expand = _should_expand_candidate_search(
+                previous_batch,
+                batch,
+                selected_count=selected_count,
+                limit=limit,
+            )
+            if not should_expand:
+                break
         selection = _llm_select_documents(
             query,
             list(batch.documents),
@@ -677,16 +686,14 @@ def _merge_documents(*groups: list[dict], limit: int) -> list[dict]:
     return selected
 
 
-def select_candidate_documents(
+def _select_candidate_documents(
     query: str,
     docs: list[dict],
     limit: int = 8,
     model: str | None = None,
-    mode: str | None = None,
+    *,
+    exhaustive: bool,
 ) -> CandidateDocuments:
-    # Kept temporarily for direct callers that still pass the former output mode.
-    # Retrieval semantics are intentionally mode-independent.
-    del mode
     if limit <= 0 or not docs:
         return CandidateDocuments(
             [],
@@ -699,6 +706,7 @@ def select_candidate_documents(
         candidate_batches,
         limit=limit,
         model=model,
+        exhaustive=exhaustive,
     )
     attempted_candidates = [
         document
@@ -802,3 +810,131 @@ def select_candidate_documents(
         model_outcome=llm_selection.outcome,
         strategy=strategy,
     )
+
+
+def route_candidate_documents(
+    query: str,
+    docs: list[dict],
+    limit: int = 8,
+    model: str | None = None,
+) -> CandidateDocuments:
+    """Route an authorized document scope through lexical, semantic, and LLM ranking."""
+    if limit <= 0 or not docs:
+        return CandidateDocuments(
+            [],
+            model_outcome="not_run",
+            strategy="empty_scope",
+        )
+
+    db_path = str(docs[0].get("_db_path") or "").strip()
+    semantic = (
+        semantic_search_documents(
+            db_path,
+            query,
+            [str(document.get("id") or "") for document in docs],
+        )
+        if db_path
+        else SemanticSearchResult("unavailable", (), {}, 0)
+    )
+    if semantic.document_scores:
+        candidate_pool = _hybrid_candidate_pool(query, docs, semantic)
+        selected = _select_candidate_documents(
+            query,
+            candidate_pool,
+            limit=limit,
+            model=model,
+            exhaustive=False,
+        )
+        if not selected and selected.model_outcome in _TECHNICAL_SELECTION_OUTCOMES:
+            selected = CandidateDocuments(
+                [
+                    {
+                        **document,
+                        EVIDENCE_VALIDATION_REASON_KEY: "semantic_fallback",
+                    }
+                    for document in candidate_pool[: min(limit, CANDIDATE_FALLBACK_LIMIT)]
+                ],
+                model_outcome=selected.model_outcome,
+                strategy="technical_failure_semantic_fallback",
+            )
+        strategy = f"hybrid_rrf_{selected.strategy}"
+    else:
+        selected = _select_candidate_documents(
+            query,
+            docs,
+            limit=limit,
+            model=model,
+            exhaustive=True,
+        )
+        strategy = selected.strategy
+
+    routed_documents: list[dict] = []
+    for document in selected:
+        routed = dict(document)
+        seed_node_ids = semantic.seed_node_ids.get(str(document.get("id") or ""), ())
+        if seed_node_ids:
+            routed["_semantic_seed_node_ids"] = list(seed_node_ids)
+        routed_documents.append(routed)
+    return CandidateDocuments(
+        routed_documents,
+        model_outcome=selected.model_outcome,
+        strategy=strategy,
+        semantic_status=semantic.status,
+        semantic_elapsed_ms=semantic.elapsed_ms,
+    )
+
+
+def select_candidate_documents(
+    query: str,
+    docs: list[dict],
+    limit: int = 8,
+    model: str | None = None,
+    mode: str | None = None,
+) -> CandidateDocuments:
+    # Kept for callers that still pass the former output mode. Both modes use
+    # the same routing interface and evidence chain.
+    del mode
+    return route_candidate_documents(query, docs, limit=limit, model=model)
+
+
+def _hybrid_candidate_pool(
+    query: str,
+    docs: list[dict],
+    semantic: SemanticSearchResult,
+) -> list[dict]:
+    documents_by_id = {
+        str(document.get("id") or ""): document
+        for document in docs
+        if document.get("id")
+    }
+    scores: dict[str, float] = {}
+    for rank, (document_id, _score) in enumerate(semantic.document_scores, 1):
+        if document_id in documents_by_id:
+            scores[document_id] = scores.get(document_id, 0.0) + 1.0 / (
+                RRF_RANK_CONSTANT + rank
+            )
+
+    lexical = rank_documents_by_bm25(query, docs)
+    for rank, item in enumerate((item for item in lexical if item.matched), 1):
+        document_id = str(item.document.get("id") or "")
+        if document_id:
+            scores[document_id] = scores.get(document_id, 0.0) + 1.0 / (
+                RRF_RANK_CONSTANT + rank
+            )
+
+    ordered_ids = [
+        document_id
+        for document_id, _score in sorted(
+            scores.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
+    ]
+    for item in lexical:
+        document_id = str(item.document.get("id") or "")
+        if document_id and document_id not in scores:
+            ordered_ids.append(document_id)
+    return [
+        documents_by_id[document_id]
+        for document_id in ordered_ids[:DEFAULT_PREFILTER_LIMIT]
+        if document_id in documents_by_id
+    ]

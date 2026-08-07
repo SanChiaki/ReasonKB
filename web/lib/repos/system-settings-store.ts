@@ -1,5 +1,15 @@
 import Database from "better-sqlite3";
 
+export type SemanticIndexState = {
+  status: "unconfigured" | "validating" | "backfilling" | "ready" | "degraded";
+  configuredModel: string;
+  activeModel: string | null;
+  indexedDocumentCount: number;
+  totalDocumentCount: number;
+  coverage: number;
+  error: string | null;
+};
+
 export type SystemSettings = {
   indexWorkerConcurrency: number;
   retrievalDocumentLimit: number;
@@ -9,6 +19,14 @@ export type SystemSettings = {
   llmRetrievalModel: string;
   llmConfigured: boolean;
   llmMissingFields: string[];
+  embeddingApiKeyConfigured: boolean;
+  embeddingApiKeyInherited: boolean;
+  embeddingBaseUrl: string;
+  embeddingBaseUrlInherited: boolean;
+  embeddingModel: string;
+  embeddingConfigured: boolean;
+  embeddingMissingFields: string[];
+  semanticIndex: SemanticIndexState;
   currentProjectsRootHostPath: string;
   pendingProjectsRootHostPath: string;
   projectsRootSwitchStatus: "idle" | "pending" | "complete";
@@ -23,9 +41,12 @@ export type SystemSettingsUpdate = Partial<
     | "llmBaseUrl"
     | "llmModel"
     | "llmRetrievalModel"
+    | "embeddingBaseUrl"
+    | "embeddingModel"
   >
 > & {
   llmApiKey?: string | null;
+  embeddingApiKey?: string | null;
   projectsRootHostPath?: string;
 };
 
@@ -36,6 +57,9 @@ type SystemSettingsDefaults = {
   llmBaseUrl: string;
   llmModel: string;
   llmRetrievalModel: string;
+  embeddingApiKey?: string;
+  embeddingBaseUrl?: string;
+  embeddingModel?: string;
   projectsRootHostPath: string;
 };
 
@@ -45,6 +69,9 @@ const LLM_API_KEY_KEY = "llmApiKey";
 const LLM_BASE_URL_KEY = "llmBaseUrl";
 const LLM_MODEL_KEY = "llmModel";
 const LLM_RETRIEVAL_MODEL_KEY = "llmRetrievalModel";
+const EMBEDDING_API_KEY_KEY = "embeddingApiKey";
+const EMBEDDING_BASE_URL_KEY = "embeddingBaseUrl";
+const EMBEDDING_MODEL_KEY = "embeddingModel";
 const PENDING_PROJECTS_ROOT_HOST_PATH_KEY = "pendingProjectsRootHostPath";
 const PROJECTS_ROOT_SWITCH_UPDATED_AT_KEY = "projectsRootSwitchUpdatedAt";
 const DEFAULT_LLM_MODEL = "openai/deepseek-v4-flash";
@@ -55,6 +82,9 @@ const FALLBACK_DEFAULTS: SystemSettingsDefaults = {
   llmBaseUrl: "",
   llmModel: DEFAULT_LLM_MODEL,
   llmRetrievalModel: DEFAULT_LLM_MODEL,
+  embeddingApiKey: "",
+  embeddingBaseUrl: "",
+  embeddingModel: "",
   projectsRootHostPath: "",
 };
 const CREATE_SYSTEM_SETTINGS_TABLE_SQL = `
@@ -217,6 +247,12 @@ function toSystemSettings(values: {
   llmBaseUrl: string;
   llmModel: string;
   llmRetrievalModel: string;
+  embeddingApiKey: string;
+  embeddingBaseUrl: string;
+  embeddingModel: string;
+  embeddingApiKeyInherited: boolean;
+  embeddingBaseUrlInherited: boolean;
+  semanticIndex: SemanticIndexState;
   currentProjectsRootHostPath: string;
   pendingProjectsRootHostPath: string;
   projectsRootSwitchUpdatedAt: string | null;
@@ -230,6 +266,16 @@ function toSystemSettings(values: {
   }
   if (!values.llmModel) {
     missingFields.push("Model");
+  }
+  const embeddingMissingFields: string[] = [];
+  if (!values.embeddingApiKey) {
+    embeddingMissingFields.push("API key");
+  }
+  if (!values.embeddingBaseUrl) {
+    embeddingMissingFields.push("Base URL");
+  }
+  if (!values.embeddingModel) {
+    embeddingMissingFields.push("Model");
   }
   const currentProjectsRootHostPath = normalizeCurrentHostPath(
     values.currentProjectsRootHostPath,
@@ -252,11 +298,105 @@ function toSystemSettings(values: {
     llmRetrievalModel: values.llmRetrievalModel || values.llmModel,
     llmConfigured: missingFields.length === 0,
     llmMissingFields: missingFields,
+    embeddingApiKeyConfigured: Boolean(values.embeddingApiKey),
+    embeddingApiKeyInherited: values.embeddingApiKeyInherited,
+    embeddingBaseUrl: values.embeddingBaseUrl,
+    embeddingBaseUrlInherited: values.embeddingBaseUrlInherited,
+    embeddingModel: values.embeddingModel,
+    embeddingConfigured: embeddingMissingFields.length === 0,
+    embeddingMissingFields,
+    semanticIndex: values.semanticIndex,
     currentProjectsRootHostPath,
     pendingProjectsRootHostPath,
     projectsRootSwitchStatus,
     projectsRootSwitchUpdatedAt: values.projectsRootSwitchUpdatedAt,
   };
+}
+
+function readSemanticIndexState(
+  db: InstanceType<typeof Database>,
+  values: { configured: boolean; model: string; baseUrl: string },
+): SemanticIndexState {
+  let totalDocumentCount = 0;
+  try {
+    totalDocumentCount = Number(
+      (
+        db
+          .prepare(
+            `SELECT COUNT(*) AS count
+               FROM documents d
+               JOIN projects p ON p.id = d.project_id
+               JOIN document_indexes di
+                 ON di.document_id = d.id AND di.is_current = 1
+              WHERE d.status = 'ready' AND d.deleted_at IS NULL
+                AND d.lifecycle_state = 'active' AND d.retrieval_eligible = 1
+                AND p.deleted_at IS NULL AND p.lifecycle_state = 'active'
+                AND p.retrieval_eligible = 1`,
+          )
+          .get() as { count: number }
+      ).count,
+    );
+  } catch {
+    totalDocumentCount = 0;
+  }
+
+  const emptyState: SemanticIndexState = {
+    status: values.configured ? "validating" : "unconfigured",
+    configuredModel: values.model,
+    activeModel: null,
+    indexedDocumentCount: 0,
+    totalDocumentCount,
+    coverage: 0,
+    error: null,
+  };
+  if (!values.configured) {
+    return emptyState;
+  }
+
+  try {
+    const desired = db
+      .prepare(
+        `SELECT status, model, indexed_document_count, error_summary
+           FROM semantic_index_generations
+          WHERE model = ? AND base_url = ? AND profile_version = 'document-node-v1'
+            AND status != 'retired'
+          ORDER BY created_at DESC LIMIT 1`,
+      )
+      .get(values.model, values.baseUrl.replace(/\/+$/, "")) as
+      | {
+          status: SemanticIndexState["status"];
+          model: string;
+          indexed_document_count: number;
+          error_summary: string | null;
+        }
+      | undefined;
+    const active = db
+      .prepare(
+        `SELECT model FROM semantic_index_generations
+          WHERE is_active = 1 ORDER BY activated_at DESC LIMIT 1`,
+      )
+      .get() as { model: string } | undefined;
+    if (!desired) {
+      return { ...emptyState, activeModel: active?.model ?? null };
+    }
+    const indexedDocumentCount = Number(desired.indexed_document_count || 0);
+    return {
+      status: desired.status,
+      configuredModel: values.model,
+      activeModel: active?.model ?? null,
+      indexedDocumentCount,
+      totalDocumentCount,
+      coverage:
+        totalDocumentCount > 0
+          ? Math.min(1, indexedDocumentCount / totalDocumentCount)
+          : desired.status === "ready"
+            ? 1
+            : 0,
+      error: desired.error_summary,
+    };
+  } catch {
+    return emptyState;
+  }
 }
 
 export function getSystemSettings(
@@ -272,8 +412,36 @@ export function getSystemSettings(
     const savedBaseUrl = readSetting(db, LLM_BASE_URL_KEY);
     const savedModel = readSetting(db, LLM_MODEL_KEY);
     const savedRetrievalModel = readSetting(db, LLM_RETRIEVAL_MODEL_KEY);
+    const savedEmbeddingApiKey = readSetting(db, EMBEDDING_API_KEY_KEY);
+    const savedEmbeddingBaseUrl = readSetting(db, EMBEDDING_BASE_URL_KEY);
+    const savedEmbeddingModel = readSetting(db, EMBEDDING_MODEL_KEY);
     const savedProjectsRootHostPath = readSetting(db, PENDING_PROJECTS_ROOT_HOST_PATH_KEY);
     const savedProjectsRootUpdatedAt = readSetting(db, PROJECTS_ROOT_SWITCH_UPDATED_AT_KEY);
+    const llmApiKey =
+      savedApiKey === undefined
+        ? normalizeOptionalString(normalizedDefaults.llmApiKey, "API key")
+        : normalizeOptionalString(savedApiKey, "API key");
+    const llmBaseUrl =
+      savedBaseUrl === undefined
+        ? normalizeBaseUrl(normalizedDefaults.llmBaseUrl)
+        : normalizeBaseUrl(savedBaseUrl);
+    const explicitEmbeddingApiKey =
+      savedEmbeddingApiKey === undefined
+        ? normalizeOptionalString(normalizedDefaults.embeddingApiKey, "Embedding API key")
+        : normalizeOptionalString(savedEmbeddingApiKey, "Embedding API key");
+    const explicitEmbeddingBaseUrl =
+      savedEmbeddingBaseUrl === undefined
+        ? normalizeBaseUrl(normalizedDefaults.embeddingBaseUrl)
+        : normalizeBaseUrl(savedEmbeddingBaseUrl);
+    const embeddingModel =
+      savedEmbeddingModel === undefined
+        ? normalizeOptionalString(normalizedDefaults.embeddingModel, "Embedding model")
+        : normalizeOptionalString(savedEmbeddingModel, "Embedding model");
+    const embeddingApiKey = explicitEmbeddingApiKey || llmApiKey;
+    const embeddingBaseUrl = explicitEmbeddingBaseUrl || llmBaseUrl;
+    const embeddingConfigured = Boolean(
+      embeddingApiKey && embeddingBaseUrl && embeddingModel,
+    );
     return toSystemSettings({
       indexWorkerConcurrency:
         savedConcurrency === undefined
@@ -283,14 +451,8 @@ export function getSystemSettings(
         savedRetrievalDocumentLimit === undefined
           ? normalizedDefaults.retrievalDocumentLimit
           : normalizeRetrievalDocumentLimit(savedRetrievalDocumentLimit),
-      llmApiKey:
-        savedApiKey === undefined
-          ? normalizeOptionalString(normalizedDefaults.llmApiKey, "API key")
-          : normalizeOptionalString(savedApiKey, "API key"),
-      llmBaseUrl:
-        savedBaseUrl === undefined
-          ? normalizeBaseUrl(normalizedDefaults.llmBaseUrl)
-          : normalizeBaseUrl(savedBaseUrl),
+      llmApiKey,
+      llmBaseUrl,
       llmModel:
         savedModel === undefined
           ? normalizeModel(normalizedDefaults.llmModel, "Model", FALLBACK_DEFAULTS.llmModel)
@@ -303,6 +465,16 @@ export function getSystemSettings(
               normalizedDefaults.llmModel,
             )
           : normalizeModel(savedRetrievalModel, "Retrieval model", normalizedDefaults.llmModel),
+      embeddingApiKey,
+      embeddingBaseUrl,
+      embeddingModel,
+      embeddingApiKeyInherited: !explicitEmbeddingApiKey,
+      embeddingBaseUrlInherited: !explicitEmbeddingBaseUrl,
+      semanticIndex: readSemanticIndexState(db, {
+        configured: embeddingConfigured,
+        model: embeddingModel,
+        baseUrl: embeddingBaseUrl,
+      }),
       currentProjectsRootHostPath: normalizedDefaults.projectsRootHostPath,
       pendingProjectsRootHostPath:
         savedProjectsRootHostPath === undefined
@@ -353,6 +525,24 @@ export function updateSystemSettings(
           updates.llmModel ?? normalizedDefaults.llmModel,
         );
         writeSetting(db, LLM_RETRIEVAL_MODEL_KEY, value, now);
+      }
+      if (Object.hasOwn(updates, "embeddingApiKey")) {
+        const value = normalizeOptionalString(
+          updates.embeddingApiKey,
+          "Embedding API key",
+        );
+        writeSetting(db, EMBEDDING_API_KEY_KEY, value, now);
+      }
+      if (updates.embeddingBaseUrl !== undefined) {
+        const value = normalizeBaseUrl(updates.embeddingBaseUrl);
+        writeSetting(db, EMBEDDING_BASE_URL_KEY, value, now);
+      }
+      if (updates.embeddingModel !== undefined) {
+        const value = normalizeOptionalString(
+          updates.embeddingModel,
+          "Embedding model",
+        );
+        writeSetting(db, EMBEDDING_MODEL_KEY, value, now);
       }
       if (updates.projectsRootHostPath !== undefined) {
         const value = normalizeHostPathUpdate(updates.projectsRootHostPath);

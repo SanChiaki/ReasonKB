@@ -9,9 +9,15 @@ from fastapi.responses import StreamingResponse
 
 from services.common.pageindex_runtime import llm_request_scope
 from services.common.settings import DB_PATH
+from services.retrieval_api.embedding_test import (
+    EmbeddingTestInput,
+    test_embedding_configuration,
+)
 from services.retrieval_api.llm_test import LlmTestInput, test_llm_configuration
 from services.retrieval_api.query_engine import answer_question, answer_question_events
 from services.retrieval_api.schemas import (
+    EmbeddingTestRequest,
+    EmbeddingTestResponse,
     LlmTestRequest,
     LlmTestResponse,
     QueryRequest,
@@ -146,3 +152,16 @@ def test_llm(request: LlmTestRequest) -> LlmTestResponse:
         ),
     )
     return LlmTestResponse.model_validate(result)
+
+
+@app.post("/internal/embedding/test")
+def test_embedding(request: EmbeddingTestRequest) -> EmbeddingTestResponse:
+    result = test_embedding_configuration(
+        str(DB_PATH),
+        EmbeddingTestInput(
+            api_key=request.apiKey,
+            base_url=request.baseUrl,
+            model=request.model,
+        ),
+    )
+    return EmbeddingTestResponse.model_validate(result)

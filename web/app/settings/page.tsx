@@ -3,6 +3,7 @@ import { AdminPasswordForm } from "@/components/admin-password-form";
 import { ApiKeyManager } from "@/components/api-key-manager";
 import { ServiceHealthPanel } from "@/components/service-health-panel";
 import { ModelProviderHealthPanel } from "@/components/model-provider-health-panel";
+import { EmbeddingSettingsPanel } from "@/components/embedding-settings-panel";
 import { SystemSettingsForm } from "@/components/system-settings-form";
 import { appConfig } from "@/lib/config";
 import { LocalizedText } from "@/lib/i18n";
@@ -30,6 +31,12 @@ const defaults = {
     process.env.PAGEINDEX_LLM_RETRIEVAL_MODEL ??
     process.env.PAGEINDEX_LLM_MODEL ??
     "openai/deepseek-v4-flash",
+  embeddingApiKey:
+    process.env.REASONKB_EMBEDDING_API_KEY ?? process.env.EMBEDDING_API_KEY ?? "",
+  embeddingBaseUrl:
+    process.env.REASONKB_EMBEDDING_BASE_URL ?? process.env.EMBEDDING_BASE_URL ?? "",
+  embeddingModel:
+    process.env.REASONKB_EMBEDDING_MODEL ?? process.env.EMBEDDING_MODEL ?? "",
   projectsRootHostPath: appConfig.currentProjectsRootHostPath,
 };
 
@@ -61,6 +68,14 @@ export default async function SettingsPage() {
         <div className="space-y-6 pt-6">
           <ServiceHealthPanel />
           <ModelProviderHealthPanel />
+          <EmbeddingSettingsPanel
+            initialApiKeyConfigured={settings.embeddingApiKeyConfigured}
+            initialApiKeyInherited={settings.embeddingApiKeyInherited}
+            initialBaseUrl={settings.embeddingBaseUrl}
+            initialBaseUrlInherited={settings.embeddingBaseUrlInherited}
+            initialModel={settings.embeddingModel}
+            semanticIndex={settings.semanticIndex}
+          />
           <SystemSettingsForm
             initialIndexWorkerConcurrency={settings.indexWorkerConcurrency}
             initialRetrievalDocumentLimit={settings.retrievalDocumentLimit}

@@ -4,6 +4,7 @@ import pytest
 
 from services.common.document_search import RankedSearchDocument
 from services.common.pageindex_runtime import configure_pageindex_runtime
+from services.common.semantic_index import SemanticSearchResult
 
 configure_pageindex_runtime()
 
@@ -118,6 +119,53 @@ def test_prefilter_prioritizes_matches_and_caps_candidate_budget():
 
     assert {doc["id"] for doc in selected[:2]} == {"doc_handover", "doc_quality"}
     assert len(selected) == 10
+
+
+def test_semantic_routing_builds_top_50_pool_and_attaches_pageindex_seed(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"policy-{index:02d}.pdf",
+            "doc_description": "General policy material.",
+            "_db_path": "/tmp/reasonkb.db",
+        }
+        for index in range(60)
+    ]
+    target = docs[-1]
+    semantic_order = [target, *docs[:-1]]
+    monkeypatch.setattr(
+        select_documents_module,
+        "semantic_search_documents",
+        lambda *_args, **_kwargs: SemanticSearchResult(
+            "ready",
+            tuple(
+                (document["id"], 1.0 - rank / 100)
+                for rank, document in enumerate(semantic_order)
+            ),
+            {target["id"]: ("0042",)},
+            17,
+        ),
+    )
+    prompts: list[str] = []
+
+    def select_target(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        prompts.append(prompt)
+        assert prompt.count('"candidate_id"') == 50
+        candidate_id = _candidate_id_for_name(prompt, target["file_name"])
+        return json.dumps({"answer": [candidate_id]})
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_target)
+
+    selected = select_candidate_documents("跨语言升级要求", docs, limit=1)
+
+    assert [document["id"] for document in selected] == [target["id"]]
+    assert selected[0]["_semantic_seed_node_ids"] == ["0042"]
+    assert selected.strategy == "hybrid_rrf_model_only_single_slot"
+    assert selected.semantic_status == "ready"
+    assert selected.semantic_elapsed_ms == 17
+    assert len(prompts) == 1
 
 
 def test_prefilter_uses_remaining_budget_for_cross_language_exploration():
@@ -254,7 +302,9 @@ def test_provider_failure_stops_candidate_batch_cascade(monkeypatch):
     assert len(prompts) == 1
 
 
-def test_full_top_50_stops_when_next_bm25_batch_has_a_clear_score_drop(monkeypatch):
+def test_semantic_candidate_pool_stops_when_next_bm25_batch_has_a_clear_score_drop(
+    monkeypatch,
+):
     docs = [
         {
             "id": f"doc_{index}",
@@ -280,7 +330,13 @@ def test_full_top_50_stops_when_next_bm25_batch_has_a_clear_score_drop(monkeypat
 
     monkeypatch.setattr("pageindex.utils.llm_completion", select_full_budget)
 
-    selected = select_candidate_documents("policy", docs, limit=3)
+    selected = select_documents_module._select_candidate_documents(
+        "policy",
+        docs,
+        limit=3,
+        model=None,
+        exhaustive=False,
+    )
 
     assert [document["id"] for document in selected] == ["doc_0", "doc_1", "doc_2"]
     assert len(prompts) == 1
@@ -406,6 +462,50 @@ def test_shared_selection_keeps_the_third_candidate_batch_reachable(monkeypatch,
 
     assert [document["id"] for document in selected] == ["doc_late"]
     assert len(prompts) == 4
+
+
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_compatibility_selection_keeps_candidates_after_three_batches_reachable(
+    monkeypatch,
+    mode,
+):
+    docs = [
+        {
+            "id": f"doc_{index:03d}",
+            "project_id": "proj_1",
+            "file_name": f"directory-{index:03d}.pdf",
+            "doc_description": "Customer directory.",
+        }
+        for index in range(151)
+    ]
+    docs.append(
+        {
+            "id": "doc_cross_language",
+            "project_id": "proj_1",
+            "file_name": "跨语言目标政策.pdf",
+            "doc_description": "银牌升级为钻石经销商的资格要求。",
+        }
+    )
+    prompts = []
+
+    def fake_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "跨语言目标政策.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(prompt, "跨语言目标政策.pdf")
+            return json.dumps({"answer": [candidate_id]})
+        return '{"answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_completion)
+
+    selected = select_candidate_documents(
+        "How can a Silver reseller upgrade to Diamond?",
+        docs,
+        limit=3,
+        mode=mode,
+    )
+
+    assert [document["id"] for document in selected] == ["doc_cross_language"]
+    assert len(prompts) == 5
 
 
 @pytest.mark.parametrize("mode", ["answer", "evidence"])

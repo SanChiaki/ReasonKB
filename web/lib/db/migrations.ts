@@ -557,4 +557,62 @@ export const schemaMigrations: SchemaMigration[] = [
       rebuildDocumentSearchIndex(db);
     },
   },
+  {
+    version: 11,
+    name: "semantic-routing-generations",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS semantic_index_generations (
+          id TEXT PRIMARY KEY,
+          model TEXT NOT NULL,
+          base_url TEXT NOT NULL,
+          profile_version TEXT NOT NULL,
+          dimension INTEGER,
+          status TEXT NOT NULL
+            CHECK (status IN ('validating', 'backfilling', 'ready', 'degraded', 'retired')),
+          is_active INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0, 1)),
+          indexed_document_count INTEGER NOT NULL DEFAULT 0,
+          total_document_count INTEGER NOT NULL DEFAULT 0,
+          error_summary TEXT,
+          next_retry_at TEXT,
+          lease_owner TEXT,
+          lease_expires_at TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          activated_at TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_semantic_generations_one_active
+          ON semantic_index_generations(is_active)
+          WHERE is_active = 1;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_semantic_generations_one_current_config
+          ON semantic_index_generations(model, base_url, profile_version)
+          WHERE status != 'retired';
+        CREATE INDEX IF NOT EXISTS idx_semantic_generations_config
+          ON semantic_index_generations(
+            model, base_url, profile_version, created_at DESC
+          );
+        CREATE TABLE IF NOT EXISTS semantic_embeddings (
+          generation_id TEXT NOT NULL,
+          document_id TEXT NOT NULL,
+          document_index_id TEXT NOT NULL,
+          profile_kind TEXT NOT NULL CHECK (profile_kind IN ('document', 'node')),
+          profile_id TEXT NOT NULL,
+          node_id TEXT,
+          start_page INTEGER,
+          end_page INTEGER,
+          text_hash TEXT NOT NULL,
+          vector BLOB NOT NULL,
+          created_at TEXT NOT NULL,
+          PRIMARY KEY(generation_id, document_id, profile_kind, profile_id),
+          FOREIGN KEY(generation_id)
+            REFERENCES semantic_index_generations(id) ON DELETE CASCADE,
+          FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE,
+          FOREIGN KEY(document_index_id)
+            REFERENCES document_indexes(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_semantic_embeddings_generation_kind
+          ON semantic_embeddings(generation_id, profile_kind, document_id);
+      `);
+    },
+  },
 ];

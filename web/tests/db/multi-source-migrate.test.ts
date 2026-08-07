@@ -131,6 +131,7 @@ describe("multi-source schema migration", () => {
       { version: 8 },
       { version: 9 },
       { version: 10 },
+      { version: 11 },
     ]);
     expect(
       migrated
@@ -221,6 +222,7 @@ describe("multi-source schema migration", () => {
       { version: 8, name: "index-run-reasoning-tokens" },
       { version: 9, name: "llm-provider-observability" },
       { version: 10, name: "document-search-fts5-bm25f" },
+      { version: 11, name: "semantic-routing-generations" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -231,6 +233,8 @@ describe("multi-source schema migration", () => {
           "source_items",
           "source_exclusion_rules",
           "document_page_blocks",
+          "semantic_index_generations",
+          "semantic_embeddings",
           "source_discovery_runs",
           "sync_runs",
           "admin_credentials",
@@ -665,6 +669,7 @@ describe("multi-source schema migration", () => {
       { version: 8 },
       { version: 9 },
       { version: 10 },
+      { version: 11 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,

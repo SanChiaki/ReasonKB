@@ -477,6 +477,9 @@ def test_release_web_reads_runtime_env_file_for_llm_defaults():
         "PAGEINDEX_LLM_BASE_URL",
         "PAGEINDEX_LLM_MODEL",
         "PAGEINDEX_LLM_RETRIEVAL_MODEL",
+        "REASONKB_EMBEDDING_MODEL",
+        "REASONKB_EMBEDDING_API_KEY",
+        "REASONKB_EMBEDDING_BASE_URL",
     ):
         assert name not in web["environment"]
 
@@ -864,6 +867,7 @@ def test_install_script_persists_environment_configuration(tmp_path):
         "PAGEINDEX_LLM_BASE_URL": "https://llm.example.test/v1",
         "PAGEINDEX_LLM_MODEL": "openai/env-chat",
         "PAGEINDEX_LLM_RETRIEVAL_MODEL": "openai/env-retrieval",
+        "REASONKB_EMBEDDING_MODEL": "text-embedding-3-small",
     }, fake_bin)
 
     result = _run_install(tmp_path, env)
@@ -882,6 +886,7 @@ def test_install_script_persists_environment_configuration(tmp_path):
     assert configured["PAGEINDEX_LLM_BASE_URL"] == "https://llm.example.test/v1"
     assert configured["PAGEINDEX_LLM_MODEL"] == "openai/env-chat"
     assert configured["PAGEINDEX_LLM_RETRIEVAL_MODEL"] == "openai/env-retrieval"
+    assert configured["REASONKB_EMBEDDING_MODEL"] == "text-embedding-3-small"
     assert "项目语料目录" in dotenv
     assert "设置页保存的运行时配置优先于这些默认值" in dotenv
 
@@ -1098,6 +1103,7 @@ def test_install_script_prompts_for_source_access_root_and_llm_configuration(tmp
                 "https://interactive.example.test/v1",
                 "openai/interactive-chat",
                 "openai/interactive-retrieval",
+                "text-embedding-3-small",
             ]
         )
         + "\n",
@@ -1152,6 +1158,7 @@ def test_install_script_prompts_for_source_access_root_and_llm_configuration(tmp
         "PAGEINDEX_LLM_BASE_URL",
         "PAGEINDEX_LLM_MODEL",
         "PAGEINDEX_LLM_RETRIEVAL_MODEL",
+        "REASONKB_EMBEDDING_MODEL",
     ):
         env.pop(key, None)
 
@@ -1171,9 +1178,11 @@ def test_install_script_prompts_for_source_access_root_and_llm_configuration(tmp
     assert configured["PAGEINDEX_LLM_BASE_URL"] == "https://interactive.example.test/v1"
     assert configured["PAGEINDEX_LLM_MODEL"] == "openai/interactive-chat"
     assert configured["PAGEINDEX_LLM_RETRIEVAL_MODEL"] == "openai/interactive-retrieval"
+    assert configured["REASONKB_EMBEDDING_MODEL"] == "text-embedding-3-small"
     prompt_log = prompt_output.read_text(encoding="utf-8")
     assert "本地数据源只读访问根目录" in prompt_log
     assert "项目语料来源" not in prompt_log
     assert "SMB 用户名" not in prompt_log
     assert "可选，按 Enter 跳过" in prompt_log
     assert "LLM 服务 Base URL" in prompt_log
+    assert "Embedding 模型" in prompt_log

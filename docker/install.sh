@@ -297,6 +297,11 @@ if [ "$INSTALL_ACTION" = "install" ]; then
 # PAGEINDEX_LLM_MODEL=openai/deepseek-v4-flash
 # PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/deepseek-v4-flash
 
+# 可选的语义路由模型。API Key 和 Base URL 留空时继承上面的 LLM 配置。
+# REASONKB_EMBEDDING_MODEL=text-embedding-3-small
+# REASONKB_EMBEDDING_API_KEY=
+# REASONKB_EMBEDDING_BASE_URL=
+
 # 检索请求的总时限（秒）：默认且最大 600。
 # RETRIEVAL_REQUEST_TIMEOUT_SECONDS=600
 # 单次检索模型调用时限（秒）：默认 300，最大 600。
@@ -696,6 +701,7 @@ configure_llm_defaults() {
   base_url_value="$(current_env_or_file_value PAGEINDEX_LLM_BASE_URL "")"
   model_value="$(current_env_or_file_value PAGEINDEX_LLM_MODEL "$DEFAULT_LLM_MODEL")"
   retrieval_model_value="$(current_env_or_file_value PAGEINDEX_LLM_RETRIEVAL_MODEL "$model_value")"
+  embedding_model_value="$(current_env_or_file_value REASONKB_EMBEDDING_MODEL "")"
 
   if [ "$INSTALL_INTERACTIVE" = "1" ]; then
     prompt_newline
@@ -713,6 +719,9 @@ configure_llm_defaults() {
 
     prompt_value "检索模型" "$retrieval_model_value"
     retrieval_model_value="$PROMPT_VALUE"
+
+    prompt_value "Embedding 模型（可选，默认继承 LLM Key/Base URL）" "$embedding_model_value"
+    embedding_model_value="$PROMPT_VALUE"
   fi
 
   if [ -n "$api_key_value" ]; then
@@ -730,6 +739,10 @@ configure_llm_defaults() {
   if [ -n "$retrieval_model_value" ]; then
     set_env_file_value PAGEINDEX_LLM_RETRIEVAL_MODEL "$retrieval_model_value"
     export PAGEINDEX_LLM_RETRIEVAL_MODEL="$retrieval_model_value"
+  fi
+  if [ -n "$embedding_model_value" ]; then
+    set_env_file_value REASONKB_EMBEDDING_MODEL "$embedding_model_value"
+    export REASONKB_EMBEDDING_MODEL="$embedding_model_value"
   fi
 }
 

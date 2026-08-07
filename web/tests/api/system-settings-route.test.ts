@@ -49,6 +49,8 @@ describe("system settings route", () => {
     expect(json.settings.retrievalDocumentLimit).toBe(5);
     expect(json.settings.llmApiKeyConfigured).toBe(false);
     expect(json.settings.llmConfigured).toBe(false);
+    expect(json.settings.embeddingConfigured).toBe(false);
+    expect(json.settings.semanticIndex.status).toBe("unconfigured");
     expect(json.settings.currentProjectsRootHostPath).toBe(
       "/Users/oam/.reasonkb/projects",
     );
@@ -70,6 +72,7 @@ describe("system settings route", () => {
           llmBaseUrl: "https://llm.example.test/v1",
           llmModel: "openai/deepseek-v4-flash",
           llmRetrievalModel: "openai/deepseek-v4-flash",
+          embeddingModel: "text-embedding-3-small",
         }),
       }),
     );
@@ -81,6 +84,9 @@ describe("system settings route", () => {
     expect(json.settings.llmApiKeyConfigured).toBe(true);
     expect(json.settings.llmBaseUrl).toBe("https://llm.example.test/v1");
     expect(json.settings.llmConfigured).toBe(true);
+    expect(json.settings.embeddingConfigured).toBe(true);
+    expect(json.settings.embeddingApiKeyInherited).toBe(true);
+    expect(json.settings.semanticIndex.status).toBe("validating");
   });
 
   it("builds LiteLLM model strings from public interface format fields", async () => {
@@ -184,5 +190,38 @@ describe("system settings route", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it("rejects invalid embedding base URLs", async () => {
+    makeTempDb();
+
+    const { PATCH } = await import("@/app/api/admin/settings/route");
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ embeddingBaseUrl: "not-a-url" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("allows semantic routing to be disabled without deleting generations", async () => {
+    makeTempDb();
+
+    const { PATCH } = await import("@/app/api/admin/settings/route");
+    const response = await PATCH(
+      new Request("http://localhost/api/admin/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ embeddingModel: "" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).settings.semanticIndex.status).toBe(
+      "unconfigured",
+    );
   });
 });

@@ -66,6 +66,26 @@ const schema = z.object({
     .enum(["openai-compatible", "anthropic-messages"])
     .optional(),
   llmRetrievalModelName: z.string().trim().min(1).optional(),
+  embeddingApiKey: z.string().trim().optional().nullable(),
+  embeddingBaseUrl: z
+    .string()
+    .trim()
+    .refine(
+      (value) => {
+        if (!value) {
+          return true;
+        }
+        try {
+          const url = new URL(value);
+          return ["http:", "https:"].includes(url.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "Embedding base URL must be a valid HTTP or HTTPS URL." },
+    )
+    .optional(),
+  embeddingModel: z.string().trim().optional(),
 });
 
 const defaults = {
@@ -81,6 +101,12 @@ const defaults = {
     process.env.PAGEINDEX_LLM_RETRIEVAL_MODEL ??
     process.env.PAGEINDEX_LLM_MODEL ??
     "openai/deepseek-v4-flash",
+  embeddingApiKey:
+    process.env.REASONKB_EMBEDDING_API_KEY ?? process.env.EMBEDDING_API_KEY ?? "",
+  embeddingBaseUrl:
+    process.env.REASONKB_EMBEDDING_BASE_URL ?? process.env.EMBEDDING_BASE_URL ?? "",
+  embeddingModel:
+    process.env.REASONKB_EMBEDDING_MODEL ?? process.env.EMBEDDING_MODEL ?? "",
   projectsRootHostPath: appConfig.currentProjectsRootHostPath,
 };
 

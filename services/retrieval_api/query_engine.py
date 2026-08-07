@@ -26,6 +26,7 @@ from services.common.system_settings import (
     get_retrieval_document_limit,
 )
 from services.retrieval_api.select_documents import (
+    CandidateDocuments,
     EVIDENCE_VALIDATION_REASON_KEY,
     candidate_completion_scope,
     select_candidate_documents,
@@ -1071,6 +1072,15 @@ def choose_page_window(
         structure_json = get_document_structure(document_map, document["id"])
     except Exception:
         return _PageWindow(fallback, "page_structure_failed")
+    semantic_seed_node_ids = document.get("_semantic_seed_node_ids", [])
+    semantic_hint = (
+        "\nSemantic node hints (non-binding): "
+        + json.dumps(semantic_seed_node_ids, ensure_ascii=False)
+        + "\nUse these only as starting hints. Inspect the complete tree and select other "
+        "nodes whenever they better cover the question."
+        if semantic_seed_node_ids
+        else ""
+    )
     prompt = f"""
 You are performing PageIndex tree search over a document.
 Find all distinct, specific tree nodes likely to contain relevant evidence. Favor recall across
@@ -1084,6 +1094,7 @@ A generic node title is not a reason to skip it. Select every node needed to cov
 Question: {query}
 Structure:
 {structure_json}
+{semantic_hint}
 
 Return JSON only:
 {{"node_list": ["0007"], "pages": "3-5"}}
@@ -2092,8 +2103,7 @@ def _load_ready_documents(
                    s.display_name AS source_display_name, s.kind AS source_kind,
                    s.scope_json AS source_scope_json,
                    di.id AS document_index_id,
-                   di.doc_description, di.structure_json, di.pages_json,
-                   di.evidence_kind, di.visual_assets_json
+                   di.doc_description
               FROM documents d
               JOIN projects p ON p.id = d.project_id
               JOIN document_indexes di ON di.document_id = d.id
@@ -2123,13 +2133,6 @@ def _load_ready_documents(
 
     docs = []
     for row in rows:
-        try:
-            structure = json.loads(row["structure_json"])
-            pages = json.loads(row["pages_json"])
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if not isinstance(structure, list) or not isinstance(pages, list):
-            continue
         document = {
             "id": row["id"],
             "project_id": row["project_id"],
@@ -2142,10 +2145,6 @@ def _load_ready_documents(
             "source_relative_path": row["source_relative_path"],
             "project_relative_path": row["project_relative_path"],
             "doc_description": row["doc_description"],
-            "evidence_kind": row["evidence_kind"],
-            "visual_assets": _parse_json_list(row["visual_assets_json"]),
-            "structure": structure,
-            "pages": pages,
             "_db_path": db_path,
             "_document_index_id": row["document_index_id"],
         }
@@ -2159,6 +2158,85 @@ def _load_ready_documents(
         document["document_url"] = _document_url(document)
         docs.append(document)
     return docs
+
+
+def _hydrate_selected_documents(
+    db_path: str,
+    selected: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not selected:
+        return []
+    pending_ids = [
+        str(document.get("id") or "")
+        for document in selected
+        if not isinstance(document.get("structure"), list)
+        or not isinstance(document.get("pages"), list)
+    ]
+    if not pending_ids:
+        return selected
+
+    placeholders = ",".join("?" for _ in pending_ids)
+    try:
+        with open_db(db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT di.document_id, di.id AS document_index_id,
+                       di.structure_json, di.pages_json, di.evidence_kind,
+                       di.visual_assets_json
+                  FROM document_indexes di
+                 WHERE di.is_current = 1
+                   AND di.document_id IN ({placeholders})
+                """,
+                pending_ids,
+            ).fetchall()
+    except (sqlite3.OperationalError, OSError):
+        hydrated = []
+        if isinstance(selected, CandidateDocuments):
+            return CandidateDocuments(
+                hydrated,
+                model_outcome=selected.model_outcome,
+                strategy=selected.strategy,
+                semantic_status=selected.semantic_status,
+                semantic_elapsed_ms=selected.semantic_elapsed_ms,
+            )
+        return hydrated
+
+    payloads: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        try:
+            structure = json.loads(row["structure_json"])
+            pages = json.loads(row["pages_json"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(structure, list) or not isinstance(pages, list):
+            continue
+        payloads[row["document_id"]] = {
+            "structure": structure,
+            "pages": pages,
+            "evidence_kind": row["evidence_kind"],
+            "visual_assets": _parse_json_list(row["visual_assets_json"]),
+            "_document_index_id": row["document_index_id"],
+        }
+
+    hydrated: list[dict[str, Any]] = []
+    for document in selected:
+        if isinstance(document.get("structure"), list) and isinstance(
+            document.get("pages"), list
+        ):
+            hydrated.append(document)
+            continue
+        payload = payloads.get(str(document.get("id") or ""))
+        if payload is not None:
+            hydrated.append({**document, **payload})
+    if isinstance(selected, CandidateDocuments):
+        return CandidateDocuments(
+            hydrated,
+            model_outcome=selected.model_outcome,
+            strategy=selected.strategy,
+            semantic_status=selected.semantic_status,
+            semantic_elapsed_ms=selected.semantic_elapsed_ms,
+        )
+    return hydrated
 
 
 def _selected_documents_payload(
@@ -2727,6 +2805,8 @@ def _execute_retrieval_events(
             "documents": [_document_summary(document) for document in selected],
             "selectionStrategy": getattr(selected, "strategy", "unspecified"),
             "modelOutcome": getattr(selected, "model_outcome", "unspecified"),
+            "semanticStatus": getattr(selected, "semantic_status", "not_run"),
+            "semanticElapsedMs": getattr(selected, "semantic_elapsed_ms", 0),
             "elapsedMs": int((perf_counter() - selection_started_at) * 1000),
         },
     )
@@ -2763,6 +2843,25 @@ def _execute_retrieval_events(
             {
                 "documentCount": 0,
                 "retrievalStatus": status,
+                "elapsedMs": int((perf_counter() - started_at) * 1000),
+            },
+        )
+        yield _result_event(result)
+        return
+
+    selected = _hydrate_selected_documents(db_path, selected)
+    if not selected:
+        result = _empty_retrieval_result(
+            "Selected document indexes could not be loaded.",
+            mode,
+            status="degraded",
+            degraded_reason="selected_document_load_failed",
+        )
+        yield _progress_event(
+            "retrieval_completed",
+            {
+                "documentCount": 0,
+                "retrievalStatus": "degraded",
                 "elapsedMs": int((perf_counter() - started_at) * 1000),
             },
         )
