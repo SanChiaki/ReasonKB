@@ -2,14 +2,15 @@ import json
 
 import pytest
 
+from services.common.document_search import RankedSearchDocument
 from services.common.pageindex_runtime import configure_pageindex_runtime
+from services.common.semantic_index import SemanticSearchResult
 
 configure_pageindex_runtime()
 
 from services.retrieval_api import select_documents as select_documents_module
 from services.retrieval_api.select_documents import (
     EVIDENCE_VALIDATION_REASON_KEY,
-    keyword_score,
     prefilter_candidate_documents,
     select_candidate_documents,
 )
@@ -28,7 +29,7 @@ def _candidate_id_for_name(prompt: str, document_name: str) -> str:
     )
 
 
-def test_keyword_score_prefers_matching_description():
+def test_bm25_prefilter_prefers_matching_description():
     query = "cash flow risk"
     doc = {
         "id": "doc_1",
@@ -37,10 +38,11 @@ def test_keyword_score_prefers_matching_description():
         "doc_description": "Cash flow risk factors and debt covenants",
     }
 
-    assert keyword_score(query, doc) > 0
+    noise = {**doc, "id": "doc_2", "doc_description": "Employee directory"}
+    assert prefilter_candidate_documents(query, [noise, doc], limit=1) == [doc]
 
 
-def test_keyword_score_matches_project_relative_path():
+def test_bm25_prefilter_matches_project_relative_path():
     doc = {
         "id": "doc_1",
         "project_id": "proj_1",
@@ -51,10 +53,11 @@ def test_keyword_score_matches_project_relative_path():
         "doc_description": "Network delivery evidence.",
     }
 
-    assert keyword_score("acceptance handover", doc) > 0
+    noise = {**doc, "id": "doc_2", "project_relative_path": "finance/report.pdf"}
+    assert prefilter_candidate_documents("acceptance handover", [noise, doc], limit=1) == [doc]
 
 
-def test_keyword_score_matches_pageindex_structure_title():
+def test_bm25_prefilter_matches_pageindex_structure_title():
     doc = {
         "id": "doc_1",
         "project_id": "proj_1",
@@ -68,7 +71,8 @@ def test_keyword_score_matches_pageindex_structure_title():
         ],
     }
 
-    assert keyword_score("生成终验报告", doc) > 0
+    noise = {**doc, "id": "doc_2", "structure": [{"title": "项目启动"}]}
+    assert prefilter_candidate_documents("生成终验报告", [noise, doc], limit=1) == [doc]
 
 
 def test_prefilter_prioritizes_matches_and_caps_candidate_budget():
@@ -115,6 +119,53 @@ def test_prefilter_prioritizes_matches_and_caps_candidate_budget():
 
     assert {doc["id"] for doc in selected[:2]} == {"doc_handover", "doc_quality"}
     assert len(selected) == 10
+
+
+def test_semantic_routing_builds_top_50_pool_and_attaches_pageindex_seed(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"policy-{index:02d}.pdf",
+            "doc_description": "General policy material.",
+            "_db_path": "/tmp/reasonkb.db",
+        }
+        for index in range(60)
+    ]
+    target = docs[-1]
+    semantic_order = [target, *docs[:-1]]
+    monkeypatch.setattr(
+        select_documents_module,
+        "semantic_search_documents",
+        lambda *_args, **_kwargs: SemanticSearchResult(
+            "ready",
+            tuple(
+                (document["id"], 1.0 - rank / 100)
+                for rank, document in enumerate(semantic_order)
+            ),
+            {target["id"]: ("0042",)},
+            17,
+        ),
+    )
+    prompts: list[str] = []
+
+    def select_target(model, prompt, chat_history=None, return_finish_reason=False):
+        del model, chat_history, return_finish_reason
+        prompts.append(prompt)
+        assert prompt.count('"candidate_id"') == 50
+        candidate_id = _candidate_id_for_name(prompt, target["file_name"])
+        return json.dumps({"answer": [candidate_id]})
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_target)
+
+    selected = select_candidate_documents("跨语言升级要求", docs, limit=1)
+
+    assert [document["id"] for document in selected] == [target["id"]]
+    assert selected[0]["_semantic_seed_node_ids"] == ["0042"]
+    assert selected.strategy == "hybrid_rrf_model_only_single_slot"
+    assert selected.semantic_status == "ready"
+    assert selected.semantic_elapsed_ms == 17
+    assert len(prompts) == 1
 
 
 def test_prefilter_uses_remaining_budget_for_cross_language_exploration():
@@ -180,7 +231,7 @@ def test_answer_selection_continues_after_explicit_empty_batch(monkeypatch):
     assert len(prompts) == 2
 
 
-def test_answer_selection_recovers_from_malformed_batch(monkeypatch):
+def test_answer_selection_stops_expansion_after_malformed_batch(monkeypatch):
     docs = [
         {
             "id": f"doc_noise_{index}",
@@ -216,9 +267,9 @@ def test_answer_selection_recovers_from_malformed_batch(monkeypatch):
         mode="answer",
     )
 
-    assert [doc["id"] for doc in selected] == ["doc_churn"]
-    assert selected.model_outcome == "partial"
-    assert len(prompts) == 2
+    assert selected == []
+    assert selected.model_outcome == "malformed"
+    assert len(prompts) == 1
 
 
 def test_provider_failure_stops_candidate_batch_cascade(monkeypatch):
@@ -249,6 +300,80 @@ def test_provider_failure_stops_candidate_batch_cascade(monkeypatch):
     assert selected == []
     assert selected.model_outcome == "provider_error"
     assert len(prompts) == 1
+
+
+def test_semantic_candidate_pool_stops_when_next_bm25_batch_has_a_clear_score_drop(
+    monkeypatch,
+):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"policy-{index:03d}.pdf",
+            "doc_description": "Policy evidence.",
+        }
+        for index in range(60)
+    ]
+    monkeypatch.setattr(
+        select_documents_module,
+        "rank_documents_by_bm25",
+        lambda query, documents: [
+            RankedSearchDocument(document, 10.0 if index < 50 else 1.0, True)
+            for index, document in enumerate(documents)
+        ],
+    )
+    prompts: list[str] = []
+
+    def select_full_budget(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        return '{"answer":["D001","D002","D003"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_full_budget)
+
+    selected = select_documents_module._select_candidate_documents(
+        "policy",
+        docs,
+        limit=3,
+        model=None,
+        exhaustive=False,
+    )
+
+    assert [document["id"] for document in selected] == ["doc_0", "doc_1", "doc_2"]
+    assert len(prompts) == 1
+    assert selected.strategy == "model_only_full_budget"
+
+
+def test_underfilled_top_50_expands_even_after_a_bm25_score_drop(monkeypatch):
+    docs = [
+        {
+            "id": f"doc_{index}",
+            "project_id": "proj_1",
+            "file_name": f"policy-{index:03d}.pdf",
+            "doc_description": "Policy evidence.",
+        }
+        for index in range(60)
+    ]
+    monkeypatch.setattr(
+        select_documents_module,
+        "rank_documents_by_bm25",
+        lambda query, documents: [
+            RankedSearchDocument(document, 10.0 if index < 50 else 1.0, True)
+            for index, document in enumerate(documents)
+        ],
+    )
+    prompts: list[str] = []
+
+    def select_one(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        return '{"answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", select_one)
+
+    selected = select_candidate_documents("policy", docs, limit=3)
+
+    assert [document["id"] for document in selected] == ["doc_0", "doc_50"]
+    assert len(prompts) == 2
+    assert selected.strategy == "batched_model_selection"
 
 
 @pytest.mark.parametrize("mode", ["answer", "evidence"])
@@ -337,6 +462,50 @@ def test_shared_selection_keeps_the_third_candidate_batch_reachable(monkeypatch,
 
     assert [document["id"] for document in selected] == ["doc_late"]
     assert len(prompts) == 4
+
+
+@pytest.mark.parametrize("mode", ["answer", "evidence"])
+def test_compatibility_selection_keeps_candidates_after_three_batches_reachable(
+    monkeypatch,
+    mode,
+):
+    docs = [
+        {
+            "id": f"doc_{index:03d}",
+            "project_id": "proj_1",
+            "file_name": f"directory-{index:03d}.pdf",
+            "doc_description": "Customer directory.",
+        }
+        for index in range(151)
+    ]
+    docs.append(
+        {
+            "id": "doc_cross_language",
+            "project_id": "proj_1",
+            "file_name": "跨语言目标政策.pdf",
+            "doc_description": "银牌升级为钻石经销商的资格要求。",
+        }
+    )
+    prompts = []
+
+    def fake_completion(model, prompt, chat_history=None, return_finish_reason=False):
+        prompts.append(prompt)
+        if "跨语言目标政策.pdf" in prompt:
+            candidate_id = _candidate_id_for_name(prompt, "跨语言目标政策.pdf")
+            return json.dumps({"answer": [candidate_id]})
+        return '{"answer":["D001"]}'
+
+    monkeypatch.setattr("pageindex.utils.llm_completion", fake_completion)
+
+    selected = select_candidate_documents(
+        "How can a Silver reseller upgrade to Diamond?",
+        docs,
+        limit=3,
+        mode=mode,
+    )
+
+    assert [document["id"] for document in selected] == ["doc_cross_language"]
+    assert len(prompts) == 5
 
 
 @pytest.mark.parametrize("mode", ["answer", "evidence"])
@@ -859,7 +1028,7 @@ def test_model_full_budget_is_not_displaced_by_deterministic_anchor(monkeypatch)
 def test_strong_anchor_runs_after_model_selection_without_page_scan(monkeypatch):
     docs = _policy_candidate_documents()
     events: list[tuple[str, object]] = []
-    original = select_documents_module._strong_keyword_select_documents
+    original = select_documents_module._strong_fallback_select_documents
 
     def tracking_strong_selection(query, candidates, limit, *, include_page_text=True):
         events.append(("strong", include_page_text))
@@ -876,7 +1045,7 @@ def test_strong_anchor_runs_after_model_selection_without_page_scan(monkeypatch)
 
     monkeypatch.setattr("pageindex.utils.llm_completion", fake_llm_completion)
     monkeypatch.setattr(
-        "services.retrieval_api.select_documents._strong_keyword_select_documents",
+        "services.retrieval_api.select_documents._strong_fallback_select_documents",
         tracking_strong_selection,
     )
 

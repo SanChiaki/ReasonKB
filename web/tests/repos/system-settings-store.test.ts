@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 import { migrateDatabase } from "@/lib/db/migrate";
 import {
@@ -42,6 +43,22 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      embeddingApiKeyConfigured: false,
+      embeddingApiKeyInherited: true,
+      embeddingBaseUrl: "",
+      embeddingBaseUrlInherited: true,
+      embeddingModel: "",
+      embeddingConfigured: false,
+      embeddingMissingFields: ["API key", "Base URL", "Model"],
+      semanticIndex: {
+        status: "unconfigured",
+        configuredModel: "",
+        activeModel: null,
+        indexedDocumentCount: 0,
+        totalDocumentCount: 0,
+        coverage: 0,
+        error: null,
+      },
       currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
       pendingProjectsRootHostPath: "",
       projectsRootSwitchStatus: "idle",
@@ -80,6 +97,22 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: true,
       llmMissingFields: [],
+      embeddingApiKeyConfigured: true,
+      embeddingApiKeyInherited: true,
+      embeddingBaseUrl: "https://llm.example.test/v1",
+      embeddingBaseUrlInherited: true,
+      embeddingModel: "",
+      embeddingConfigured: false,
+      embeddingMissingFields: ["Model"],
+      semanticIndex: {
+        status: "unconfigured",
+        configuredModel: "",
+        activeModel: null,
+        indexedDocumentCount: 0,
+        totalDocumentCount: 0,
+        coverage: 0,
+        error: null,
+      },
       currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
       pendingProjectsRootHostPath: "",
       projectsRootSwitchStatus: "idle",
@@ -128,6 +161,22 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      embeddingApiKeyConfigured: false,
+      embeddingApiKeyInherited: true,
+      embeddingBaseUrl: "",
+      embeddingBaseUrlInherited: true,
+      embeddingModel: "",
+      embeddingConfigured: false,
+      embeddingMissingFields: ["API key", "Base URL", "Model"],
+      semanticIndex: {
+        status: "unconfigured",
+        configuredModel: "",
+        activeModel: null,
+        indexedDocumentCount: 0,
+        totalDocumentCount: 0,
+        coverage: 0,
+        error: null,
+      },
       currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
       pendingProjectsRootHostPath: "",
       projectsRootSwitchStatus: "idle",
@@ -158,6 +207,22 @@ describe("system settings store", () => {
       llmRetrievalModel: "openai/deepseek-v4-flash",
       llmConfigured: false,
       llmMissingFields: ["API key", "Base URL"],
+      embeddingApiKeyConfigured: false,
+      embeddingApiKeyInherited: true,
+      embeddingBaseUrl: "",
+      embeddingBaseUrlInherited: true,
+      embeddingModel: "",
+      embeddingConfigured: false,
+      embeddingMissingFields: ["API key", "Base URL", "Model"],
+      semanticIndex: {
+        status: "unconfigured",
+        configuredModel: "",
+        activeModel: null,
+        indexedDocumentCount: 0,
+        totalDocumentCount: 0,
+        coverage: 0,
+        error: null,
+      },
       currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
       pendingProjectsRootHostPath: "",
       projectsRootSwitchStatus: "idle",
@@ -181,5 +246,68 @@ describe("system settings store", () => {
     expect(cleared.llmApiKeyConfigured).toBe(false);
     expect(cleared.llmBaseUrl).toBe("https://llm.example.test/v1");
     expect(cleared.llmMissingFields).toEqual(["API key"]);
+  });
+
+  it("inherits LLM credentials while requiring an explicit embedding model", () => {
+    const dbPath = makeTempDb();
+
+    const saved = updateSystemSettings(dbPath, {
+      llmApiKey: "sk-test",
+      llmBaseUrl: "https://llm.example.test/v1",
+      embeddingModel: "text-embedding-3-small",
+    });
+
+    expect(saved.embeddingApiKeyConfigured).toBe(true);
+    expect(saved.embeddingApiKeyInherited).toBe(true);
+    expect(saved.embeddingBaseUrl).toBe("https://llm.example.test/v1");
+    expect(saved.embeddingBaseUrlInherited).toBe(true);
+    expect(saved.embeddingConfigured).toBe(true);
+    expect(saved.embeddingMissingFields).toEqual([]);
+    expect(saved.semanticIndex.status).toBe("validating");
+  });
+
+  it("stores independent embedding credentials without exposing the key", () => {
+    const dbPath = makeTempDb();
+
+    const saved = updateSystemSettings(dbPath, {
+      embeddingApiKey: "embed-secret",
+      embeddingBaseUrl: "https://embedding.example.test/v1",
+      embeddingModel: "text-embedding-v4",
+    });
+
+    expect(saved.embeddingApiKeyConfigured).toBe(true);
+    expect(saved.embeddingApiKeyInherited).toBe(false);
+    expect(saved.embeddingBaseUrlInherited).toBe(false);
+    expect(saved.embeddingBaseUrl).toBe("https://embedding.example.test/v1");
+    expect(JSON.stringify(saved)).not.toContain("embed-secret");
+  });
+
+  it("ignores a retired generation while a model is being reactivated", () => {
+    const dbPath = makeTempDb();
+    updateSystemSettings(dbPath, {
+      embeddingApiKey: "embed-secret",
+      embeddingBaseUrl: "https://embedding.example.test/v1",
+      embeddingModel: "text-embedding-3-small",
+    });
+    const db = new Database(dbPath);
+    db.prepare(
+      `INSERT INTO semantic_index_generations(
+         id, model, base_url, profile_version, status, is_active,
+         indexed_document_count, total_document_count, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, 'retired', 0, 0, 0, ?, ?)`,
+    ).run(
+      "semgen_retired",
+      "text-embedding-3-small",
+      "https://embedding.example.test/v1",
+      "document-node-v1",
+      "2026-08-08T00:00:00Z",
+      "2026-08-08T00:00:00Z",
+    );
+    db.close();
+
+    const settings = getSystemSettings(dbPath);
+
+    expect(settings.semanticIndex.status).toBe("validating");
+    expect(settings.semanticIndex.activeModel).toBeNull();
   });
 });

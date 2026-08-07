@@ -5,6 +5,10 @@ import {
   type LegacyCorpusMigrationOptions,
 } from "@/lib/db/legacy-corpus-migration";
 
+const documentSearchLatinPattern = /[a-z0-9]+/gi;
+const documentSearchCjkPattern = /[\u3400-\u4dbf\u4e00-\u9fff]+/g;
+const documentSearchStructureLimit = 30_000;
+
 export type MigrationDatabase = InstanceType<typeof Database>;
 export type MigrationContext = LegacyCorpusMigrationOptions;
 
@@ -33,6 +37,110 @@ function ensureColumns(
       db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
       existing.add(name);
     }
+  }
+}
+
+function documentSearchTokens(text: string) {
+  const tokens: string[] = [
+    ...(text.toLowerCase().match(documentSearchLatinPattern) ?? []),
+  ];
+  for (const sequence of text.match(documentSearchCjkPattern) ?? []) {
+    if (sequence.length === 1) {
+      tokens.push(sequence);
+      continue;
+    }
+    tokens.push(...sequence);
+    for (let index = 0; index < sequence.length - 1; index += 1) {
+      tokens.push(sequence.slice(index, index + 2));
+    }
+  }
+  return tokens;
+}
+
+function documentSearchStructureText(structure: unknown) {
+  const parts: string[] = [];
+  let total = 0;
+  const stack: unknown[] = [structure];
+  while (stack.length > 0 && total < documentSearchStructureLimit) {
+    const item = stack.pop();
+    if (Array.isArray(item)) {
+      for (let index = item.length - 1; index >= 0; index -= 1) {
+        stack.push(item[index]);
+      }
+      continue;
+    }
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    for (const key of ["title", "summary", "prefix_summary"]) {
+      const value = record[key];
+      if (typeof value !== "string" || !value) continue;
+      const remaining = documentSearchStructureLimit - total;
+      if (remaining <= 0) break;
+      const part = value.slice(0, remaining);
+      parts.push(part);
+      total += part.length;
+    }
+    if (record.nodes) stack.push(record.nodes);
+  }
+  return parts.join(" ");
+}
+
+function rebuildDocumentSearchIndex(db: MigrationDatabase) {
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS document_search USING fts5(
+      document_id UNINDEXED,
+      file_name UNINDEXED,
+      metadata_text,
+      description,
+      structure_search_text,
+      tokenize = 'unicode61 remove_diacritics 2'
+    )
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS document_indexes_search_delete
+    AFTER DELETE ON document_indexes
+    BEGIN
+      DELETE FROM document_search WHERE document_id = OLD.document_id;
+    END
+  `);
+  db.exec("DELETE FROM document_search");
+  const rows = db
+    .prepare(
+      `SELECT di.document_id, d.file_name, p.name AS project_name,
+              d.project_relative_path, d.source_relative_path,
+              di.doc_description, di.structure_json
+         FROM document_indexes di
+         JOIN documents d ON d.id = di.document_id
+         JOIN projects p ON p.id = d.project_id`,
+    )
+    .all() as Array<Record<string, unknown>>;
+  const insert = db.prepare(
+    `INSERT INTO document_search(
+       document_id, file_name, metadata_text, description, structure_search_text
+     ) VALUES (?, ?, ?, ?, ?)`,
+  );
+  for (const row of rows) {
+    let structure: unknown = [];
+    try {
+      structure = JSON.parse(String(row.structure_json ?? "[]"));
+    } catch {
+      structure = [];
+    }
+    const metadata = [
+      row.project_name,
+      row.file_name,
+      row.project_relative_path,
+      row.source_relative_path,
+    ]
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join(" ");
+    insert.run(
+      String(row.document_id ?? ""),
+      String(row.file_name ?? ""),
+      documentSearchTokens(metadata).join(" "),
+      documentSearchTokens(String(row.doc_description ?? "")).join(" "),
+      documentSearchTokens(documentSearchStructureText(structure)).join(" "),
+    );
   }
 }
 
@@ -439,6 +547,71 @@ export const schemaMigrations: SchemaMigration[] = [
           ON llm_provider_events(occurred_at DESC);
         CREATE INDEX IF NOT EXISTS idx_llm_provider_events_provider
           ON llm_provider_events(operation, model, provider_host, occurred_at DESC);
+      `);
+    },
+  },
+  {
+    version: 10,
+    name: "document-search-fts5-bm25f",
+    up(db) {
+      rebuildDocumentSearchIndex(db);
+    },
+  },
+  {
+    version: 11,
+    name: "semantic-routing-generations",
+    up(db) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS semantic_index_generations (
+          id TEXT PRIMARY KEY,
+          model TEXT NOT NULL,
+          base_url TEXT NOT NULL,
+          profile_version TEXT NOT NULL,
+          dimension INTEGER,
+          status TEXT NOT NULL
+            CHECK (status IN ('validating', 'backfilling', 'ready', 'degraded', 'retired')),
+          is_active INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0, 1)),
+          indexed_document_count INTEGER NOT NULL DEFAULT 0,
+          total_document_count INTEGER NOT NULL DEFAULT 0,
+          error_summary TEXT,
+          next_retry_at TEXT,
+          lease_owner TEXT,
+          lease_expires_at TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          activated_at TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_semantic_generations_one_active
+          ON semantic_index_generations(is_active)
+          WHERE is_active = 1;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_semantic_generations_one_current_config
+          ON semantic_index_generations(model, base_url, profile_version)
+          WHERE status != 'retired';
+        CREATE INDEX IF NOT EXISTS idx_semantic_generations_config
+          ON semantic_index_generations(
+            model, base_url, profile_version, created_at DESC
+          );
+        CREATE TABLE IF NOT EXISTS semantic_embeddings (
+          generation_id TEXT NOT NULL,
+          document_id TEXT NOT NULL,
+          document_index_id TEXT NOT NULL,
+          profile_kind TEXT NOT NULL CHECK (profile_kind IN ('document', 'node')),
+          profile_id TEXT NOT NULL,
+          node_id TEXT,
+          start_page INTEGER,
+          end_page INTEGER,
+          text_hash TEXT NOT NULL,
+          vector BLOB NOT NULL,
+          created_at TEXT NOT NULL,
+          PRIMARY KEY(generation_id, document_id, profile_kind, profile_id),
+          FOREIGN KEY(generation_id)
+            REFERENCES semantic_index_generations(id) ON DELETE CASCADE,
+          FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE,
+          FOREIGN KEY(document_index_id)
+            REFERENCES document_indexes(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_semantic_embeddings_generation_kind
+          ON semantic_embeddings(generation_id, profile_kind, document_id);
       `);
     },
   },

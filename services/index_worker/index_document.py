@@ -17,6 +17,7 @@ configure_pageindex_runtime()
 from pageindex.page_index import page_index
 from pageindex.page_index_md import md_to_tree
 from services.common.index_metrics import current_index_metrics, index_run_metrics
+from services.common.document_search import replace_document_search_index
 from services.common.models import IndexedDocumentPayload
 from services.common.settings import get_pdf_table_mode
 from services.common.sqlite_store import open_db
@@ -608,6 +609,16 @@ def _persist_completed_document(
                     document.get("job_expected_source_revision")
                     or document.get("source_revision"),
                 ),
+            )
+            replace_document_search_index(
+                conn,
+                document_id=document["document_id"],
+                file_name=document["file_name"],
+                project_name=document.get("project_name") or "",
+                project_relative_path=document.get("project_relative_path"),
+                source_relative_path=document.get("source_relative_path"),
+                description=payload["doc_description"],
+                structure=payload["structure"],
             )
             conn.execute(
                 "DELETE FROM document_page_blocks WHERE document_index_id = ?",

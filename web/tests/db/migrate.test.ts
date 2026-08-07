@@ -35,6 +35,7 @@ describe("migrateDatabase", () => {
         "projects",
         "documents",
         "document_indexes",
+        "document_search",
         "document_page_blocks",
         "conversations",
         "conversation_projects",
@@ -137,5 +138,66 @@ describe("migrateDatabase", () => {
       ]),
     );
     db.close();
+  });
+
+  it("backfills the FTS5 document index for existing PageIndex rows", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-migrate-fts-"));
+    tempDirs.push(dir);
+    const dbPath = path.join(dir, "app.db");
+    migrateDatabase(dbPath);
+
+    const db = new Database(dbPath);
+    const now = "2026-08-06T00:00:00.000Z";
+    db.prepare(
+      `INSERT INTO projects (id, owner_user_id, name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+    ).run("project_1", "user_demo", "交付项目", now, now);
+    db.prepare(
+      `INSERT INTO documents (
+         id, project_id, owner_user_id, file_name, storage_path, mime_type,
+         file_size, status, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      "document_1",
+      "project_1",
+      "user_demo",
+      "终验报告.pdf",
+      "/data/终验报告.pdf",
+      "application/pdf",
+      100,
+      "ready",
+      now,
+      now,
+    );
+    db.prepare(
+      `INSERT INTO document_indexes (
+         id, document_id, doc_name, doc_description, structure_json,
+         pages_json, index_version, indexed_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      "index_1",
+      "document_1",
+      "终验报告.pdf",
+      "网络项目最终验收结论",
+      JSON.stringify([{ title: "终验检查", summary: "遗留事项" }]),
+      "[]",
+      "v1",
+      now,
+    );
+    db.exec("DELETE FROM document_search");
+    db.prepare("DELETE FROM schema_migrations WHERE version = 10").run();
+    db.close();
+
+    migrateDatabase(dbPath);
+
+    const migrated = new Database(dbPath, { readonly: true });
+    const row = migrated
+      .prepare(
+        `SELECT document_id FROM document_search
+         WHERE document_search MATCH ?`,
+      )
+      .get('"终验"') as { document_id: string } | undefined;
+    expect(row?.document_id).toBe("document_1");
+    migrated.close();
   });
 });

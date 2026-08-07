@@ -15,6 +15,9 @@ LLM_API_KEY_KEY = "llmApiKey"
 LLM_BASE_URL_KEY = "llmBaseUrl"
 LLM_MODEL_KEY = "llmModel"
 LLM_RETRIEVAL_MODEL_KEY = "llmRetrievalModel"
+EMBEDDING_API_KEY_KEY = "embeddingApiKey"
+EMBEDDING_BASE_URL_KEY = "embeddingBaseUrl"
+EMBEDDING_MODEL_KEY = "embeddingModel"
 
 
 @dataclass(frozen=True)
@@ -23,6 +26,19 @@ class LlmRuntimeSettings:
     base_url: str
     model: str
     retrieve_model: str
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.api_key and self.base_url and self.model)
+
+
+@dataclass(frozen=True)
+class EmbeddingRuntimeSettings:
+    api_key: str
+    base_url: str
+    model: str
+    api_key_inherited: bool
+    base_url_inherited: bool
 
     @property
     def configured(self) -> bool:
@@ -68,6 +84,38 @@ def get_llm_runtime_settings(db_path: str) -> LlmRuntimeSettings:
         base_url=resolved[LLM_BASE_URL_KEY],
         model=resolved[LLM_MODEL_KEY],
         retrieve_model=resolved[LLM_RETRIEVAL_MODEL_KEY],
+    )
+
+
+def get_embedding_runtime_settings(db_path: str) -> EmbeddingRuntimeSettings:
+    llm_settings = get_llm_runtime_settings(db_path)
+    explicit_defaults = {
+        EMBEDDING_API_KEY_KEY: os.getenv(
+            "REASONKB_EMBEDDING_API_KEY",
+            os.getenv("EMBEDDING_API_KEY", ""),
+        ),
+        EMBEDDING_BASE_URL_KEY: os.getenv(
+            "REASONKB_EMBEDDING_BASE_URL",
+            os.getenv("EMBEDDING_BASE_URL", ""),
+        ),
+        EMBEDDING_MODEL_KEY: os.getenv(
+            "REASONKB_EMBEDDING_MODEL",
+            os.getenv("EMBEDDING_MODEL", ""),
+        ),
+    }
+    saved = _get_string_settings(db_path, explicit_defaults.keys())
+    explicit = {
+        key: saved.get(key, default)
+        for key, default in explicit_defaults.items()
+    }
+    api_key = explicit[EMBEDDING_API_KEY_KEY] or llm_settings.api_key
+    base_url = explicit[EMBEDDING_BASE_URL_KEY] or llm_settings.base_url
+    return EmbeddingRuntimeSettings(
+        api_key=api_key,
+        base_url=base_url,
+        model=explicit[EMBEDDING_MODEL_KEY],
+        api_key_inherited=not bool(explicit[EMBEDDING_API_KEY_KEY]),
+        base_url_inherited=not bool(explicit[EMBEDDING_BASE_URL_KEY]),
     )
 
 

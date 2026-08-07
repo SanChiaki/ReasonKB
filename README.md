@@ -175,6 +175,10 @@ PAGEINDEX_LLM_API_KEY=your_key
 PAGEINDEX_LLM_BASE_URL=https://provider.example/v1
 PAGEINDEX_LLM_MODEL=openai/answer-model
 PAGEINDEX_LLM_RETRIEVAL_MODEL=openai/retrieval-model
+REASONKB_EMBEDDING_MODEL=text-embedding-3-small
+# Optional overrides; otherwise the embedding adapter inherits the LLM credentials.
+# REASONKB_EMBEDDING_API_KEY=your_embedding_key
+# REASONKB_EMBEDDING_BASE_URL=https://embedding-provider.example/v1
 RETRIEVAL_LLM_REQUEST_TIMEOUT_SECONDS=300
 ANSWER_LLM_REQUEST_TIMEOUT_SECONDS=300
 RETRIEVAL_REQUEST_TIMEOUT_SECONDS=600
@@ -186,6 +190,13 @@ ANSWER_LLM_MAX_OUTPUT_TOKENS=4096
 RETRIEVAL_LLM_CONCURRENCY=2
 RETRIEVAL_DOCUMENT_CONCURRENCY=2
 ```
+
+The embedding model is optional for upgrades. Without it, ReasonKB keeps the compatible FTS + LLM
+candidate path. Once configured, the index worker builds document and PageIndex-node profiles in the
+background from existing `doc_description` and `structure_json`; source documents do not need to be
+re-indexed. A changed model is built as a shadow generation and becomes active only after backfill
+completes. Progress, coverage, active model, and provider errors are available in the administrator
+settings page.
 
 `RETRIEVAL_REQUEST_TIMEOUT_SECONDS` is the deadline for the complete retrieval request and
 defaults to its 600-second maximum. Retrieval and final Answer model calls each default to a

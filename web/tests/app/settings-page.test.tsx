@@ -24,6 +24,7 @@ afterEach(() => {
   vi.unmock("@/components/api-key-manager");
   vi.unmock("@/components/service-health-panel");
   vi.unmock("@/components/model-provider-health-panel");
+  vi.unmock("@/components/embedding-settings-panel");
   vi.unmock("@/lib/security/admin-page-auth");
   routerMocks.refresh.mockClear();
 });
@@ -59,6 +60,22 @@ describe("SettingsPage", () => {
         llmRetrievalModel: "openai/deepseek-v4-flash",
         llmConfigured: true,
         llmMissingFields: [],
+        embeddingApiKeyConfigured: true,
+        embeddingApiKeyInherited: true,
+        embeddingBaseUrl: "https://llm.example.test/v1",
+        embeddingBaseUrlInherited: true,
+        embeddingModel: "text-embedding-3-small",
+        embeddingConfigured: true,
+        embeddingMissingFields: [],
+        semanticIndex: {
+          status: "ready",
+          configuredModel: "text-embedding-3-small",
+          activeModel: "text-embedding-3-small",
+          indexedDocumentCount: 15,
+          totalDocumentCount: 15,
+          coverage: 1,
+          error: null,
+        },
         currentProjectsRootHostPath: "/Users/oam/.reasonkb/projects",
         pendingProjectsRootHostPath: "",
         projectsRootSwitchStatus: "idle",
@@ -77,6 +94,9 @@ describe("SettingsPage", () => {
     vi.doMock("@/components/model-provider-health-panel", () => ({
       ModelProviderHealthPanel: () => <div>Model provider health</div>,
     }));
+    vi.doMock("@/components/embedding-settings-panel", () => ({
+      EmbeddingSettingsPanel: () => <div>Embedding settings</div>,
+    }));
     vi.doMock("@/lib/security/admin-page-auth", () => ({
       requireAdminPage: async () => undefined,
     }));
@@ -94,5 +114,6 @@ describe("SettingsPage", () => {
     expect(screen.getAllByText("/Users/oam/.reasonkb/projects").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /choose folder/i })).toBeEnabled();
     expect(screen.getByText("API key manager")).toBeInTheDocument();
+    expect(screen.getByText("Embedding settings")).toBeInTheDocument();
   });
 });

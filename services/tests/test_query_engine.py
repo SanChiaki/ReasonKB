@@ -485,6 +485,8 @@ def _fallback_document_result(*, validation_reason: str = "technical_fallback"):
         "project_relative_path": "policy.pdf",
         "evidence_kind": "pdf_text",
         "visual_assets": [],
+        "structure": [],
+        "pages": [],
         EVIDENCE_VALIDATION_REASON_KEY: validation_reason,
     }
     return query_engine._assemble_document_result(
@@ -1087,6 +1089,60 @@ def test_selected_page_blocks_are_loaded_lazily_and_kept_out_of_answer_context(
     assert result["evidenceBlock"]["pageBlocks"][0]["blocks"][0][
         "schemaVersion"
     ] == "TableBlockV1"
+
+
+def test_ready_document_catalog_defers_structure_and_pages_until_selected(tmp_path):
+    db_path = _seed_retrieval_db(tmp_path)
+    _insert_ready_document(
+        db_path,
+        document_id="doc_lazy",
+        file_name="lazy-policy.pdf",
+        doc_description="Policy summary.",
+        structure_json=json.dumps([{"node_id": "0001", "title": "Threshold"}]),
+        pages_json=json.dumps([{"page": 1, "content": "Threshold evidence."}]),
+    )
+
+    catalog = query_engine._load_ready_documents(str(db_path))
+
+    assert len(catalog) == 1
+    assert "structure" not in catalog[0]
+    assert "pages" not in catalog[0]
+
+    selected = CandidateDocuments(
+        catalog,
+        model_outcome="selected",
+        strategy="model_only_single_slot",
+    )
+    hydrated = query_engine._hydrate_selected_documents(str(db_path), selected)
+
+    assert hydrated[0]["structure"][0]["node_id"] == "0001"
+    assert hydrated[0]["pages"][0]["content"] == "Threshold evidence."
+    assert hydrated.model_outcome == "selected"
+
+
+def test_selected_document_hydration_drops_unloaded_documents_on_database_error(
+    monkeypatch,
+):
+    selected = CandidateDocuments(
+        [{"id": "doc_lazy"}],
+        model_outcome="selected",
+        strategy="hybrid_rrf_model_only_single_slot",
+        semantic_status="ready",
+        semantic_elapsed_ms=12,
+    )
+
+    def fail_to_open(_db_path):
+        raise sqlite3.OperationalError("database is busy")
+
+    monkeypatch.setattr(query_engine, "open_db", fail_to_open)
+
+    hydrated = query_engine._hydrate_selected_documents("app.db", selected)
+
+    assert hydrated == []
+    assert hydrated.model_outcome == "selected"
+    assert hydrated.strategy == "hybrid_rrf_model_only_single_slot"
+    assert hydrated.semantic_status == "ready"
+    assert hydrated.semantic_elapsed_ms == 12
 
 
 def test_query_response_serializes_structured_page_blocks():
@@ -2958,6 +3014,8 @@ def test_document_queue_wait_consumes_the_request_deadline(monkeypatch):
             "file_name": f"doc-{index}.pdf",
             "project_id": "proj_1",
             "project_name": "Project 1",
+            "structure": [],
+            "pages": [],
         }
         for index in range(2)
     ]
@@ -3258,6 +3316,7 @@ def test_shared_retrieval_expands_all_documents_when_coverage_is_incomplete(
 
 
 def test_request_deadline_drops_evidence_pending_validation(
+    tmp_path,
     monkeypatch,
 ):
     pending_result = _fallback_document_result(validation_reason="model_selection")
@@ -3305,14 +3364,21 @@ def test_request_deadline_drops_evidence_pending_validation(
     )
     monkeypatch.setattr(query_engine, "_query_deadline_expired", expires_after_collection)
 
-    result = answer_question("unused.db", "What changed?", mode="evidence")
+    result = answer_question(
+        str(tmp_path / "unused.db"),
+        "What changed?",
+        mode="evidence",
+    )
 
     assert result["retrievalStatus"] == "degraded"
     assert result["degradedReason"] == "request_deadline_exceeded"
     assert result["evidence"] == []
 
 
-def test_request_deadline_discards_answer_that_finishes_after_deadline(monkeypatch):
+def test_request_deadline_discards_answer_that_finishes_after_deadline(
+    tmp_path,
+    monkeypatch,
+):
     document_result = _fallback_document_result()
     document_result["document"].pop(EVIDENCE_VALIDATION_REASON_KEY)
     selected_document = document_result["document"]
@@ -3380,7 +3446,11 @@ def test_request_deadline_discards_answer_that_finishes_after_deadline(monkeypat
     )
     monkeypatch.setattr(query_engine, "_generate_answer", generate_after_deadline)
 
-    result = answer_question("unused.db", "What changed?", mode="answer")
+    result = answer_question(
+        str(tmp_path / "unused.db"),
+        "What changed?",
+        mode="answer",
+    )
 
     assert result["retrievalStatus"] == "degraded"
     assert result["degradedReason"] == "request_deadline_exceeded"
@@ -3389,7 +3459,10 @@ def test_request_deadline_discards_answer_that_finishes_after_deadline(monkeypat
     )
 
 
-def test_request_deadline_wins_when_answer_provider_returns_late(monkeypatch):
+def test_request_deadline_wins_when_answer_provider_returns_late(
+    tmp_path,
+    monkeypatch,
+):
     document_result = _fallback_document_result()
     selected_document = document_result["document"]
     selected_document.pop(EVIDENCE_VALIDATION_REASON_KEY)
@@ -3436,7 +3509,11 @@ def test_request_deadline_wins_when_answer_provider_returns_late(monkeypatch):
     )
     monkeypatch.setattr(query_engine, "_generate_answer", late_answer)
 
-    result = answer_question("unused.db", "What changed?", mode="answer")
+    result = answer_question(
+        str(tmp_path / "unused.db"),
+        "What changed?",
+        mode="answer",
+    )
 
     assert result["retrievalStatus"] == "degraded"
     assert result["degradedReason"] == "request_deadline_exceeded"
@@ -3511,7 +3588,11 @@ def test_shared_retrieval_continues_when_coverage_is_unknown(
     assert result["degradedReason"] == "evidence_coverage_failed"
 
 
-def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
+def test_sync_and_stream_share_process_document_worker_limit(
+    tmp_path,
+    monkeypatch,
+):
+    db_path = str(tmp_path / "unused.db")
     monkeypatch.setenv(
         "RETRIEVAL_DOCUMENT_CONCURRENCY",
         str(query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS),
@@ -3577,6 +3658,8 @@ def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
             "file_name": f"doc-{index}.pdf",
             "project_id": "proj_1",
             "project_name": "Project 1",
+            "structure": [],
+            "pages": [],
         }
         for index in range(query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS)
     ]
@@ -3600,7 +3683,7 @@ def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
 
     def consume_sync():
         answer_question(
-            "unused.db",
+            db_path,
             "handover evidence",
             ["proj_1"],
             mode="evidence",
@@ -3610,7 +3693,7 @@ def test_sync_and_stream_share_process_document_worker_limit(monkeypatch):
     def consume_stream():
         list(
             query_engine.answer_question_events(
-                "unused.db",
+                db_path,
                 "handover evidence",
                 ["proj_1"],
                 mode="evidence",

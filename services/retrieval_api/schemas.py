@@ -85,3 +85,20 @@ class LlmTestResponse(BaseModel):
     errorType: str | None = None
     message: str
     details: str = ""
+
+
+class EmbeddingTestRequest(BaseModel):
+    apiKey: str | None = None
+    baseUrl: str | None = None
+    model: str | None = None
+
+
+class EmbeddingTestResponse(BaseModel):
+    success: bool
+    model: str
+    dimension: int
+    promptTokens: int
+    elapsedMs: int
+    errorType: str | None = None
+    message: str
+    details: str = ""

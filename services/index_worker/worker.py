@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import hashlib
+import logging
 import queue
 import signal
 import time
@@ -9,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from services.common.settings import DB_PATH, INDEX_JOB_TIMEOUT_SECONDS, INDEX_WORKER_CONCURRENCY
+from services.common.semantic_index import advance_semantic_backfill
 from services.common.sqlite_store import open_db
 from services.common.system_settings import get_index_worker_concurrency
 from services.index_worker.index_document import process_document_job
@@ -19,6 +21,7 @@ from services.source_worker.connectors.seeyon import (
 from services.common.worker_health import write_worker_heartbeat
 
 ABRUPT_WORKER_FAILURE_MAX_ATTEMPTS = 2
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -552,6 +555,11 @@ def run_forever(
                 token_cache=token_cache,
             )
             if started_count == 0:
+                if not active_jobs:
+                    try:
+                        advance_semantic_backfill(str(DB_PATH))
+                    except Exception:
+                        logger.exception("Semantic index backfill iteration failed")
                 time.sleep(poll_seconds)
     finally:
         stop_active_jobs(active_jobs, str(DB_PATH))

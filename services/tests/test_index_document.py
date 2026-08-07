@@ -149,11 +149,16 @@ def test_process_document_job_marks_document_ready(tmp_path, monkeypatch):
     conn = sqlite3.connect(db_path)
     status = conn.execute("SELECT status, page_count FROM documents WHERE id = 'doc_1'").fetchone()
     index_row = conn.execute("SELECT doc_name, doc_description FROM document_indexes WHERE document_id = 'doc_1'").fetchone()
+    search_row = conn.execute(
+        "SELECT document_id FROM document_search WHERE document_search MATCH ?",
+        ('"alpha"',),
+    ).fetchone()
     job_status = conn.execute("SELECT status FROM jobs WHERE id = 'job_1'").fetchone()
     conn.close()
 
     assert status == ("ready", 1)
     assert index_row == ("alpha.pdf", "Alpha test document")
+    assert search_row == ("doc_1",)
     assert job_status == ("completed",)
 
 
