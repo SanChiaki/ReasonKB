@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ast import literal_eval
-from collections import Counter
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -10,8 +9,9 @@ import logging
 import re
 from typing import Any, Literal
 
+from services.common.document_search import rank_documents_by_bm25, structure_search_text
 
-_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+
 _CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]+")
 _LATIN_RE = re.compile(r"[a-z0-9]+")
 _HARD_NUMBER_RE = re.compile(r"(?<![a-z0-9])\d+(?:\.\d+)?(?![a-z0-9])", re.I)
@@ -20,9 +20,9 @@ _HARD_CODE_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9]{1,}(?![A-Za-z0-9])"
 )
 DEFAULT_PREFILTER_LIMIT = 50
-STRUCTURE_SEARCH_TEXT_LIMIT = 30000
+MAX_ADAPTIVE_PREFILTER_BATCHES = 3
+ADAPTIVE_BOUNDARY_SCORE_RATIO = 0.85
 FALLBACK_PAGE_SEARCH_TEXT_LIMIT = 200000
-MIN_STRONG_PREFILTER_SCORE = 3
 CANDIDATE_FALLBACK_LIMIT = 3
 EVIDENCE_VALIDATION_REASON_KEY = "_reasonkb_evidence_validation_reason"
 MIN_FALLBACK_QUERY_TERMS = 2
@@ -54,6 +54,14 @@ class _LlmSelection:
 class _ParsedSelection:
     identifiers: tuple[str, ...]
     invalid_item_count: int = 0
+
+
+@dataclass(frozen=True)
+class _CandidateDocumentBatch:
+    documents: tuple[dict, ...]
+    top_score: float
+    boundary_score: float
+    has_match: bool
 
 
 class CandidateDocuments(list[dict]):
@@ -111,154 +119,7 @@ _FALLBACK_CJK_STOP_TERMS = {
     "信息",
     "查询",
 }
-def _tokenize_query(text: str) -> list[str]:
-    lowered = text.lower()
-    latin_tokens = _LATIN_RE.findall(lowered)
-    cjk_chars = _CJK_RE.findall(text)
-    cjk_tokens = list(cjk_chars)
-    if len(cjk_chars) > 1:
-        cjk_tokens.extend(
-            "".join(cjk_chars[index : index + 2]) for index in range(len(cjk_chars) - 1)
-        )
-    return [token for token in [*latin_tokens, *cjk_tokens] if token]
-
-
-def _structure_search_text(structure: Any, limit: int = STRUCTURE_SEARCH_TEXT_LIMIT) -> str:
-    parts: list[str] = []
-    total = 0
-    stack = [structure]
-    while stack and total < limit:
-        item = stack.pop()
-        if isinstance(item, list):
-            stack.extend(reversed(item))
-            continue
-        if not isinstance(item, dict):
-            continue
-        for key in ("title", "summary", "prefix_summary"):
-            value = item.get(key)
-            if not isinstance(value, str) or not value:
-                continue
-            remaining = limit - total
-            if remaining <= 0:
-                break
-            parts.append(value[:remaining])
-            total += min(len(value), remaining)
-        children = item.get("nodes")
-        if children:
-            stack.append(children)
-    return " ".join(parts)
-
-
-def _weighted_token_score(tokens: Counter[str], text: str, weight: int) -> int:
-    if not text:
-        return 0
-    haystack = text.lower()
-    latin_terms: set[str] | None = None
-    score = 0
-    for token, count in tokens.items():
-        if _LATIN_RE.fullmatch(token):
-            if latin_terms is None:
-                latin_terms = set(_LATIN_RE.findall(haystack))
-            matched = token in latin_terms
-        else:
-            matched = token in haystack
-        if matched:
-            score += count * weight
-    return score
-
-
-def _is_strong_token(token: str) -> bool:
-    if token in _GENERIC_TOKENS:
-        return False
-    if _LATIN_RE.fullmatch(token):
-        return len(token) >= 2
-    return len(token) >= 2
-
-
-def _keyword_score_parts(query: str, doc: dict) -> tuple[int, int]:
-    tokens = Counter(_tokenize_query(query))
-    strong_tokens = Counter(
-        token for token in tokens.elements() if _is_strong_token(token)
-    )
-    metadata = " ".join(
-        str(doc.get(key) or "")
-        for key in (
-            "project_name",
-            "file_name",
-            "project_relative_path",
-            "source_relative_path",
-        )
-    )
-    description = str(doc.get("doc_description") or "")
-    structure_text = _structure_search_text(doc.get("structure", []))
-    weighted_fields = [
-        (metadata, 6),
-        (description, 3),
-        (structure_text, 2),
-    ]
-    score = sum(
-        _weighted_token_score(tokens, text, weight=weight)
-        for text, weight in weighted_fields
-    )
-    strong_score = sum(
-        _weighted_token_score(strong_tokens, text, weight=weight)
-        for text, weight in weighted_fields
-    )
-    return score, strong_score
-
-
-def keyword_score(query: str, doc: dict) -> int:
-    score, _strong_score = _keyword_score_parts(query, doc)
-    return score
-
-
-def _has_strong_query_signal(query: str) -> bool:
-    return any(_is_strong_token(token) for token in _tokenize_query(query))
-
-
-def _passes_prefilter(query: str, score: int, strong_score: int) -> bool:
-    if score <= 0:
-        return False
-    if not _has_strong_query_signal(query):
-        return True
-    return strong_score >= MIN_STRONG_PREFILTER_SCORE
-
-
-def _rank_documents_by_keyword(
-    query: str,
-    docs: list[dict],
-) -> list[tuple[int, int, str, dict]]:
-    ranked = [
-        (
-            score,
-            strong_score,
-            str(doc.get("file_name") or ""),
-            doc,
-        )
-        for doc in docs
-        for score, strong_score in [_keyword_score_parts(query, doc)]
-    ]
-    return sorted(ranked, key=lambda item: (item[0], item[1], item[2]), reverse=True)
-
-
-def _keyword_select_documents(query: str, docs: list[dict], limit: int) -> list[dict]:
-    ranked = _rank_documents_by_keyword(query, docs)
-    positives = [
-        doc
-        for score, strong_score, _file_name, doc in ranked
-        if _passes_prefilter(query, score, strong_score)
-    ]
-    if positives:
-        return positives[:limit]
-
-    return [
-        doc
-        for score, _strong_score, _file_name, doc in ranked
-        if score > 0
-    ][:limit]
-
-
-def _strong_keyword_select_documents(
+def _strong_fallback_select_documents(
     query: str,
     docs: list[dict],
     limit: int,
@@ -272,7 +133,8 @@ def _strong_keyword_select_documents(
         return []
     hard_term_groups = _hard_fallback_term_groups(query)
     selected: list[dict] = []
-    for _score, _strong_score, _file_name, doc in _rank_documents_by_keyword(query, docs):
+    for ranked_document in rank_documents_by_bm25(query, docs):
+        doc = ranked_document.document
         if not _passes_hard_fallback_constraints(
             hard_term_groups,
             doc,
@@ -342,7 +204,7 @@ def _fallback_summary_text(doc: dict) -> str:
 
 def _iter_hard_search_texts(doc: dict, *, include_page_text: bool):
     yield _fallback_summary_text(doc)
-    yield _structure_search_text(doc.get("structure", []))
+    yield structure_search_text(doc.get("structure", []))
     if not include_page_text:
         return
     pages = doc.get("pages", [])
@@ -433,7 +295,7 @@ def _passes_strong_fallback_coverage(
     summary_matches = _matched_fallback_terms(terms, summary_text)
     structure_matches = _matched_fallback_terms(
         terms,
-        _structure_search_text(doc.get("structure", [])),
+        structure_search_text(doc.get("structure", [])),
     )
     total_terms = len(terms)
     if len(summary_matches) / total_terms < MIN_FALLBACK_SUMMARY_COVERAGE:
@@ -457,24 +319,7 @@ def _passes_strong_fallback_coverage(
 
 
 def _ordered_candidate_documents(query: str, docs: list[dict]) -> list[dict]:
-    ranked = _rank_documents_by_keyword(query, docs)
-    positives = [
-        doc
-        for score, strong_score, _file_name, doc in ranked
-        if _passes_prefilter(query, score, strong_score)
-    ]
-    positive_object_ids = {id(doc) for doc in positives}
-    weak_matches = [
-        doc
-        for score, _strong_score, _file_name, doc in ranked
-        if score > 0 and id(doc) not in positive_object_ids
-    ]
-    unmatched = [
-        doc
-        for score, _strong_score, _file_name, doc in ranked
-        if score <= 0
-    ]
-    return [*positives, *weak_matches, *unmatched]
+    return [item.document for item in rank_documents_by_bm25(query, docs)]
 
 
 def prefilter_candidate_documents(
@@ -488,19 +333,31 @@ def prefilter_candidate_documents(
     return _ordered_candidate_documents(query, docs)[:limit]
 
 
-def _candidate_document_batches(query: str, docs: list[dict]) -> list[list[dict]]:
-    ordered = _ordered_candidate_documents(query, docs)
-    return [
-        ordered[index : index + DEFAULT_PREFILTER_LIMIT]
-        for index in range(0, len(ordered), DEFAULT_PREFILTER_LIMIT)
-    ]
+def _candidate_document_batches(
+    query: str,
+    docs: list[dict],
+) -> list[_CandidateDocumentBatch]:
+    ranked = rank_documents_by_bm25(query, docs)
+    batches: list[_CandidateDocumentBatch] = []
+    for index in range(0, len(ranked), DEFAULT_PREFILTER_LIMIT):
+        batch = ranked[index : index + DEFAULT_PREFILTER_LIMIT]
+        matched_scores = [item.score for item in batch if item.matched]
+        batches.append(
+            _CandidateDocumentBatch(
+                documents=tuple(item.document for item in batch),
+                top_score=matched_scores[0] if matched_scores else 0.0,
+                boundary_score=matched_scores[-1] if matched_scores else 0.0,
+                has_match=bool(matched_scores),
+            )
+        )
+    return batches
 
 
 def _candidate_alias(index: int) -> str:
     return f"D{index + 1:03d}"
 
 
-def _selection_prompt(query: str, docs: list[dict]) -> str:
+def _selection_prompt(query: str, docs: list[dict], *, limit: int) -> str:
     candidates = [
         {
             "candidate_id": _candidate_alias(index),
@@ -518,7 +375,7 @@ You are selecting candidate documents before PageIndex tree retrieval.
 Choose the candidate IDs that are most likely to contain information needed for the query.
 Use the project name, relative paths, file name, and one-sentence document description.
 The query and the document descriptions may be written in different languages.
-Prefer recall while staying within the candidate limit: include every document that may plausibly
+Select at most {limit} candidates. Prefer recall while staying within that limit: include every document that may plausibly
 provide direct evidence for a material part, qualifier, comparison, entity, or time period in the
 query. The same selected evidence set will be used for raw Evidence results and Answer generation.
 
@@ -600,7 +457,7 @@ def _llm_select_documents(
     if llm_completion is None:
         from pageindex.utils import llm_completion
 
-    prompt = _selection_prompt(query, docs)
+    prompt = _selection_prompt(query, docs, limit=limit)
     try:
         completion_result = llm_completion(
             model=model,
@@ -738,7 +595,7 @@ def _rerank_batch_selections(
 
 def _llm_select_document_batches(
     query: str,
-    batches: list[list[dict]],
+    batches: list[_CandidateDocumentBatch],
     *,
     limit: int,
     model: str | None,
@@ -746,17 +603,26 @@ def _llm_select_document_batches(
     outcomes: list[_LlmSelectionOutcome] = []
     selected_documents: list[dict] = []
     attempted_batches = 0
-    for batch in batches:
+    previous_batch: _CandidateDocumentBatch | None = None
+    for batch_index, batch in enumerate(batches[:MAX_ADAPTIVE_PREFILTER_BATCHES]):
+        if batch_index > 0 and not _should_expand_candidate_search(
+            previous_batch,
+            batch,
+            selected_count=len(_deduplicate_documents(selected_documents)),
+            limit=limit,
+        ):
+            break
         selection = _llm_select_documents(
             query,
-            batch,
+            list(batch.documents),
             limit=limit,
             model=model,
         )
         attempted_batches += 1
         outcomes.append(selection.outcome)
         selected_documents.extend(selection.documents)
-        if selection.outcome == "provider_error":
+        previous_batch = batch
+        if selection.outcome in _TECHNICAL_SELECTION_OUTCOMES:
             break
 
     if not selected_documents:
@@ -774,6 +640,25 @@ def _llm_select_document_batches(
             partial=partial,
         ),
         attempted_batches,
+    )
+
+
+def _should_expand_candidate_search(
+    previous_batch: _CandidateDocumentBatch | None,
+    next_batch: _CandidateDocumentBatch,
+    *,
+    selected_count: int,
+    limit: int,
+) -> bool:
+    if previous_batch is None or not next_batch.has_match:
+        return False
+    if selected_count < limit:
+        return True
+    if previous_batch.boundary_score <= 0:
+        return False
+    return (
+        next_batch.top_score
+        >= previous_batch.boundary_score * ADAPTIVE_BOUNDARY_SCORE_RATIO
     )
 
 
@@ -809,14 +694,18 @@ def select_candidate_documents(
             strategy="empty_scope",
         )
     candidate_batches = _candidate_document_batches(query, docs)
-    llm_candidates = candidate_batches[0]
-    is_batched = len(candidate_batches) > 1
     llm_selection, attempted_batches = _llm_select_document_batches(
         query,
         candidate_batches,
         limit=limit,
         model=model,
     )
+    attempted_candidates = [
+        document
+        for batch in candidate_batches[:attempted_batches]
+        for document in batch.documents
+    ]
+    is_batched = attempted_batches > 1
     strong_deterministic: list[dict] = []
 
     if llm_selection.documents:
@@ -834,9 +723,9 @@ def select_candidate_documents(
             selected = _merge_documents(model_documents, limit=limit)
             strategy = "batched_model_selection"
         else:
-            strong_deterministic = _strong_keyword_select_documents(
+            strong_deterministic = _strong_fallback_select_documents(
                 query,
-                llm_candidates,
+                attempted_candidates,
                 1,
                 include_page_text=False,
             )
@@ -855,9 +744,9 @@ def select_candidate_documents(
             else:
                 document[EVIDENCE_VALIDATION_REASON_KEY] = "model_selection"
     elif llm_selection.outcome == "explicit_empty":
-        strong_deterministic = _strong_keyword_select_documents(
+        strong_deterministic = _strong_fallback_select_documents(
             query,
-            llm_candidates,
+            attempted_candidates,
             1,
             include_page_text=True,
         )
@@ -875,9 +764,9 @@ def select_candidate_documents(
         )
     else:
         fallback_limit = min(limit, CANDIDATE_FALLBACK_LIMIT)
-        strong_deterministic = _strong_keyword_select_documents(
+        strong_deterministic = _strong_fallback_select_documents(
             query,
-            llm_candidates,
+            attempted_candidates,
             fallback_limit,
             include_page_text=True,
         )
@@ -902,7 +791,7 @@ def select_candidate_documents(
         "prefiltered=%d batches=%d deterministic=%d selected=%d",
         strategy,
         llm_selection.outcome,
-        len(llm_candidates),
+        len(attempted_candidates),
         attempted_batches,
         len(strong_deterministic),
         len(selected),

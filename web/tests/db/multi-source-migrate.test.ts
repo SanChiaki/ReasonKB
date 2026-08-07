@@ -130,6 +130,7 @@ describe("multi-source schema migration", () => {
       { version: 7 },
       { version: 8 },
       { version: 9 },
+      { version: 10 },
     ]);
     expect(
       migrated
@@ -219,6 +220,7 @@ describe("multi-source schema migration", () => {
       { version: 7, name: "document-page-layout-blocks" },
       { version: 8, name: "index-run-reasoning-tokens" },
       { version: 9, name: "llm-provider-observability" },
+      { version: 10, name: "document-search-fts5-bm25f" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -662,6 +664,7 @@ describe("multi-source schema migration", () => {
       { version: 7 },
       { version: 8 },
       { version: 9 },
+      { version: 10 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,

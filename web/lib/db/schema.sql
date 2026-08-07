@@ -73,6 +73,21 @@ CREATE TABLE IF NOT EXISTS document_indexes (
   FOREIGN KEY(document_id) REFERENCES documents(id)
 );
 
+CREATE VIRTUAL TABLE IF NOT EXISTS document_search USING fts5(
+  document_id UNINDEXED,
+  file_name UNINDEXED,
+  metadata_text,
+  description,
+  structure_search_text,
+  tokenize = 'unicode61 remove_diacritics 2'
+);
+
+CREATE TRIGGER IF NOT EXISTS document_indexes_search_delete
+AFTER DELETE ON document_indexes
+BEGIN
+  DELETE FROM document_search WHERE document_id = OLD.document_id;
+END;
+
 CREATE TABLE IF NOT EXISTS document_page_blocks (
   document_index_id TEXT NOT NULL,
   page_number INTEGER NOT NULL CHECK (page_number > 0),

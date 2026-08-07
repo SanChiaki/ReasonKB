@@ -5,6 +5,10 @@ import {
   type LegacyCorpusMigrationOptions,
 } from "@/lib/db/legacy-corpus-migration";
 
+const documentSearchLatinPattern = /[a-z0-9]+/gi;
+const documentSearchCjkPattern = /[\u3400-\u4dbf\u4e00-\u9fff]+/g;
+const documentSearchStructureLimit = 30_000;
+
 export type MigrationDatabase = InstanceType<typeof Database>;
 export type MigrationContext = LegacyCorpusMigrationOptions;
 
@@ -33,6 +37,110 @@ function ensureColumns(
       db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
       existing.add(name);
     }
+  }
+}
+
+function documentSearchTokens(text: string) {
+  const tokens: string[] = [
+    ...(text.toLowerCase().match(documentSearchLatinPattern) ?? []),
+  ];
+  for (const sequence of text.match(documentSearchCjkPattern) ?? []) {
+    if (sequence.length === 1) {
+      tokens.push(sequence);
+      continue;
+    }
+    tokens.push(...sequence);
+    for (let index = 0; index < sequence.length - 1; index += 1) {
+      tokens.push(sequence.slice(index, index + 2));
+    }
+  }
+  return tokens;
+}
+
+function documentSearchStructureText(structure: unknown) {
+  const parts: string[] = [];
+  let total = 0;
+  const stack: unknown[] = [structure];
+  while (stack.length > 0 && total < documentSearchStructureLimit) {
+    const item = stack.pop();
+    if (Array.isArray(item)) {
+      for (let index = item.length - 1; index >= 0; index -= 1) {
+        stack.push(item[index]);
+      }
+      continue;
+    }
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    for (const key of ["title", "summary", "prefix_summary"]) {
+      const value = record[key];
+      if (typeof value !== "string" || !value) continue;
+      const remaining = documentSearchStructureLimit - total;
+      if (remaining <= 0) break;
+      const part = value.slice(0, remaining);
+      parts.push(part);
+      total += part.length;
+    }
+    if (record.nodes) stack.push(record.nodes);
+  }
+  return parts.join(" ");
+}
+
+function rebuildDocumentSearchIndex(db: MigrationDatabase) {
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS document_search USING fts5(
+      document_id UNINDEXED,
+      file_name UNINDEXED,
+      metadata_text,
+      description,
+      structure_search_text,
+      tokenize = 'unicode61 remove_diacritics 2'
+    )
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS document_indexes_search_delete
+    AFTER DELETE ON document_indexes
+    BEGIN
+      DELETE FROM document_search WHERE document_id = OLD.document_id;
+    END
+  `);
+  db.exec("DELETE FROM document_search");
+  const rows = db
+    .prepare(
+      `SELECT di.document_id, d.file_name, p.name AS project_name,
+              d.project_relative_path, d.source_relative_path,
+              di.doc_description, di.structure_json
+         FROM document_indexes di
+         JOIN documents d ON d.id = di.document_id
+         JOIN projects p ON p.id = d.project_id`,
+    )
+    .all() as Array<Record<string, unknown>>;
+  const insert = db.prepare(
+    `INSERT INTO document_search(
+       document_id, file_name, metadata_text, description, structure_search_text
+     ) VALUES (?, ?, ?, ?, ?)`,
+  );
+  for (const row of rows) {
+    let structure: unknown = [];
+    try {
+      structure = JSON.parse(String(row.structure_json ?? "[]"));
+    } catch {
+      structure = [];
+    }
+    const metadata = [
+      row.project_name,
+      row.file_name,
+      row.project_relative_path,
+      row.source_relative_path,
+    ]
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join(" ");
+    insert.run(
+      String(row.document_id ?? ""),
+      String(row.file_name ?? ""),
+      documentSearchTokens(metadata).join(" "),
+      documentSearchTokens(String(row.doc_description ?? "")).join(" "),
+      documentSearchTokens(documentSearchStructureText(structure)).join(" "),
+    );
   }
 }
 
@@ -440,6 +548,13 @@ export const schemaMigrations: SchemaMigration[] = [
         CREATE INDEX IF NOT EXISTS idx_llm_provider_events_provider
           ON llm_provider_events(operation, model, provider_host, occurred_at DESC);
       `);
+    },
+  },
+  {
+    version: 10,
+    name: "document-search-fts5-bm25f",
+    up(db) {
+      rebuildDocumentSearchIndex(db);
     },
   },
 ];
