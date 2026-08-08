@@ -41,7 +41,7 @@ export function ProjectGrid({
   }
 
   return (
-    <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <section className="divide-y divide-[var(--pi-border)] overflow-hidden rounded-lg border border-[var(--pi-border)] bg-white">
       {projects.map((project) => (
         <ProjectCard key={project.id} project={project} />
       ))}

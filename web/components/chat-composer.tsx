@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUp, SlidersHorizontal } from "lucide-react";
 import { ProjectScopePicker } from "@/components/project-scope-picker";
 import { useI18n } from "@/lib/i18n";
 import type { RetrievalMode, RetrievalStreamEvent } from "@/lib/retrieval-client";
@@ -167,18 +168,12 @@ export function ChatComposer({
       <label htmlFor="chat-message" className="sr-only">
         {t("chat.messageLabel")}
       </label>
-      <div className="mb-2 text-xs font-semibold text-[var(--pi-muted)]">
-        {t("chat.messageLabel")}
-      </div>
-
-      <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <ProjectScopePicker
-          projects={availableProjects}
-          selectedProjectIds={activeProjectIds}
-          onToggle={toggleProject}
-        />
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase text-[var(--pi-muted)]">
+          {t("chat.messageLabel")}
+        </span>
         <div
-          className="inline-flex w-fit rounded-lg bg-[var(--pi-bg)] p-1 text-xs font-medium text-[var(--pi-muted)]"
+          className="inline-flex rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] p-0.5 text-xs font-medium text-[var(--pi-muted)]"
           aria-label={t("chat.retrievalMode")}
         >
           {(["answer", "evidence"] as const).map((mode) => (
@@ -188,7 +183,7 @@ export function ChatComposer({
               aria-label={mode === "answer" ? t("chat.answerModeAria") : t("chat.evidenceModeAria")}
               aria-pressed={retrievalMode === mode}
               onClick={() => setRetrievalMode(mode)}
-              className={`rounded-md px-4 py-2 transition ${
+              className={`rounded px-3 py-1.5 transition ${
                 retrievalMode === mode
                   ? "bg-white text-[var(--pi-brand)] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
                   : "hover:text-[var(--pi-ink)]"
@@ -197,6 +192,17 @@ export function ChatComposer({
               {mode === "answer" ? t("chat.answerMode") : t("chat.evidenceMode")}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="mb-3 flex min-w-0 items-center gap-2">
+        <SlidersHorizontal aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--pi-muted)]" />
+        <div className="rk-scrollbar min-w-0 flex-1 overflow-x-auto pb-0.5">
+          <ProjectScopePicker
+            projects={availableProjects}
+            selectedProjectIds={activeProjectIds}
+            onToggle={toggleProject}
+          />
         </div>
       </div>
 
@@ -213,15 +219,16 @@ export function ChatComposer({
           }}
           placeholder={placeholder}
           rows={1}
-          className="min-h-12 flex-1 resize-none rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-[15px] leading-6 text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
+          className="min-h-12 flex-1 resize-none rounded-md border border-[var(--pi-border)] bg-white px-4 py-3 text-[15px] leading-6 text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)] focus:ring-2 focus:ring-[var(--pi-brand-soft)]"
         />
         <button
           type="submit"
           aria-label={t("chat.send")}
           disabled={!canSend}
-          className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-6 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:self-end"
+          className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-5 text-sm font-medium text-white transition enabled:hover:bg-[#1556d9] disabled:cursor-not-allowed disabled:opacity-40 sm:self-end"
         >
-          {sending ? t("chat.sending") : t("chat.send")}
+          <ArrowUp aria-hidden="true" size={16} />
+          <span>{sending ? t("chat.sending") : t("chat.send")}</span>
         </button>
       </div>
 

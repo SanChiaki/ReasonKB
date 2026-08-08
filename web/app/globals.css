@@ -4,22 +4,24 @@
 
 :root {
   color-scheme: light;
-  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --pi-bg: oklch(99% 0.002 240);
-  --pi-bg-soft: oklch(97.5% 0.006 250);
-  --pi-panel: oklch(100% 0 0);
-  --pi-panel-strong: oklch(100% 0 0);
-  --pi-border: oklch(92% 0.005 250);
-  --pi-border-strong: oklch(58% 0.18 255 / 0.42);
-  --pi-ink: oklch(18% 0.012 250);
-  --pi-muted: oklch(54% 0.012 250);
-  --pi-brand: oklch(58% 0.18 255);
-  --pi-brand-soft: oklch(58% 0.18 255 / 0.1);
-  --pi-success: oklch(56% 0.16 145);
-  --pi-danger: #b42318;
-  --pi-sidebar-width: 280px;
+  --pi-bg: #f4f6f8;
+  --pi-bg-soft: #f8fafc;
+  --pi-panel: #ffffff;
+  --pi-panel-strong: #ffffff;
+  --pi-border: #d9e0e8;
+  --pi-border-strong: #bec9d6;
+  --pi-ink: #17202a;
+  --pi-muted: #677383;
+  --pi-brand: #2166f3;
+  --pi-brand-soft: #eaf1ff;
+  --pi-success: #168456;
+  --pi-danger: #bd3e34;
+  --pi-warning: #a96d11;
+  --pi-warning-soft: #fff6df;
+  --pi-sidebar-width: 238px;
 }
 
 * {
@@ -47,14 +49,16 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font-family: inherit;
+  letter-spacing: 0;
 }
 
 ::selection {

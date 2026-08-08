@@ -1,19 +1,24 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
+import { Menu } from "lucide-react";
 import { SidebarNav, type SidebarConversation } from "@/components/sidebar-nav";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 
 export function AppShell({
   conversations,
   children,
+  admin = false,
 }: {
   conversations: SidebarConversation[];
   children: ReactNode;
+  admin?: boolean;
 }) {
   return (
     <I18nProvider>
-      <AppShellContent conversations={conversations}>{children}</AppShellContent>
+      <AppShellContent conversations={conversations} admin={admin}>
+        {children}
+      </AppShellContent>
     </I18nProvider>
   );
 }
@@ -21,19 +26,36 @@ export function AppShell({
 function AppShellContent({
   conversations,
   children,
+  admin,
 }: {
   conversations: SidebarConversation[];
   children: ReactNode;
+  admin: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
+
+  async function logoutAdmin() {
+    const match = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("reasonkb_admin_csrf="));
+    const csrf = match ? decodeURIComponent(match.slice(match.indexOf("=") + 1)) : "";
+    await fetch("/api/admin/auth/logout", {
+      method: "POST",
+      headers: { "x-reasonkb-csrf": csrf },
+    });
+    window.location.assign("/admin/login");
+  }
 
   return (
     <div className="h-dvh overflow-hidden bg-[var(--pi-bg)] md:flex">
       <SidebarNav
         mobileOpen={mobileOpen}
         conversations={conversations}
+        admin={admin}
         onCloseMobile={() => setMobileOpen(false)}
+        onAdminLogout={logoutAdmin}
       />
       {mobileOpen ? (
         <button
@@ -51,9 +73,7 @@ function AppShellContent({
             onClick={() => setMobileOpen(true)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)]"
           >
-            <span aria-hidden="true" className="text-lg leading-none">
-              ☰
-            </span>
+            <Menu aria-hidden="true" size={18} />
           </button>
           <div className="ml-3">
             <p className="text-sm font-semibold text-[var(--pi-ink)]">ReasonKB</p>

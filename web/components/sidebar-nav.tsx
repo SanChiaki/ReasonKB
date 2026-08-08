@@ -3,7 +3,18 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Database, Folder, MessageSquare, PanelLeftClose, Settings, Plus } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  Database,
+  Folder,
+  LogOut,
+  MessageSquare,
+  PanelLeftClose,
+  Plus,
+  ScrollText,
+  Settings,
+} from "lucide-react";
 import { ChatHistoryList } from "@/components/chat-history-list";
 import { useI18n } from "@/lib/i18n";
 
@@ -17,11 +28,15 @@ export type SidebarConversation = {
 export function SidebarNav({
   mobileOpen,
   conversations,
+  admin = false,
   onCloseMobile,
+  onAdminLogout,
 }: {
   mobileOpen: boolean;
   conversations: SidebarConversation[];
+  admin?: boolean;
   onCloseMobile: () => void;
+  onAdminLogout?: () => void | Promise<void>;
 }) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -37,9 +52,9 @@ export function SidebarNav({
       }`}
     >
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="border-b border-[var(--pi-border)] p-5">
+        <div className="border-b border-[var(--pi-border)] px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--pi-brand)] text-base font-semibold tracking-[-0.02em] text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--pi-ink)] text-xs font-semibold text-white">
               RK
             </div>
             <div>
@@ -55,17 +70,22 @@ export function SidebarNav({
               <PanelLeftClose aria-hidden="true" size={16} />
             </button>
           </div>
-          <Link
-            href="/chat"
-            onClick={onCloseMobile}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            <Plus aria-hidden="true" size={16} />
-            {t("nav.newChat")}
-          </Link>
+          {!admin ? (
+            <Link
+              href="/chat"
+              onClick={onCloseMobile}
+              className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-3 text-sm font-medium text-white transition hover:bg-[#1556d9]"
+            >
+              <Plus aria-hidden="true" size={16} />
+              {t("nav.newChat")}
+            </Link>
+          ) : null}
         </div>
 
-        <nav className="space-y-1 border-b border-[var(--pi-border)] p-3">
+        <nav className="border-b border-[var(--pi-border)] px-3 py-3">
+          <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase text-[var(--pi-muted)]">
+            {t("nav.workspace")}
+          </p>
           <Link
             href="/chat"
             onClick={onCloseMobile}
@@ -91,6 +111,35 @@ export function SidebarNav({
           >
             <Folder aria-hidden="true" size={18} strokeWidth={2} />
             {t("nav.projects")}
+          </Link>
+          <p className="mt-4 px-2 pb-1.5 text-[10px] font-semibold uppercase text-[var(--pi-muted)]">
+            {t("nav.management")}
+          </p>
+          <Link
+            href="/admin/status"
+            onClick={onCloseMobile}
+            aria-current={isActivePath("/admin/status") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+              isActivePath("/admin/status")
+                ? "bg-[var(--pi-brand-soft)] font-medium text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
+          >
+            <Activity aria-hidden="true" size={18} strokeWidth={2} />
+            {t("nav.status")}
+          </Link>
+          <Link
+            href="/admin/audit"
+            onClick={onCloseMobile}
+            aria-current={isActivePath("/admin/audit") ? "page" : undefined}
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+              isActivePath("/admin/audit")
+                ? "bg-[var(--pi-brand-soft)] font-medium text-[var(--pi-brand)]"
+                : "text-[var(--pi-muted)] hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            }`}
+          >
+            <ScrollText aria-hidden="true" size={18} strokeWidth={2} />
+            {t("nav.audit")}
           </Link>
           <Link
             href="/admin/sources"
@@ -120,14 +169,42 @@ export function SidebarNav({
           </Link>
         </nav>
 
-        <section className="flex min-h-0 flex-1 flex-col p-3">
-          <h2 className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
-            {t("nav.recentChats")}
-          </h2>
-          <div className="rk-scrollbar flex-1 space-y-0.5 overflow-y-auto">
-            <ChatHistoryList conversations={conversations} />
+        {!admin ? (
+          <section className="flex min-h-0 flex-1 flex-col p-3">
+            <h2 className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase text-[var(--pi-muted)]">
+              {t("nav.recentChats")}
+            </h2>
+            <div className="rk-scrollbar flex-1 space-y-0.5 overflow-y-auto">
+              <ChatHistoryList conversations={conversations} />
+            </div>
+          </section>
+        ) : (
+          <div className="min-h-0 flex-1" />
+        )}
+
+        {admin ? (
+          <div className="border-t border-[var(--pi-border)] p-3">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase text-[var(--pi-muted)]">
+              {t("nav.adminView")}
+            </p>
+            <Link
+              href="/chat"
+              onClick={onCloseMobile}
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--pi-muted)] transition hover:bg-[var(--pi-bg)] hover:text-[var(--pi-ink)]"
+            >
+              <ArrowLeft aria-hidden="true" size={17} />
+              {t("nav.backToWorkspace")}
+            </Link>
+            <button
+              type="button"
+              onClick={() => void onAdminLogout?.()}
+              className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-[var(--pi-muted)] transition hover:bg-red-50 hover:text-[var(--pi-danger)]"
+            >
+              <LogOut aria-hidden="true" size={17} />
+              {t("nav.logout")}
+            </button>
           </div>
-        </section>
+        ) : null}
       </div>
     </aside>
   );
