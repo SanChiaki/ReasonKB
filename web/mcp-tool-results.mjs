@@ -5,6 +5,7 @@ const openObject = z.record(z.unknown());
 
 const citationSchema = z
   .object({
+    evidenceId: z.string().optional(),
     projectId: z.string(),
     projectName: z.string(),
     documentId: z.string(),
@@ -41,6 +42,7 @@ const pageBlockSchema = z
 
 const evidenceItemSchema = z
   .object({
+    evidenceId: z.string().optional(),
     projectId: z.string(),
     projectName: z.string(),
     documentId: z.string(),
@@ -56,6 +58,27 @@ const evidenceItemSchema = z
     content: z.string(),
     visualAssets: z.array(openObject),
     pageBlocks: z.array(pageBlockSchema).optional(),
+    supports: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const coverageAspectSchema = z
+  .object({
+    id: z.string(),
+    description: z.string(),
+    status: z.enum(["supported", "unresolved"]),
+    evidenceIds: z.array(z.string()),
+  })
+  .passthrough();
+
+const coverageSchema = z
+  .object({
+    status: z.enum(["complete", "partial", "none", "unknown"]),
+    confidence: z.enum(["high", "medium", "low"]),
+    aspects: z.array(coverageAspectSchema),
+    unresolved: z.array(z.string()),
+    canContinue: z.boolean(),
+    stopReason: z.string(),
   })
   .passthrough();
 
@@ -67,6 +90,7 @@ const retrievalResultSchema = z
     evidence: z.array(evidenceItemSchema),
     retrievalStatus: z.enum(["matched", "no_match", "degraded"]),
     degradedReason: z.string().optional(),
+    coverage: coverageSchema.optional(),
   })
   .passthrough();
 
@@ -83,6 +107,18 @@ function appendOptionalLine(lines, label, value, indent = "") {
 function statusLines(payload) {
   const lines = [`Retrieval status: ${payload.retrievalStatus}`];
   appendOptionalLine(lines, "Degraded reason", payload.degradedReason);
+  if (payload.coverage) {
+    lines.push(`Coverage: ${payload.coverage.status}`);
+    if (payload.coverage.unresolved.length > 0) {
+      lines.push("Unresolved coverage:");
+      payload.coverage.unresolved.forEach((aspect) => {
+        lines.push(`- ${singleLine(aspect)}`);
+      });
+    }
+    lines.push(
+      `Continuation available: ${payload.coverage.canContinue ? "yes" : "no"}`,
+    );
+  }
   return lines;
 }
 
@@ -98,6 +134,7 @@ function queryText(payload) {
   lines.push("", "Citations");
   payload.citations.forEach((citation, index) => {
     lines.push(`${index + 1}. ${singleLine(citation.documentName)}`);
+    appendOptionalLine(lines, "Evidence ID", citation.evidenceId, "   ");
     lines.push(`   Document ID: ${singleLine(citation.documentId)}`);
     lines.push(`   Project: ${singleLine(citation.projectName)}`);
     appendOptionalLine(

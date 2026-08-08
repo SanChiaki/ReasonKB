@@ -1,6 +1,7 @@
 import { appConfig } from "@/lib/config";
 
 export type RetrievalCitation = {
+  evidenceId?: string;
   projectId: string;
   projectName: string;
   documentId: string;
@@ -14,6 +15,7 @@ export type RetrievalCitation = {
 };
 
 export type RetrievalEvidence = {
+  evidenceId?: string;
   projectId?: string;
   projectName: string;
   documentId?: string;
@@ -34,6 +36,23 @@ export type RetrievalEvidence = {
     blocks: Array<Record<string, unknown>>;
     diagnostics: Record<string, unknown>;
   }>;
+  supports?: string[];
+};
+
+export type RetrievalCoverageAspect = {
+  id: string;
+  description: string;
+  status: "supported" | "unresolved";
+  evidenceIds: string[];
+};
+
+export type RetrievalCoverage = {
+  status: "complete" | "partial" | "none" | "unknown";
+  confidence: "high" | "medium" | "low";
+  aspects: RetrievalCoverageAspect[];
+  unresolved: string[];
+  canContinue: boolean;
+  stopReason: string;
 };
 
 export type RetrievalMode = "answer" | "evidence";
@@ -45,6 +64,7 @@ export type RetrievalResult = {
   evidence: RetrievalEvidence[];
   retrievalStatus?: "matched" | "no_match" | "degraded";
   degradedReason?: string;
+  coverage?: RetrievalCoverage;
 };
 
 export type RetrievalProgressEvent = {
@@ -228,6 +248,22 @@ const AGENT_PROGRESS_FIELDS: Record<string, readonly string[]> = {
     "attemptedCount",
     "acceptedCount",
     "retrievalStatus",
+  ],
+  evidence_set_assessment_started: [
+    "wave",
+    "candidateDocumentCount",
+    "evidenceDocumentCount",
+    "remainingDocumentCount",
+  ],
+  evidence_set_assessment_completed: [
+    "wave",
+    "attemptedCount",
+    "acceptedCount",
+    "retrievalStatus",
+    "evidenceDocumentCount",
+    "coverage",
+    "confidence",
+    "remainingDocumentCount",
   ],
   evidence_coverage_started: ["wave", "evidenceDocumentCount", "remainingDocumentCount"],
   evidence_coverage_completed: [

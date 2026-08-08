@@ -1,0 +1,3 @@
+# Use an Evidence-first Agent contract
+
+ReasonKB treats a grounded EvidenceSet, rather than a generated answer, as its primary Agent-facing result. PageIndex remains responsible for navigating document trees, while ReasonKB owns cross-document grounding, provenance, coverage, and failure semantics; answer generation is an optional adapter over the same EvidenceSet. Coverage gaps are derived from the original query and accumulated evidence instead of becoming independent generated subqueries, because pre-decomposition can drift from user intent and an incomplete answer must not erase directly supported evidence.

@@ -366,6 +366,19 @@ layout diagnostics, and visual metadata. Programmatic clients that need the
 complete response must read `structuredContent` instead of parsing
 `content[0].text` as JSON.
 
+Retrieval results also include an EvidenceSet `coverage` object. Coverage
+`complete` means every material part of the original query is grounded;
+`partial` means at least one part is grounded and at least one remains
+unresolved; `none` means a reliable search found no grounded evidence; and
+`unknown` means a technical failure prevented a reliable coverage judgment.
+Partial coverage is a normal matched result, not a degraded retrieval. Each
+Evidence item has a stable, index-version-bound `evidenceId`, and model-grounded
+items can reference EvidenceSet-scoped coverage aspects through `supports`.
+Query citations carry the same `evidenceId`, so coverage links remain resolvable
+even though Query does not repeat raw Evidence content. The current contract
+reports `canContinue: false`; resumable EvidenceSet expansion will be added as a
+separate stateful tool rather than exposing internal candidate state.
+
 Query citations and evidence items may include an optional `documentUrl`. It
 is present only when an original-document link is available. For Seeyon
 sources, it points to the original document viewer and is built from the

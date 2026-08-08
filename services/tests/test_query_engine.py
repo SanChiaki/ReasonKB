@@ -3,6 +3,7 @@ import os
 import sqlite3
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -41,6 +42,15 @@ def _mock_query_llm(monkeypatch, completion):
         )
 
     monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+
+
+def _mock_evidence_set_coverage(monkeypatch, coverage):
+    original = query_engine._validate_retrieved_evidence
+
+    def assess(*args, **kwargs):
+        return replace(original(*args, **kwargs), coverage=coverage)
+
+    monkeypatch.setattr(query_engine, "_validate_retrieved_evidence", assess)
 
 
 def test_build_citation_includes_project_and_pages():
@@ -662,6 +672,88 @@ def test_evidence_validation_keeps_cross_page_list_continuations(monkeypatch):
     assert "专业化能力按初中高级计分" not in validation.document_results[0]["evidenceBlock"]["content"]
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"coverage": "incomplete", "confidence": "high", "unresolved": []},
+        {
+            "coverage": "unknown",
+            "confidence": "low",
+            "unresolved": ["provider outcome"],
+        },
+    ],
+)
+def test_evidence_coverage_parser_rejects_ambiguous_success_contracts(payload):
+    assert query_engine._parse_evidence_coverage(payload) is None
+
+
+def test_legacy_assessment_output_preserves_evidence_without_claiming_completeness():
+    coverage = query_engine._legacy_assessment_coverage(
+        {0: ({1}, ())},
+        [],
+    )
+
+    assert coverage.coverage == "incomplete"
+    assert coverage.confidence == "low"
+    assert coverage.unresolved
+
+
+def test_evidence_identity_is_bound_to_the_document_index_revision():
+    first = _fallback_document_result()
+    first["document"]["_document_index_id"] = "idx_v1"
+    second = _fallback_document_result()
+    second["document"]["_document_index_id"] = "idx_v2"
+
+    assert query_engine._evidence_id(first) != query_engine._evidence_id(second)
+
+
+def test_query_citation_resolves_coverage_evidence_identity(monkeypatch):
+    document_result = _fallback_document_result()
+    document_result["document"].pop(EVIDENCE_VALIDATION_REASON_KEY)
+    document_result[query_engine.SUPPORTED_ASPECTS_KEY] = (
+        "diamond partner revenue threshold",
+    )
+    monkeypatch.setattr(query_engine, "_generate_answer", lambda *_args: "answer")
+
+    result = query_engine._build_answer_result(
+        "What is the diamond partner revenue threshold?",
+        [document_result],
+        "answer",
+        coverage=query_engine._EvidenceCoverageResult(
+            coverage="complete",
+            confidence="medium",
+        ),
+    )
+
+    evidence_id = result["citations"][0]["evidenceId"]
+    assert result["coverage"]["status"] == "complete"
+    assert result["coverage"]["aspects"][0]["evidenceIds"] == [evidence_id]
+
+
+def test_later_assessment_replaces_stale_aspect_labels_without_dropping_pages():
+    first = _fallback_document_result()
+    first[query_engine.SUPPORTED_ASPECTS_KEY] = ("old wording",)
+    second = query_engine._assemble_document_result(
+        "钻石经销商的业绩门槛是多少？",
+        first["document"],
+        "1",
+        [{"page": 1, "content": "钻石经销商申请资格说明。"}],
+        supported_aspects=("diamond qualification requirements",),
+    )
+
+    merged = query_engine._merge_grounded_document_results(
+        "钻石经销商的业绩门槛是多少？",
+        [first],
+        [second],
+    )
+
+    assert len(merged) == 1
+    assert merged[0][query_engine.SUPPORTED_ASPECTS_KEY] == (
+        "diamond qualification requirements",
+    )
+    assert merged[0]["evidenceBlock"]["pages"] == "1-2"
+
+
 def test_evidence_validation_keeps_contiguous_pages_for_rules_question(monkeypatch):
     document = {
         "id": "doc_rules",
@@ -763,7 +855,7 @@ def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
     )
 
     assert validation.status == "degraded"
-    assert validation.degraded_reason == "evidence_validation_failed"
+    assert validation.degraded_reason == "evidence_set_assessment_failed"
     assert validation.document_results == ()
 
 
@@ -802,7 +894,7 @@ def test_evidence_validation_rejects_mixed_valid_and_unknown_candidates(monkeypa
     )
 
     assert validation.status == "degraded"
-    assert validation.degraded_reason == "evidence_validation_failed"
+    assert validation.degraded_reason == "evidence_set_assessment_failed"
     assert validation.document_results == ()
 
 
@@ -1209,6 +1301,14 @@ def test_evidence_mode_never_returns_answer_text_when_no_documents_match(
         "selectedDocuments": [],
         "evidence": [],
         "retrievalStatus": "no_match",
+        "coverage": {
+            "status": "none",
+            "confidence": "high",
+            "aspects": [],
+            "unresolved": [],
+            "canContinue": False,
+            "stopReason": "no_candidates",
+        },
     }
     assert events[-1]["data"] == result
 
@@ -1534,8 +1634,8 @@ def test_stream_validates_technical_fallback_before_returning_evidence(
 
     assert "document_evidence_pending_validation" in stages
     assert "document_evidence_loaded" not in stages
-    assert "evidence_validation_started" in stages
-    assert "evidence_validation_completed" in stages
+    assert "evidence_set_assessment_started" in stages
+    assert "evidence_set_assessment_completed" in stages
     assert result["retrievalStatus"] == "degraded"
     assert result["degradedReason"] == "candidate_selection_provider_error"
     assert result["evidence"][0]["pages"] == "1"
@@ -1809,7 +1909,11 @@ def test_answer_question_skips_bad_index_rows_and_uses_good_documents(tmp_path, 
 
     assert result["answer"] == "final answer"
     assert result["selectedDocuments"] == [{"documentId": "doc_good"}]
-    assert result["citations"] == [
+    assert result["citations"][0]["evidenceId"].startswith("ev_")
+    assert [
+        {key: value for key, value in citation.items() if key != "evidenceId"}
+        for citation in result["citations"]
+    ] == [
         {
             "projectId": "proj_1",
             "projectName": "Alpha",
@@ -2606,7 +2710,11 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
 
     assert result["answer"] == "验收标准包括交付物评审和签收。"
     assert result["selectedDocuments"] == [{"documentId": "doc_acceptance"}]
-    assert result["citations"] == [
+    assert result["citations"][0]["evidenceId"].startswith("ev_")
+    assert [
+        {key: value for key, value in citation.items() if key != "evidenceId"}
+        for citation in result["citations"]
+    ] == [
         {
             "projectId": "proj_1",
             "projectName": "Alpha",
@@ -2617,7 +2725,7 @@ def test_answer_question_uses_description_selection_for_cross_language_query(
             "excerpt": "All deliverables must pass review.",
         }
     ]
-    assert seen_models == ["gpt-retrieval", "gpt-retrieval", "gpt-retrieval"]
+    assert seen_models == ["gpt-retrieval", "gpt-retrieval"]
 
 
 def test_answer_question_evidence_mode_returns_path_and_content_metadata(
@@ -2665,7 +2773,11 @@ def test_answer_question_evidence_mode_returns_path_and_content_metadata(
             "sourceRelativePath": "Alpha/delivery/acceptance.pdf",
         }
     ]
-    assert result["evidence"] == [
+    assert result["evidence"][0]["evidenceId"].startswith("ev_")
+    assert [
+        {key: value for key, value in item.items() if key != "evidenceId"}
+        for item in result["evidence"]
+    ] == [
         {
             "projectId": "proj_1",
             "projectName": "Alpha",
@@ -2688,13 +2800,9 @@ def test_answer_question_processes_selected_documents_concurrently_and_preserves
 ):
     monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
     monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
@@ -2762,13 +2870,9 @@ def test_answer_question_events_processes_documents_concurrently_and_preserves_o
 ):
     monkeypatch.setenv("RETRIEVAL_DOCUMENT_CONCURRENCY", "3")
     monkeypatch.setattr(query_engine, "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS", 3)
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     db_path = _seed_retrieval_db(tmp_path)
     for index in range(3):
@@ -3147,13 +3251,9 @@ def test_shared_retrieval_stops_after_complete_first_wave(
         tmp_path,
         monkeypatch,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     monkeypatch.setattr(
         query_engine,
@@ -3181,13 +3281,9 @@ def test_answer_and_evidence_share_the_same_retrieved_evidence_set(
         tmp_path,
         monkeypatch,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     evidence_result = answer_question(
         str(db_path),
@@ -3256,13 +3352,9 @@ def test_real_model_selection_is_validated_before_evidence_is_returned(
         return (response, "finished") if return_finish_reason else response
 
     _mock_query_llm(monkeypatch, validate_selected_pages)
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     result = answer_question(
         str(db_path),
@@ -3278,6 +3370,146 @@ def test_real_model_selection_is_validated_before_evidence_is_returned(
     assert result["retrievalStatus"] == "matched"
 
 
+def test_later_wave_can_ground_provisional_evidence_from_an_earlier_wave(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+        real_selection=True,
+    )
+    assessment_prompts: list[str] = []
+
+    def assess_accumulated_evidence(
+        _model,
+        prompt,
+        chat_history=None,
+        return_finish_reason=False,
+    ):
+        del chat_history
+        assessment_prompts.append(prompt)
+        if '"candidate_id": "D003"' not in prompt:
+            response = json.dumps(
+                {
+                    "matches": [],
+                    "coverage": "incomplete",
+                    "confidence": "high",
+                    "unresolved": ["target qualification requirements"],
+                }
+            )
+        else:
+            response = json.dumps(
+                {
+                    "matches": [
+                        {
+                            "candidate_id": "D001",
+                            "supporting_pages": [1],
+                            "supported_aspects": ["upgrade application process"],
+                        },
+                        {
+                            "candidate_id": "D003",
+                            "supporting_pages": [1],
+                            "supported_aspects": ["target qualification requirements"],
+                        },
+                    ],
+                    "coverage": "complete",
+                    "confidence": "high",
+                    "unresolved": [],
+                }
+            )
+        return (response, "finished") if return_finish_reason else response
+
+    _mock_query_llm(monkeypatch, assess_accumulated_evidence)
+
+    result = answer_question(
+        str(db_path),
+        "How does a silver partner upgrade to diamond?",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert len(started_documents) == 4
+    assert len(set(started_documents)) == 4
+    assert len(assessment_prompts) == 2
+    first_wave_ids = set(started_documents[:2])
+    second_wave_ids = set(started_documents[2:])
+    assert any(
+        f"direct evidence from {document_id}" in assessment_prompts[1]
+        for document_id in first_wave_ids
+    )
+    result_document_ids = {item["documentId"] for item in result["evidence"]}
+    assert len(result_document_ids & first_wave_ids) == 1
+    assert len(result_document_ids & second_wave_ids) == 1
+    assert result["retrievalStatus"] == "matched"
+    assert result["coverage"]["status"] == "complete"
+    assert {aspect["description"] for aspect in result["coverage"]["aspects"]} == {
+        "upgrade application process",
+        "target qualification requirements",
+    }
+    evidence_ids = {item["evidenceId"] for item in result["evidence"]}
+    assert {
+        evidence_id
+        for aspect in result["coverage"]["aspects"]
+        for evidence_id in aspect["evidenceIds"]
+    } == evidence_ids
+
+
+def test_later_successful_assessment_recovers_a_transient_wave_failure(
+    tmp_path,
+    monkeypatch,
+):
+    db_path, started_documents = _install_progressive_evidence_fixture(
+        tmp_path,
+        monkeypatch,
+        real_selection=True,
+    )
+    assessment_count = 0
+
+    def fail_then_assess(
+        _model,
+        _prompt,
+        chat_history=None,
+        return_finish_reason=False,
+    ):
+        nonlocal assessment_count
+        del chat_history
+        assessment_count += 1
+        if assessment_count == 1:
+            response = ""
+        else:
+            response = json.dumps(
+                {
+                    "matches": [
+                        {
+                            "candidate_id": "D001",
+                            "supporting_pages": [1],
+                            "supported_aspects": ["handover date"],
+                        }
+                    ],
+                    "coverage": "complete",
+                    "confidence": "high",
+                    "unresolved": [],
+                }
+            )
+        return (response, "finished") if return_finish_reason else response
+
+    _mock_query_llm(monkeypatch, fail_then_assess)
+
+    result = answer_question(
+        str(db_path),
+        "What was the handover date?",
+        ["proj_1"],
+        mode="evidence",
+    )
+
+    assert assessment_count == 2
+    assert len(started_documents) == 4
+    assert result["retrievalStatus"] == "matched"
+    assert result["coverage"]["status"] == "complete"
+    assert result["coverage"]["stopReason"] == "coverage_complete"
+
+
 @pytest.mark.parametrize("mode", ["answer", "evidence"])
 def test_shared_retrieval_expands_all_documents_when_coverage_is_incomplete(
     tmp_path,
@@ -3288,13 +3520,10 @@ def test_shared_retrieval_expands_all_documents_when_coverage_is_incomplete(
         tmp_path,
         monkeypatch,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="incomplete",
-            confidence="high",
-            unresolved=("sign-off owner",),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(
+            coverage="incomplete", confidence="high", unresolved=("sign-off owner",)
         ),
     )
     monkeypatch.setattr(
@@ -3311,8 +3540,9 @@ def test_shared_retrieval_expands_all_documents_when_coverage_is_incomplete(
     )
 
     assert set(started_documents) == {f"doc_{index}" for index in range(5)}
-    assert result["retrievalStatus"] == "degraded"
-    assert result["degradedReason"] == "evidence_expansion_limit_reached"
+    assert result["retrievalStatus"] == "matched"
+    assert result["coverage"]["status"] == "partial"
+    assert result["coverage"]["unresolved"] == ["sign-off owner"]
 
 
 def test_request_deadline_drops_evidence_pending_validation(
@@ -3529,13 +3759,10 @@ def test_shared_retrieval_returns_partial_evidence_at_expansion_limit(
         tmp_path,
         monkeypatch,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="incomplete",
-            confidence="high",
-            unresolved=("sign-off owner",),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(
+            coverage="incomplete", confidence="high", unresolved=("sign-off owner",)
         ),
     )
     result = answer_question(
@@ -3547,8 +3774,9 @@ def test_shared_retrieval_returns_partial_evidence_at_expansion_limit(
 
     assert set(started_documents) == {f"doc_{index}" for index in range(5)}
     assert len(result["evidence"]) == 5
-    assert result["retrievalStatus"] == "degraded"
-    assert result["degradedReason"] == "evidence_expansion_limit_reached"
+    assert result["retrievalStatus"] == "matched"
+    assert result["coverage"]["status"] == "partial"
+    assert result["coverage"]["unresolved"] == ["sign-off owner"]
 
 
 @pytest.mark.parametrize("mode", ["answer", "evidence"])
@@ -3561,13 +3789,12 @@ def test_shared_retrieval_continues_when_coverage_is_unknown(
         tmp_path,
         monkeypatch,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(
             coverage="unknown",
             confidence="low",
-            degraded_reason="evidence_coverage_failed",
+            degraded_reason="evidence_set_assessment_failed",
         ),
     )
     monkeypatch.setattr(
@@ -3585,7 +3812,8 @@ def test_shared_retrieval_continues_when_coverage_is_unknown(
 
     assert set(started_documents) == {f"doc_{index}" for index in range(5)}
     assert result["retrievalStatus"] == "degraded"
-    assert result["degradedReason"] == "evidence_coverage_failed"
+    assert result["degradedReason"] == "evidence_set_assessment_failed"
+    assert result["coverage"]["status"] == "unknown"
 
 
 def test_sync_and_stream_share_process_document_worker_limit(
@@ -3602,13 +3830,9 @@ def test_sync_and_stream_share_process_document_worker_limit(
         "DEFAULT_EVIDENCE_INITIAL_DOCUMENTS",
         query_engine.MAX_PARALLEL_DOCUMENT_RETRIEVALS,
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
     state_changed = threading.Condition()
     release_workers = threading.Event()
@@ -4022,13 +4246,9 @@ def test_answer_question_events_reports_real_retrieval_progress(tmp_path, monkey
         "services.retrieval_api.query_engine._generate_answer",
         lambda _query, _blocks: "Acceptance answer.",
     )
-    monkeypatch.setattr(
-        query_engine,
-        "_assess_evidence_coverage",
-        lambda *_args, **_kwargs: query_engine._EvidenceCoverageResult(
-            coverage="complete",
-            confidence="high",
-        ),
+    _mock_evidence_set_coverage(
+        monkeypatch,
+        query_engine._EvidenceCoverageResult(coverage="complete", confidence="high"),
     )
 
     events = list(
@@ -4054,8 +4274,8 @@ def test_answer_question_events_reports_real_retrieval_progress(tmp_path, monkey
         "document_pages_selected",
         "document_evidence_loaded",
         "evidence_wave_completed",
-        "evidence_coverage_started",
-        "evidence_coverage_completed",
+        "evidence_set_assessment_started",
+        "evidence_set_assessment_completed",
         "answer_generation_started",
         "answer_generation_completed",
         "retrieval_completed",
