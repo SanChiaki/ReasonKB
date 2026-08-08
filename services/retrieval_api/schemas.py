@@ -10,6 +10,9 @@ class QueryRequest(BaseModel):
 
 
 class Citation(BaseModel):
+    evidenceId: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     projectId: str
     projectName: str
     documentId: str
@@ -37,6 +40,9 @@ class EvidencePageBlocks(BaseModel):
 
 
 class EvidenceItem(BaseModel):
+    evidenceId: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     projectId: str
     projectName: str
     documentId: str
@@ -57,6 +63,26 @@ class EvidenceItem(BaseModel):
         default_factory=list,
         exclude_if=lambda value: not value,
     )
+    supports: list[str] = Field(
+        default_factory=list,
+        exclude_if=lambda value: not value,
+    )
+
+
+class CoverageAspect(BaseModel):
+    id: str
+    description: str
+    status: Literal["supported", "unresolved"]
+    evidenceIds: list[str] = Field(default_factory=list)
+
+
+class EvidenceCoverage(BaseModel):
+    status: Literal["complete", "partial", "none", "unknown"]
+    confidence: Literal["high", "medium", "low"]
+    aspects: list[CoverageAspect] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
+    canContinue: bool = False
+    stopReason: str
 
 
 class QueryResponse(BaseModel):
@@ -66,6 +92,10 @@ class QueryResponse(BaseModel):
     evidence: list[EvidenceItem] = []
     retrievalStatus: Literal["matched", "no_match", "degraded"] = "matched"
     degradedReason: str | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    coverage: EvidenceCoverage | None = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )

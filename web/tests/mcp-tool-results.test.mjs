@@ -18,6 +18,7 @@ describe("MCP retrieval tool results", () => {
       answer: "Partners must complete final acceptance.",
       citations: [
         {
+          evidenceId: "ev-policy",
           projectId: "proj-policy",
           projectName: "Partner policy",
           documentId: "doc-policy",
@@ -45,6 +46,7 @@ describe("MCP retrieval tool results", () => {
     expect(text).toContain("Partners must complete final acceptance.");
     expect(text).toContain("Policy.xlsx");
     expect(text).toContain("Document ID: doc-policy");
+    expect(text).toContain("Evidence ID: ev-policy");
     expect(text).toContain("Pages: 3-4");
     expect(text).toContain("Acceptance is required.");
     expect(text).not.toContain("PRIVATE_SELECTED_PATH");
@@ -103,6 +105,41 @@ describe("MCP retrieval tool results", () => {
     expect(text).not.toContain("PRIVATE_SOURCE_PATH");
     expect(text).not.toContain("PRIVATE_PROJECT_PATH");
     expect(text).not.toContain("Duplicate excerpt");
+  });
+
+  it("projects EvidenceSet coverage for model-only MCP clients", () => {
+    const payload = baseResult({
+      coverage: {
+        status: "partial",
+        confidence: "high",
+        aspects: [
+          {
+            id: "asp-upgrade",
+            description: "upgrade application process",
+            status: "supported",
+            evidenceIds: ["ev-policy"],
+          },
+          {
+            id: "asp-automatic",
+            description: "whether the upgrade is automatic",
+            status: "unresolved",
+            evidenceIds: [],
+          },
+        ],
+        unresolved: ["whether the upgrade is automatic"],
+        canContinue: false,
+        stopReason: "candidate_exhausted",
+      },
+    });
+
+    const result = retrievalToolContract("evidence").present(payload);
+
+    expect(result.content[0].text).toContain("Coverage: partial");
+    expect(result.content[0].text).toContain(
+      "- whether the upgrade is automatic",
+    );
+    expect(result.content[0].text).toContain("Continuation available: no");
+    expect(result.structuredContent.coverage).toEqual(payload.coverage);
   });
 
   it("substantially reduces a structured-table result without dropping its evidence", () => {

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -58,9 +59,9 @@ CANDIDATE_SELECTION_MAX_TOKENS = 512
 PAGE_SELECTION_MAX_TOKENS = 384
 EVIDENCE_ASSESSMENT_MAX_TOKENS = 384
 TREE_ASSESSMENT_ESCALATION_MAX_TOKENS = 512
-EVIDENCE_VALIDATION_MAX_TOKENS = 768
-EVIDENCE_COVERAGE_MAX_TOKENS = 384
+EVIDENCE_SET_ASSESSMENT_MAX_TOKENS = 1280
 DOCUMENT_DEGRADED_REASONS_KEY = "_reasonkb_retrieval_degraded_reasons"
+SUPPORTED_ASPECTS_KEY = "_reasonkb_supported_aspects"
 logger = logging.getLogger(__name__)
 _DOCUMENT_RETRIEVAL_EXECUTOR = ThreadPoolExecutor(
     max_workers=MAX_PARALLEL_DOCUMENT_RETRIEVALS,
@@ -101,6 +102,7 @@ class _EvidenceValidationResult:
     degraded_reason: str | None = None
     attempted_count: int = 0
     accepted_count: int = 0
+    coverage: "_EvidenceCoverageResult | None" = None
 
 
 @dataclass(frozen=True)
@@ -1515,6 +1517,8 @@ def _assemble_document_result(
     document: dict[str, Any],
     pages: str,
     evidence: list[dict[str, Any]],
+    *,
+    supported_aspects: Iterable[str] = (),
 ) -> dict[str, Any]:
     focus_page, excerpt = _select_citation_anchor(query, evidence)
     prompt_evidence = [
@@ -1586,6 +1590,13 @@ def _assemble_document_result(
         "pageEvidence": evidence,
         "citation": citation,
         "evidenceBlock": evidence_block,
+        SUPPORTED_ASPECTS_KEY: tuple(
+            dict.fromkeys(
+                aspect.strip()
+                for aspect in supported_aspects
+                if isinstance(aspect, str) and aspect.strip()
+            )
+        ),
     }
 
 
@@ -1677,7 +1688,7 @@ def _parse_evidence_coverage(payload: Any) -> _EvidenceCoverageResult | None:
     coverage = payload.get("coverage")
     confidence = payload.get("confidence")
     unresolved = payload.get("unresolved")
-    if coverage not in {"complete", "incomplete", "unknown"}:
+    if coverage not in {"complete", "incomplete"}:
         return None
     if confidence not in {"high", "medium", "low"}:
         return None
@@ -1690,6 +1701,8 @@ def _parse_evidence_coverage(payload: Any) -> _EvidenceCoverageResult | None:
     )
     if coverage == "complete" and normalized_unresolved:
         return None
+    if coverage == "incomplete" and not normalized_unresolved:
+        return None
     return _EvidenceCoverageResult(
         coverage=coverage,
         confidence=confidence,
@@ -1697,20 +1710,10 @@ def _parse_evidence_coverage(payload: Any) -> _EvidenceCoverageResult | None:
     )
 
 
-def _assess_evidence_coverage(
-    query: str,
-    document_results: list[dict[str, Any]],
-    remaining_documents: list[dict[str, Any]],
-) -> _EvidenceCoverageResult:
-    if not document_results:
-        return _EvidenceCoverageResult(
-            coverage="incomplete",
-            confidence="high",
-            unresolved=("No directly supporting page evidence has been collected.",),
-        )
-
-    current_evidence = _compact_validation_candidates(query, document_results)
-    remaining_candidates = [
+def _remaining_candidate_summaries(
+    remaining_documents: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
         {
             "document_name": document.get("file_name", ""),
             "project_name": document.get("project_name", ""),
@@ -1720,56 +1723,19 @@ def _assess_evidence_coverage(
         }
         for document in remaining_documents
     ]
-    prompt = f"""
-You are deciding whether the shared EvidenceSet has complete evidence coverage or should inspect more candidate documents.
 
-Mark coverage as complete only when the collected page text directly covers every material part,
-constraint, comparison, list item, time period, and requested entity in the question. Also require
-the remaining candidate summaries to show no plausible missing source. Be conservative for lists,
-comparisons, multi-document questions, and questions asking for all or every item. Do not infer facts
-that are absent from the collected text. Use incomplete when a specific part remains uncovered. Use
-unknown when the available text or summaries do not support a reliable decision.
 
-Question:
-{query}
-
-Collected page evidence:
-{json.dumps(current_evidence, ensure_ascii=False)}
-
-Not-yet-inspected candidate summaries:
-{json.dumps(remaining_candidates, ensure_ascii=False)}
-
-Return JSON only:
-{{"coverage":"complete","confidence":"high","unresolved":[]}}
-or
-{{"coverage":"incomplete","confidence":"high","unresolved":["missing fact"]}}
-"""
-
-    from pageindex.utils import extract_json
-
-    raw, completion_error = _retrieval_completion(
-        prompt,
-        stage="evidence_coverage",
-        max_output_tokens=EVIDENCE_COVERAGE_MAX_TOKENS,
+def _legacy_assessment_coverage(
+    accepted_matches: dict[int, tuple[set[int], tuple[str, ...]]],
+    remaining_documents: list[dict[str, Any]],
+) -> _EvidenceCoverageResult:
+    """Preserve grounded matches without inferring unsupported completeness."""
+    del accepted_matches, remaining_documents
+    return _EvidenceCoverageResult(
+        coverage="incomplete",
+        confidence="low",
+        unresolved=("Further evidence coverage assessment is required.",),
     )
-    if completion_error or not raw:
-        return _EvidenceCoverageResult(
-            coverage="unknown",
-            confidence="low",
-            degraded_reason="evidence_coverage_failed",
-        )
-    try:
-        parsed = extract_json(raw)
-        coverage = _parse_evidence_coverage(parsed)
-    except Exception:
-        coverage = None
-    if coverage is None:
-        return _EvidenceCoverageResult(
-            coverage="unknown",
-            confidence="low",
-            degraded_reason="evidence_coverage_failed",
-        )
-    return coverage
 
 
 def _coverage_is_complete(result: _EvidenceCoverageResult | None) -> bool:
@@ -1785,7 +1751,9 @@ def _coverage_is_complete(result: _EvidenceCoverageResult | None) -> bool:
 def _parse_evidence_validation_matches(
     payload: Any,
     document_results: list[dict[str, Any]],
-) -> dict[int, set[int]] | None:
+    *,
+    require_supported_aspects: bool = False,
+) -> dict[int, tuple[set[int], tuple[str, ...]]] | None:
     if not isinstance(payload, dict) or not isinstance(payload.get("matches"), list):
         return None
 
@@ -1809,7 +1777,8 @@ def _parse_evidence_validation_matches(
             and item["content"].strip()
         }
 
-    accepted: dict[int, set[int]] = {}
+    accepted_pages: dict[int, set[int]] = {}
+    accepted_aspects: dict[int, list[str]] = {}
     for item in raw_matches:
         if not isinstance(item, dict):
             return None
@@ -1833,9 +1802,35 @@ def _parse_evidence_validation_matches(
         supported_pages = set(parsed_pages)
         if not supported_pages.issubset(available_pages[result_index]):
             return None
-        accepted.setdefault(result_index, set()).update(supported_pages)
+        raw_aspects = item.get("supported_aspects")
+        if raw_aspects is None and not require_supported_aspects:
+            normalized_aspects: tuple[str, ...] = ()
+        elif not isinstance(raw_aspects, list) or any(
+            not isinstance(aspect, str) for aspect in raw_aspects
+        ):
+            return None
+        else:
+            normalized_aspects = tuple(
+                dict.fromkeys(
+                    aspect.strip()
+                    for aspect in raw_aspects
+                    if aspect.strip()
+                )
+            )
+            if require_supported_aspects and not normalized_aspects:
+                return None
+        accepted_pages.setdefault(result_index, set()).update(supported_pages)
+        accepted_aspects.setdefault(result_index, []).extend(normalized_aspects)
 
-    return accepted or None
+    if not accepted_pages:
+        return None
+    return {
+        index: (
+            pages,
+            tuple(dict.fromkeys(accepted_aspects.get(index, ()))),
+        )
+        for index, pages in accepted_pages.items()
+    }
 
 
 def _expand_evidence_supporting_pages(
@@ -1926,33 +1921,53 @@ def _expand_evidence_supporting_pages(
 def _validate_retrieved_evidence(
     query: str,
     document_results: list[dict[str, Any]],
+    remaining_documents: list[dict[str, Any]] | None = None,
 ) -> _EvidenceValidationResult:
+    remaining_documents = remaining_documents or []
     validation_indexes = [
         index
         for index, result in enumerate(document_results)
         if result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY)
     ]
     if not validation_indexes:
+        coverage = (
+            _EvidenceCoverageResult(coverage="complete", confidence="high")
+            if document_results and not remaining_documents
+            else _EvidenceCoverageResult(
+                coverage="incomplete",
+                confidence="low",
+                unresolved=("Further evidence coverage assessment is required.",),
+            )
+        )
         return _EvidenceValidationResult(
             tuple(document_results),
             "matched" if document_results else "no_match",
             attempted_count=0,
+            coverage=coverage,
         )
 
     validation_results = [document_results[index] for index in validation_indexes]
     candidates = _compact_validation_candidates(query, validation_results)
     prompt = f"""
-You are validating page evidence collected by the retrieval candidate stage.
-Keep a candidate only when its page text directly supports a requested fact or material part of the
-question and all applicable qualifiers, such as year, version, product level, audience, or entity.
-A neighboring topic or a different year's threshold is not safe evidence. Preserve directly
-supporting partial evidence; overall question completeness is assessed separately after validation.
+You are validating page evidence and assessing the accumulated EvidenceSet in one pass.
+Keep a candidate whenever its page text directly supports any independently useful fact, condition,
+process step, or material part needed by the original question, including connective facts that link
+two documents. A candidate does not need to answer the whole question. Never reject directly
+supporting partial evidence merely because another document is needed for complete coverage.
+
+Every retained match must list short supported_aspects grounded in its selected pages. Derive the
+smallest useful set of material coverage needs from the original question, usually one to six in
+total. Reuse the exact same aspect string across matches that support the same need. Do not create an
+aspect for every detail, restate the same need in different words, or turn aspects into independently
+generated subquestions. Keep the original question authoritative. Apply all qualifiers such as year,
+version, product level, audience, or entity. A neighboring topic or a different year's threshold is
+not safe evidence.
 
 Question: {query}
-Candidate page text:
+Accumulated candidate page text:
 {json.dumps(candidates, ensure_ascii=False)}
 
-Evaluate the candidate pages together, not each page in isolation. For a question asking for all
+Evaluate the candidate pages together across all accumulated documents, not each page or document in isolation. For a question asking for all
 items in a list or table, supporting_pages must cover the complete list. If numbered rows continue
 onto the next physical page, include that continuation page even when it does not repeat the heading
 or qualifiers. Do not replace a list continuation page with a detailed explanation page merely
@@ -1962,9 +1977,21 @@ Exclude candidates that merely share keywords, discuss a neighboring topic, or d
 the requested fact. Never infer a fact that is absent from the page text. A page that mentions
 the requested year only in an unrelated note does not support a year-specific answer; the fact
 itself must be stated for that year. Never use a different year's value as evidence.
+
+After selecting matches, assess coverage across the retained pages. Mark coverage complete only when
+they directly cover every material part, constraint, comparison, list item, time period, and requested
+entity, and the remaining candidate summaries show no plausible missing source. Use incomplete when
+a specific aspect remains uncovered, and list every known gap in unresolved. Do not return unknown;
+ReasonKB reserves that state for technical assessment failures. Unresolved entries describe coverage
+gaps and must never remove a match.
+
+Not-yet-inspected candidate summaries:
+{json.dumps(_remaining_candidate_summaries(remaining_documents), ensure_ascii=False)}
+
 Return JSON only:
-{{"matches":[{{"candidate_id":"D001","supporting_pages":[1,3]}}]}}
-Return {{"matches":[]}} when none of the candidates are directly relevant evidence.
+{{"matches":[{{"candidate_id":"D001","supporting_pages":[1,3],"supported_aspects":["fact supported by these pages"]}}],"coverage":"incomplete","confidence":"high","unresolved":["missing aspect"]}}
+Return an empty matches array only when none of the candidate pages supports any material part of the
+question. Even then, return coverage, confidence, and unresolved.
 """
 
     from pageindex.utils import extract_json
@@ -1972,18 +1999,46 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
     try:
         raw, completion_error = _retrieval_completion(
             prompt,
-            stage="evidence_validation",
-            max_output_tokens=EVIDENCE_VALIDATION_MAX_TOKENS,
+            stage="evidence_set_assessment",
+            max_output_tokens=EVIDENCE_SET_ASSESSMENT_MAX_TOKENS,
         )
         if completion_error:
             raise ValueError(completion_error)
         parsed = extract_json(raw)
+        requires_combined_contract = any(
+            key in parsed for key in ("coverage", "confidence", "unresolved")
+        )
         accepted_local_indexes = _parse_evidence_validation_matches(
             parsed,
             validation_results,
+            require_supported_aspects=requires_combined_contract,
         )
+        coverage = (
+            _parse_evidence_coverage(parsed)
+            if requires_combined_contract
+            else _legacy_assessment_coverage(
+                accepted_local_indexes or {},
+                remaining_documents,
+            )
+        )
+        if coverage is None or (
+            coverage.coverage == "complete" and not accepted_local_indexes
+        ):
+            raise ValueError("invalid EvidenceSet coverage")
+        supported_aspects = {
+            aspect.casefold()
+            for _pages, aspects in (accepted_local_indexes or {}).values()
+            for aspect in aspects
+        }
+        if any(item.casefold() in supported_aspects for item in coverage.unresolved):
+            raise ValueError("conflicting EvidenceSet coverage")
     except Exception:
         accepted_local_indexes = None
+        coverage = _EvidenceCoverageResult(
+            coverage="unknown",
+            confidence="low",
+            degraded_reason="evidence_set_assessment_failed",
+        )
 
     if accepted_local_indexes is None:
         retained = tuple(
@@ -1992,21 +2047,22 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
             if index not in validation_indexes
         )
         logger.warning(
-            "Retrieved evidence validation failed attempted=%d retained=%d",
+            "EvidenceSet assessment failed attempted=%d retained=%d",
             len(validation_indexes),
             len(retained),
         )
         return _EvidenceValidationResult(
             retained,
             "degraded",
-            degraded_reason="evidence_validation_failed",
+            degraded_reason="evidence_set_assessment_failed",
             attempted_count=len(validation_indexes),
             accepted_count=0,
+            coverage=coverage,
         )
 
     accepted_by_global_index = {
-        validation_indexes[local_index]: pages
-        for local_index, pages in accepted_local_indexes.items()
+        validation_indexes[local_index]: match
+        for local_index, match in accepted_local_indexes.items()
     }
     retained_results: list[dict[str, Any]] = []
     accepted_count = 0
@@ -2014,9 +2070,10 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
         if index not in validation_indexes:
             retained_results.append(result)
             continue
-        supporting_pages = accepted_by_global_index.get(index)
-        if not supporting_pages:
+        accepted_match = accepted_by_global_index.get(index)
+        if not accepted_match:
             continue
+        supporting_pages, supported_aspects = accepted_match
         supporting_pages = _expand_evidence_supporting_pages(
             query,
             result,
@@ -2043,21 +2100,183 @@ Return {{"matches":[]}} when none of the candidates are directly relevant eviden
                 validated_document,
                 _format_page_window(supporting_pages),
                 supporting_evidence,
+                supported_aspects=supported_aspects,
             )
         )
         accepted_count += 1
 
     logger.info(
-        "Retrieved evidence validation completed attempted=%d accepted=%d",
+        "EvidenceSet assessment completed attempted=%d accepted=%d coverage=%s",
         len(validation_indexes),
         accepted_count,
+        coverage.coverage,
     )
     return _EvidenceValidationResult(
         tuple(retained_results),
         "matched" if retained_results else "no_match",
         attempted_count=len(validation_indexes),
         accepted_count=accepted_count,
+        coverage=coverage,
     )
+
+
+def _merge_grounded_document_results(
+    query: str,
+    existing: list[dict[str, Any]],
+    additional: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged = list(existing)
+    positions = {
+        str(result.get("document", {}).get("id") or ""): index
+        for index, result in enumerate(merged)
+    }
+    for result in additional:
+        document_id = str(result.get("document", {}).get("id") or "")
+        position = positions.get(document_id)
+        if position is None:
+            positions[document_id] = len(merged)
+            merged.append(result)
+            continue
+
+        previous = merged[position]
+        evidence = _merge_page_evidence(
+            previous.get("pageEvidence", []),
+            result.get("pageEvidence", []),
+        )
+        pages = {
+            item["page"]
+            for item in evidence
+            if isinstance(item, dict) and _is_page_number(item.get("page"))
+        }
+        latest_aspects = tuple(result.get(SUPPORTED_ASPECTS_KEY, ()))
+        aspects = (
+            latest_aspects
+            if latest_aspects
+            else tuple(previous.get(SUPPORTED_ASPECTS_KEY, ()))
+        )
+        rebuilt = _assemble_document_result(
+            query,
+            result["document"],
+            _format_page_window(pages),
+            evidence,
+            supported_aspects=aspects,
+        )
+        degraded_reasons = tuple(
+            dict.fromkeys(
+                [
+                    *previous.get(DOCUMENT_DEGRADED_REASONS_KEY, ()),
+                    *result.get(DOCUMENT_DEGRADED_REASONS_KEY, ()),
+                ]
+            )
+        )
+        if degraded_reasons:
+            rebuilt[DOCUMENT_DEGRADED_REASONS_KEY] = degraded_reasons
+        merged[position] = rebuilt
+    return merged
+
+
+def _stable_result_id(prefix: str, *parts: object) -> str:
+    normalized = "\x1f".join(str(part).strip() for part in parts)
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
+
+
+def _evidence_id(result: dict[str, Any]) -> str:
+    return _stable_result_id(
+        "ev",
+        result.get("document", {}).get("id", ""),
+        result.get("document", {}).get("_document_index_id", ""),
+        result.get("evidenceBlock", {}).get("pages", ""),
+    )
+
+
+def _aspect_id(description: str) -> str:
+    return _stable_result_id("asp", description.casefold())
+
+
+def _evidence_blocks_with_identity(
+    document_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    for result in document_results:
+        block = dict(result["evidenceBlock"])
+        block["evidenceId"] = _evidence_id(result)
+        supported = [
+            _aspect_id(aspect)
+            for aspect in result.get(SUPPORTED_ASPECTS_KEY, ())
+            if isinstance(aspect, str) and aspect.strip()
+        ]
+        if supported:
+            block["supports"] = list(dict.fromkeys(supported))
+        blocks.append(block)
+    return blocks
+
+
+def _coverage_payload(
+    coverage: _EvidenceCoverageResult | None,
+    document_results: list[dict[str, Any]],
+    *,
+    stop_reason: str,
+    can_continue: bool = False,
+) -> dict[str, Any]:
+    if coverage is None or coverage.degraded_reason or coverage.coverage == "unknown":
+        public_status = "unknown"
+        confidence = "low" if coverage is None else coverage.confidence
+    elif not document_results:
+        public_status = "none"
+        confidence = coverage.confidence
+    elif coverage.coverage == "complete":
+        public_status = "complete"
+        confidence = coverage.confidence
+    else:
+        public_status = "partial"
+        confidence = coverage.confidence
+
+    supported_evidence_ids: dict[str, list[str]] = {}
+    supported_descriptions: dict[str, str] = {}
+    for result in document_results:
+        evidence_id = _evidence_id(result)
+        for description in result.get(SUPPORTED_ASPECTS_KEY, ()):
+            if not isinstance(description, str) or not description.strip():
+                continue
+            normalized = description.strip()
+            aspect_id = _aspect_id(normalized)
+            supported_descriptions.setdefault(aspect_id, normalized)
+            supported_evidence_ids.setdefault(aspect_id, []).append(evidence_id)
+
+    aspects = [
+        {
+            "id": aspect_id,
+            "description": description,
+            "status": "supported",
+            "evidenceIds": list(dict.fromkeys(supported_evidence_ids[aspect_id])),
+        }
+        for aspect_id, description in supported_descriptions.items()
+    ]
+    unresolved = list(coverage.unresolved) if coverage is not None else []
+    supported_text = {
+        description.casefold() for description in supported_descriptions.values()
+    }
+    for description in unresolved:
+        if description.casefold() in supported_text:
+            continue
+        aspects.append(
+            {
+                "id": _aspect_id(description),
+                "description": description,
+                "status": "unresolved",
+                "evidenceIds": [],
+            }
+        )
+
+    return {
+        "status": public_status,
+        "confidence": confidence,
+        "aspects": aspects,
+        "unresolved": unresolved,
+        "canContinue": can_continue,
+        "stopReason": stop_reason,
+    }
 
 
 def _finalize_document_results(
@@ -2297,13 +2516,30 @@ def _empty_retrieval_result(
     *,
     status: RetrievalStatus = "no_match",
     degraded_reason: str | None = None,
+    coverage: _EvidenceCoverageResult | None = None,
+    stop_reason: str = "no_candidates",
 ) -> dict[str, Any]:
+    if coverage is None:
+        coverage = _EvidenceCoverageResult(
+            coverage="unknown" if status == "degraded" else "incomplete",
+            confidence="low" if status == "degraded" else "high",
+            degraded_reason=(
+                degraded_reason or "retrieval_degraded"
+                if status == "degraded"
+                else None
+            ),
+        )
     result = {
         "answer": "" if mode == "evidence" else message,
         "citations": [],
         "selectedDocuments": [],
         "evidence": [],
         "retrievalStatus": status,
+        "coverage": _coverage_payload(
+            coverage,
+            [],
+            stop_reason=stop_reason,
+        ),
     }
     if degraded_reason:
         result["degradedReason"] = degraded_reason
@@ -2314,6 +2550,11 @@ def _request_deadline_result(
     mode: str,
     document_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    coverage = _EvidenceCoverageResult(
+        coverage="unknown",
+        confidence="low",
+        degraded_reason="request_deadline_exceeded",
+    )
     if mode == "evidence" and document_results:
         return _build_answer_result(
             "",
@@ -2321,26 +2562,17 @@ def _request_deadline_result(
             mode,
             status="degraded",
             degraded_reason="request_deadline_exceeded",
+            coverage=coverage,
+            stop_reason="request_deadline",
         )
     return _empty_retrieval_result(
         "Retrieval exceeded its request deadline before it could complete.",
         mode,
         status="degraded",
         degraded_reason="request_deadline_exceeded",
+        coverage=coverage,
+        stop_reason="request_deadline",
     )
-
-
-def _validated_results_only(
-    document_results: Iterable[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], int]:
-    retained: list[dict[str, Any]] = []
-    pending_count = 0
-    for result in document_results:
-        if result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY):
-            pending_count += 1
-            continue
-        retained.append(result)
-    return retained, pending_count
 
 
 def _build_answer_result(
@@ -2350,14 +2582,19 @@ def _build_answer_result(
     *,
     status: RetrievalStatus = "matched",
     degraded_reason: str | None = None,
+    coverage: _EvidenceCoverageResult | None = None,
+    stop_reason: str = "candidate_exhausted",
 ) -> dict[str, Any]:
     context_blocks = [result["contextBlock"] for result in document_results]
     citations = [
-        result["citation"]
+        {
+            **result["citation"],
+            "evidenceId": _evidence_id(result),
+        }
         for result in document_results
         if result["citation"] is not None
     ]
-    evidence_blocks = [result["evidenceBlock"] for result in document_results]
+    evidence_blocks = _evidence_blocks_with_identity(document_results)
     used_documents = [result["document"] for result in document_results]
 
     if not used_documents:
@@ -2366,6 +2603,8 @@ def _build_answer_result(
             mode,
             status="no_match" if status == "matched" else status,
             degraded_reason=degraded_reason,
+            coverage=coverage,
+            stop_reason=stop_reason,
         )
 
     answer = "" if mode == "evidence" else _generate_answer(query, context_blocks)
@@ -2380,6 +2619,11 @@ def _build_answer_result(
         "selectedDocuments": _selected_documents_payload(used_documents, mode),
         "evidence": evidence_blocks if mode == "evidence" else [],
         "retrievalStatus": status,
+        "coverage": _coverage_payload(
+            coverage,
+            document_results,
+            stop_reason=stop_reason,
+        ),
     }
     if degraded_reason:
         result["degradedReason"] = degraded_reason
@@ -2628,7 +2872,8 @@ def _build_progressive_evidence_events(
     query_context: _QueryLlmContext,
     document_concurrency: int,
 ) -> Generator[dict[str, Any], None, _EvidenceExpansionResult]:
-    accumulated_results: list[dict[str, Any]] = []
+    provisional_results: list[dict[str, Any]] = []
+    grounded_results: list[dict[str, Any]] = []
     accumulated_reasons: list[str] = []
     attempted_documents: list[dict[str, Any]] = []
     coverage: _EvidenceCoverageResult | None = None
@@ -2666,7 +2911,7 @@ def _build_progressive_evidence_events(
             query_context=query_context,
             document_concurrency=document_concurrency,
         )
-        accumulated_results.extend(wave_results)
+        provisional_results.extend(wave_results)
         accumulated_reasons.extend(wave_results.degraded_reasons)
         yield _progress_event(
             "evidence_wave_completed",
@@ -2683,61 +2928,60 @@ def _build_progressive_evidence_events(
         ) or _query_deadline_expired(query_context):
             break
 
-        pending_validation_count = sum(
-            bool(result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY))
-            for result in accumulated_results
-        )
-        if pending_validation_count:
+        if provisional_results:
             yield _progress_event(
-                "evidence_validation_started",
+                "evidence_set_assessment_started",
                 {
                     "wave": wave_number,
-                    "documentCount": pending_validation_count,
+                    "candidateDocumentCount": len(provisional_results),
+                    "evidenceDocumentCount": len(grounded_results),
+                    "remainingDocumentCount": len(selected) - next_index,
                 },
             )
             with _query_llm_context_scope(query_context):
                 wave_validation = _validate_retrieved_evidence(
                     query,
-                    accumulated_results,
+                    provisional_results,
+                    selected[next_index:],
                 )
-            accumulated_results = list(wave_validation.document_results)
             if wave_validation.degraded_reason:
                 accumulated_reasons.append(wave_validation.degraded_reason)
+                coverage_failed = True
+            else:
+                accumulated_reasons = [
+                    reason
+                    for reason in accumulated_reasons
+                    if reason != "evidence_set_assessment_failed"
+                ]
+                coverage_failed = False
+                grounded_results = _merge_grounded_document_results(
+                    query,
+                    grounded_results,
+                    wave_validation.document_results,
+                )
+            coverage = wave_validation.coverage or (
+                _EvidenceCoverageResult(coverage="complete", confidence="high")
+                if wave_validation.document_results and next_index >= len(selected)
+                else _EvidenceCoverageResult(
+                    coverage="incomplete",
+                    confidence="low",
+                    unresolved=("Further evidence coverage assessment is required.",),
+                )
+            )
             yield _progress_event(
-                "evidence_validation_completed",
+                "evidence_set_assessment_completed",
                 {
                     "wave": wave_number,
                     "attemptedCount": wave_validation.attempted_count,
                     "acceptedCount": wave_validation.accepted_count,
                     "retrievalStatus": wave_validation.status,
+                    "evidenceDocumentCount": len(grounded_results),
+                    "coverage": coverage.coverage if coverage else "unknown",
+                    "confidence": coverage.confidence if coverage else "low",
+                    "unresolved": list(coverage.unresolved) if coverage else [],
+                    "remainingDocumentCount": len(selected) - next_index,
                 },
             )
-
-        yield _progress_event(
-            "evidence_coverage_started",
-            {
-                "wave": wave_number,
-                "evidenceDocumentCount": len(accumulated_results),
-                "remainingDocumentCount": len(selected) - next_index,
-            },
-        )
-        with _query_llm_context_scope(query_context):
-            coverage = _assess_evidence_coverage(
-                query,
-                accumulated_results,
-                selected[next_index:],
-            )
-        coverage_failed = coverage_failed or bool(coverage.degraded_reason)
-        yield _progress_event(
-            "evidence_coverage_completed",
-            {
-                "wave": wave_number,
-                "coverage": coverage.coverage,
-                "confidence": coverage.confidence,
-                "unresolved": list(coverage.unresolved),
-                "remainingDocumentCount": len(selected) - next_index,
-            },
-        )
         if (
             selection_reliable
             and not accumulated_reasons
@@ -2747,7 +2991,7 @@ def _build_progressive_evidence_events(
 
     return _EvidenceExpansionResult(
         document_results=_DocumentResults(
-            accumulated_results,
+            grounded_results,
             attempted_count=len(attempted_documents),
             degraded_reasons=accumulated_reasons,
         ),
@@ -2837,6 +3081,7 @@ def _execute_retrieval_events(
             mode,
             status=status,
             degraded_reason=degraded_reason,
+            stop_reason=degraded_reason or "no_candidates",
         )
         yield _progress_event(
             "retrieval_completed",
@@ -2856,6 +3101,7 @@ def _execute_retrieval_events(
             mode,
             status="degraded",
             degraded_reason="selected_document_load_failed",
+            stop_reason="selected_document_load_failed",
         )
         yield _progress_event(
             "retrieval_completed",
@@ -2897,15 +3143,7 @@ def _execute_retrieval_events(
         document_results,
     )
     if _query_deadline_expired(query_context):
-        validated_results, pending_validation_count = _validated_results_only(
-            document_results
-        )
-        if pending_validation_count:
-            logger.warning(
-                "Discarding %d unvalidated evidence documents at request deadline",
-                pending_validation_count,
-            )
-        result = _request_deadline_result(mode, validated_results)
+        result = _request_deadline_result(mode, document_results)
         yield _progress_event(
             "retrieval_completed",
             {
@@ -2917,69 +3155,28 @@ def _execute_retrieval_events(
         yield _result_event(result)
         return
 
-    validation_candidate_count = sum(
-        bool(result.get("document", {}).get(EVIDENCE_VALIDATION_REASON_KEY))
-        for result in document_results
-    )
-    if validation_candidate_count:
-        yield _progress_event(
-            "evidence_validation_started",
-            {"documentCount": validation_candidate_count},
-        )
-    with _query_llm_context_scope(query_context):
-        validation = _validate_retrieved_evidence(query, document_results)
-    if cancellation_event is not None and cancellation_event.is_set():
-        return
-    document_results = list(validation.document_results)
-
     coverage = evidence_expansion.coverage
     coverage_failed = evidence_expansion.coverage_failed
-    coverage_degraded_reason: str | None = None
-    if document_results and (coverage is None or validation_candidate_count):
-        yield _progress_event(
-            "evidence_coverage_started",
-            {
-                "wave": "final",
-                "evidenceDocumentCount": len(document_results),
-                "remainingDocumentCount": 0,
-            },
-        )
-        with _query_llm_context_scope(query_context):
-            coverage = _assess_evidence_coverage(query, document_results, [])
-        coverage_failed = coverage_failed or bool(coverage.degraded_reason)
-        yield _progress_event(
-            "evidence_coverage_completed",
-            {
-                "wave": "final",
-                "coverage": coverage.coverage,
-                "confidence": coverage.confidence,
-                "unresolved": list(coverage.unresolved),
-                "remainingDocumentCount": 0,
-            },
-        )
-    if document_results:
-        if coverage_failed or coverage is None or coverage.degraded_reason:
-            coverage_degraded_reason = "evidence_coverage_failed"
-        elif not _coverage_is_complete(coverage):
-            coverage_degraded_reason = "evidence_expansion_limit_reached"
+    validation = _EvidenceValidationResult(
+        tuple(document_results),
+        "matched" if document_results else "no_match",
+        coverage=coverage,
+    )
 
     status, degraded_reason = _combine_retrieval_status(
         selected,
         validation,
         collection_degraded_reason,
     )
-    if coverage_degraded_reason and status != "degraded":
+    if (coverage_failed or coverage is None or coverage.degraded_reason) and status != "degraded":
         status = "degraded"
-        degraded_reason = coverage_degraded_reason
-    if validation_candidate_count:
-        yield _progress_event(
-            "evidence_validation_completed",
-            {
-                "attemptedCount": validation.attempted_count,
-                "acceptedCount": validation.accepted_count,
-                "retrievalStatus": status,
-            },
-        )
+        degraded_reason = "evidence_set_assessment_failed"
+    if _coverage_is_complete(coverage):
+        stop_reason = "coverage_complete"
+    elif status == "degraded":
+        stop_reason = degraded_reason or "retrieval_degraded"
+    else:
+        stop_reason = "candidate_exhausted"
 
     if _query_deadline_expired(query_context):
         result = _request_deadline_result(mode, document_results)
@@ -3004,6 +3201,8 @@ def _execute_retrieval_events(
             mode,
             status=status,
             degraded_reason=degraded_reason,
+            coverage=coverage,
+            stop_reason=stop_reason,
         )
         yield _progress_event(
             "retrieval_completed",
@@ -3028,6 +3227,8 @@ def _execute_retrieval_events(
             mode,
             status=status,
             degraded_reason=degraded_reason,
+            coverage=coverage,
+            stop_reason=stop_reason,
         )
     if cancellation_event is not None and cancellation_event.is_set():
         return

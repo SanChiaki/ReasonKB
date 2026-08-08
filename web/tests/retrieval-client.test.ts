@@ -379,4 +379,51 @@ describe("retrieval client", () => {
       },
     });
   });
+
+  it("projects EvidenceSet assessment progress without leaking candidates", async () => {
+    vi.doMock("@/lib/config", () => ({
+      appConfig: {
+        dbPath: "/tmp/app.db",
+        retrievalBaseUrl: "http://retrieval.test",
+      },
+    }));
+    const { projectAgentRetrievalEvent } = await import("@/lib/retrieval-client");
+
+    expect(
+      projectAgentRetrievalEvent({
+        type: "progress",
+        stage: "evidence_set_assessment_completed",
+        data: {
+          wave: 2,
+          attemptedCount: 4,
+          acceptedCount: 2,
+          retrievalStatus: "matched",
+          evidenceDocumentCount: 2,
+          coverage: "partial",
+          confidence: "high",
+          remainingDocumentCount: 1,
+          unresolved: ["automatic upgrade eligibility"],
+          candidates: [
+            {
+              documentId: "secret-doc",
+              content: "private evidence excerpt",
+            },
+          ],
+        },
+      }),
+    ).toEqual({
+      type: "progress",
+      stage: "evidence_set_assessment_completed",
+      data: {
+        wave: 2,
+        attemptedCount: 4,
+        acceptedCount: 2,
+        retrievalStatus: "matched",
+        evidenceDocumentCount: 2,
+        coverage: "partial",
+        confidence: "high",
+        remainingDocumentCount: 1,
+      },
+    });
+  });
 });
