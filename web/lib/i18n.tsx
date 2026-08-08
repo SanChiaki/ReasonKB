@@ -19,10 +19,17 @@ const messages = {
     "nav.close": "Close navigation",
     "nav.open": "Open navigation",
     "nav.newChat": "New Chat",
+    "nav.workspace": "Workspace",
+    "nav.management": "Management",
     "nav.chat": "Chat",
     "nav.projects": "Projects",
+    "nav.status": "Runtime status",
     "nav.sources": "Data sources",
+    "nav.audit": "Audit",
     "nav.settings": "Settings",
+    "nav.adminView": "Administrator",
+    "nav.backToWorkspace": "Back to workspace",
+    "nav.logout": "Log out",
     "nav.recentChats": "Recent Chats",
     "nav.historyEmpty": "Conversation history will appear here.",
     "language.label": "Language",
@@ -74,9 +81,11 @@ const messages = {
     "chat.progressDocumentsLoaded": "Loaded {count} ready documents.",
     "chat.progressSelectionStarted": "Selecting candidate documents...",
     "chat.progressDocumentsSelected": "Selected {count} document{plural}.",
-    "chat.progressEvidenceStarted": "Loading evidence from selected documents...",
+    "chat.progressEvidenceStarted":
+      "Loading evidence from selected documents...",
     "chat.progressDocumentEvidenceStarted": "Reading {document}.",
-    "chat.progressDocumentPagesSelected": "Selected pages {pages} in {document}.",
+    "chat.progressDocumentPagesSelected":
+      "Selected pages {pages} in {document}.",
     "chat.progressDocumentEvidenceLoaded": "Loaded evidence from {document}.",
     "chat.progressDocumentEvidenceSkipped": "Skipped {document}.",
     "chat.progressAnswerStarted": "Generating answer from evidence...",
@@ -88,7 +97,8 @@ const messages = {
       "Evidence mode returns source snippets and paths for downstream processing.",
     "chat.answerAllHelp":
       "Answer mode searches every ready document unless project chips are selected.",
-    "chat.answerSelectedHelp": "Answer mode synthesizes a response from retrieved evidence.",
+    "chat.answerSelectedHelp":
+      "Answer mode synthesizes a response from retrieved evidence.",
     "chat.noProjects":
       "No projects yet. Retrieval will use all ready documents once they are indexed.",
     "chat.roleUser": "You",
@@ -106,7 +116,8 @@ const messages = {
     "projects.noMatchesDescription":
       'No projects match "{query}". Try a different search.',
     "projects.emptyTitle": "No projects yet",
-    "projects.emptyDescription": "Select and synchronize a collection from Data sources.",
+    "projects.emptyDescription":
+      "Select and synchronize a collection from Data sources.",
     "projects.openAria": "Open {name}",
     "projects.folder": "Folder",
     "projects.docs": "{count} docs",
@@ -133,7 +144,8 @@ const messages = {
     "documents.treeUnavailableFor": "Index tree unavailable for {name}",
     "documents.viewNodeCount": "View {count} PageIndex nodes",
     "documents.viewTree": "View PageIndex tree",
-    "documents.treeAfterIndex": "Index tree is available after indexing completes",
+    "documents.treeAfterIndex":
+      "Index tree is available after indexing completes",
     "documents.reindex": "Reindex {name}",
     "documents.pageIndexTreeFor": "PageIndex tree for {name}",
     "documents.pageIndexTree": "PageIndex Tree",
@@ -151,7 +163,8 @@ const messages = {
     "documents.callPlural": "calls",
     "documents.statusUnknown": "Unknown",
     "documents.excluded": "Excluded",
-    "documents.excludedAction": "Excluded documents cannot be opened or reindexed",
+    "documents.excludedAction":
+      "Excluded documents cannot be opened or reindexed",
 
     "apiKeys.eyebrow": "Agent access",
     "apiKeys.title": "API keys",
@@ -190,7 +203,17 @@ const messages = {
     "settings.title": "System settings",
     "settings.description":
       "Runtime controls stored in the application database and picked up by background services without a container restart.",
+    "settings.navModels": "Models and retrieval",
+    "settings.navIndexing": "Index and corpus",
+    "settings.navInterface": "Interface",
+    "settings.navAccess": "Access and security",
+    "settings.accessEyebrow": "Access control",
+    "settings.accessTitle": "Access and security",
+    "settings.accessDescription":
+      "Manage Agent API credentials and administrator access.",
     "settings.serviceHealthEyebrow": "Runtime",
+    "settings.statusPageDescription":
+      "Monitor service heartbeats and model provider failures without leaving the console.",
     "settings.serviceHealth": "Service health",
     "settings.serviceHealthySummary": "{healthy} / {total} healthy",
     "settings.serviceCheckedAt": "Checked at {time}",
@@ -328,7 +351,8 @@ const messages = {
       "Docker env file updated. Recreate containers on the host.",
     "settings.switchStep2Manual":
       "Update REASONKB_PROJECTS_ROOT in the Docker env file, then recreate containers on the host.",
-    "settings.switchStep3": "3. ReasonKB reports the new mounted root after restart: {status}",
+    "settings.switchStep3":
+      "3. ReasonKB reports the new mounted root after restart: {status}",
     "settings.done": "done",
     "settings.waiting": "waiting",
     "settings.requestedAt": "Requested at: {date}",
@@ -377,7 +401,8 @@ const messages = {
     "settings.passwordMismatch": "The new passwords do not match.",
     "settings.passwordMustDiffer": "The new password must be different.",
     "settings.passwordCurrentIncorrect": "The current password is incorrect.",
-    "settings.passwordChangeError": "Unable to change the administrator password.",
+    "settings.passwordChangeError":
+      "Unable to change the administrator password.",
     "settings.changePassword": "Change password",
     "settings.passwordChanging": "Changing...",
   },
@@ -386,10 +411,17 @@ const messages = {
     "nav.close": "关闭导航",
     "nav.open": "打开导航",
     "nav.newChat": "新建对话",
+    "nav.workspace": "工作区",
+    "nav.management": "管理",
     "nav.chat": "对话",
     "nav.projects": "项目",
+    "nav.status": "运行状态",
     "nav.sources": "数据源",
+    "nav.audit": "审计",
     "nav.settings": "设置",
+    "nav.adminView": "管理员模式",
+    "nav.backToWorkspace": "返回工作区",
+    "nav.logout": "退出管理",
     "nav.recentChats": "最近对话",
     "nav.historyEmpty": "对话历史会显示在这里。",
     "language.label": "语言",
@@ -418,7 +450,8 @@ const messages = {
     "chat.scope": "范围",
     "chat.newChat": "新对话",
     "chat.modelMissingTitle": "模型服务未配置",
-    "chat.modelMissingDescription": "缺少 {fields}。对话回答和文档索引都需要模型端点。",
+    "chat.modelMissingDescription":
+      "缺少 {fields}。对话回答和文档索引都需要模型端点。",
     "chat.configureModel": "配置模型",
     "chat.emptyTitle": "跨项目提问",
     "chat.emptyDescription":
@@ -441,7 +474,8 @@ const messages = {
     "chat.progressDocumentsSelected": "已选择 {count} 个文档。",
     "chat.progressEvidenceStarted": "正在读取选中文档的证据...",
     "chat.progressDocumentEvidenceStarted": "正在读取 {document}。",
-    "chat.progressDocumentPagesSelected": "已在 {document} 中选择页码 {pages}。",
+    "chat.progressDocumentPagesSelected":
+      "已在 {document} 中选择页码 {pages}。",
     "chat.progressDocumentEvidenceLoaded": "已从 {document} 读取证据。",
     "chat.progressDocumentEvidenceSkipped": "已跳过 {document}。",
     "chat.progressAnswerStarted": "正在基于证据生成回答...",
@@ -461,7 +495,8 @@ const messages = {
 
     "projects.eyebrow": "工作区",
     "projects.title": "项目",
-    "projects.description": "浏览已启用的数据源目录，并在对话中作为检索范围使用。",
+    "projects.description":
+      "浏览已启用的数据源目录，并在对话中作为检索范围使用。",
     "projects.search": "搜索项目",
     "projects.noMatchesTitle": "没有匹配的项目",
     "projects.noMatchesDescription": "没有项目匹配“{query}”。请尝试其他搜索。",
@@ -545,8 +580,18 @@ const messages = {
 
     "settings.eyebrow": "运维",
     "settings.title": "系统设置",
-    "settings.description": "运行时控制项会保存在应用数据库中，后台服务可读取，无需重启容器。",
+    "settings.description":
+      "运行时控制项会保存在应用数据库中，后台服务可读取，无需重启容器。",
+    "settings.navModels": "模型与检索",
+    "settings.navIndexing": "索引与语料",
+    "settings.navInterface": "界面",
+    "settings.navAccess": "访问与安全",
+    "settings.accessEyebrow": "访问控制",
+    "settings.accessTitle": "访问与安全",
+    "settings.accessDescription": "管理 Agent API 凭据与管理员访问权限。",
     "settings.serviceHealthEyebrow": "运行状态",
+    "settings.statusPageDescription":
+      "集中查看服务心跳与模型供应商异常，无需进入容器排查。",
     "settings.serviceHealth": "服务健康",
     "settings.serviceHealthySummary": "{healthy} / {total} 正常",
     "settings.serviceCheckedAt": "检查时间 {time}",
@@ -599,7 +644,8 @@ const messages = {
     "settings.modelEyebrow": "模型服务",
     "settings.modelReady": "模型服务已就绪",
     "settings.modelMissing": "模型服务未配置",
-    "settings.modelDescription": "配置文档索引和检索回答使用的 OpenAI 兼容端点。",
+    "settings.modelDescription":
+      "配置文档索引和检索回答使用的 OpenAI 兼容端点。",
     "settings.apiKeySaved": "API Key 已保存",
     "settings.apiKeyMissing": "API Key 未保存",
     "settings.baseUrlMissing": "Base URL 缺失",
@@ -668,7 +714,8 @@ const messages = {
     "settings.selectedProjectsRoot": "已选择的 Projects 根目录",
     "settings.noHostFolderSelected": "未选择宿主机文件夹",
     "settings.folderPickerRoot": "文件夹选择根目录：",
-    "settings.chooseAbsoluteHostFolder": "请选择一个绝对宿主机文件夹作为项目语料库。",
+    "settings.chooseAbsoluteHostFolder":
+      "请选择一个绝对宿主机文件夹作为项目语料库。",
     "settings.pickerUnavailable":
       "文件夹选择不可用，因为没有挂载 REASONKB_HOST_BROWSE_ROOT。",
     "settings.chooseFolder": "选择文件夹",
@@ -677,7 +724,8 @@ const messages = {
     "settings.switchWaiting": "等待 Docker 重新创建容器并挂载新的项目语料库。",
     "settings.switchProgressAria": "Projects 根目录切换进度",
     "settings.switchStep1": "1. 切换目标已保存：{path}",
-    "settings.switchStep2Env": "Docker env 文件已更新。请在宿主机重新创建容器。",
+    "settings.switchStep2Env":
+      "Docker env 文件已更新。请在宿主机重新创建容器。",
     "settings.switchStep2Manual":
       "请在 Docker env 文件中更新 REASONKB_PROJECTS_ROOT，然后在宿主机重新创建容器。",
     "settings.switchStep3": "3. ReasonKB 重启后上报新的挂载根目录：{status}",
@@ -699,7 +747,8 @@ const messages = {
     "settings.saved": "设置已保存。",
     "settings.saveError": "无法保存系统设置，请重试。",
     "settings.rootPrepareError": "无法准备 Projects 根目录切换，请重试。",
-    "settings.hostDirectoriesError": "无法加载宿主机文件夹，请检查 Docker 浏览根目录挂载。",
+    "settings.hostDirectoriesError":
+      "无法加载宿主机文件夹，请检查 Docker 浏览根目录挂载。",
     "settings.rootPrepared": "Projects 根目录切换已准备好。",
     "settings.hostFolderPicker": "宿主机文件夹选择",
     "settings.chooseRootFolder": "选择 Projects 根目录文件夹",
@@ -748,11 +797,17 @@ function interpolate(template: string, values?: TranslationValues) {
     return template;
   }
   return template.replace(/\{(\w+)\}/g, (match, key) =>
-    Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match,
+    Object.prototype.hasOwnProperty.call(values, key)
+      ? String(values[key])
+      : match,
   );
 }
 
-function translate(locale: Locale, key: TranslationKey, values?: TranslationValues) {
+function translate(
+  locale: Locale,
+  key: TranslationKey,
+  values?: TranslationValues,
+) {
   return interpolate(messages[locale][key] ?? messages.en[key], values);
 }
 
@@ -888,7 +943,11 @@ export function formatMissingFields(fields: string[], locale: Locale) {
   return labels.join(locale === "zh" ? "、" : " and ");
 }
 
-export function LocalizedModelMissingDescription({ fields }: { fields: string[] }) {
+export function LocalizedModelMissingDescription({
+  fields,
+}: {
+  fields: string[];
+}) {
   const { locale, t } = useI18n();
   return (
     <>

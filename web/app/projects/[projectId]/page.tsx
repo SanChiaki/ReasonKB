@@ -36,8 +36,8 @@ export default async function ProjectDetailPage({
 
   return (
     <AppShell conversations={conversations}>
-      <section className="rk-scrollbar h-full overflow-y-auto px-5 py-6 md:px-8">
-        <header className="border-b border-[var(--pi-border)] bg-transparent pb-6">
+      <section className="rk-scrollbar h-full overflow-y-auto px-4 py-5 md:px-8 md:py-6">
+        <header className="border-b border-[var(--pi-border)] pb-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-muted)]">
@@ -47,14 +47,14 @@ export default async function ProjectDetailPage({
                 <span>/</span>
                 <span className="text-[var(--pi-ink)]">{project.name}</span>
               </div>
-              <h1 className="mt-2 text-3xl font-semibold text-[var(--pi-ink)]">
+              <h1 className="mt-2 text-2xl font-semibold text-[var(--pi-ink)] md:text-3xl">
                 {project.name}
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--pi-muted)] md:text-base">
                 <LocalizedText id="projectDetail.description" />
               </p>
             </div>
-            <div className="text-right text-xs text-[var(--pi-muted)]">
+            <div className="text-left text-xs text-[var(--pi-muted)] md:text-right">
               <p className="font-medium text-[var(--pi-ink)]">{project.source.displayName}</p>
               <p className="mt-1 uppercase">{project.source.kind}</p>
             </div>
@@ -66,7 +66,7 @@ export default async function ProjectDetailPage({
               defaultValue={search.q ?? ""}
               labelKey="projectDetail.searchDocuments"
               placeholderKey="projectDetail.searchDocuments"
-              className="w-full rounded-lg border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)]"
+              className="w-full rounded-md border border-[var(--pi-border)] bg-white px-4 py-3 text-sm text-[var(--pi-ink)] outline-none transition placeholder:text-[var(--pi-muted)] focus:border-[var(--pi-brand)] focus:ring-2 focus:ring-[var(--pi-brand-soft)]"
             />
           </form>
         </header>

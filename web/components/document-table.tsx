@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, FolderTree, RefreshCcw, X } from "lucide-react";
+import { ChevronDown, FileText, FolderTree, RefreshCcw, X } from "lucide-react";
 import { DISPLAY_TIME_ZONE } from "@/lib/date-time";
 import { useI18n, type Locale, type TranslationKey } from "@/lib/i18n";
 import { readAdminCsrfToken } from "@/components/admin-shell";
@@ -178,118 +178,83 @@ export function DocumentTable({
             {reindexNotice}
           </div>
         ) : null}
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-[var(--pi-border)] bg-[var(--pi-bg)] text-[var(--pi-muted)]">
-                <th className="px-5 py-4 font-medium">{t("documents.fileName")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.sourcePath")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.pageCount")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.indexingStatus")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.parseMetrics")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.sourceUpdate")}</th>
-                <th className="px-5 py-4 font-medium">{t("documents.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {documents.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-10 text-center text-sm text-[var(--pi-muted)]"
-                  >
-                    {trimmedSearchQuery
-                      ? t("documents.noMatches", { query: trimmedSearchQuery })
-                      : t("documents.empty")}
-                  </td>
-                </tr>
-              ) : (
-                documents.map((document) => {
-                  const excluded = document.lifecycleState === "excluded";
-                  return (
-                  <tr key={document.id} className="border-b border-[var(--pi-border)]/70 last:border-0">
-                    <td className="px-5 py-4 font-medium text-[var(--pi-ink)]">
-                      <div className="flex max-w-[24rem] flex-col gap-1">
-                        <span>{document.fileName}</span>
-                        {document.statusReason || document.errorMessage || document.importError ? (
-                          <span className={`line-clamp-2 text-xs font-normal ${excluded ? "text-[var(--pi-muted)]" : "text-[var(--pi-danger,#b91c1c)]"}`}>
-                            {document.statusReason ?? document.errorMessage ?? document.importError}
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="max-w-[22rem] px-5 py-4 text-xs text-[var(--pi-muted)]">
-                      <span className="block truncate" title={document.sourceRelativePath ?? document.projectRelativePath ?? ""}>
+        {documents.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-[var(--pi-muted)]">
+            {trimmedSearchQuery
+              ? t("documents.noMatches", { query: trimmedSearchQuery })
+              : t("documents.empty")}
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--pi-border)]">
+            <div className="hidden grid-cols-[minmax(0,2fr)_5rem_7rem_8rem] gap-4 bg-[var(--pi-bg)] px-5 py-3 text-xs font-medium text-[var(--pi-muted)] md:grid">
+              <span>{t("documents.fileName")}</span>
+              <span>{t("documents.pageCount")}</span>
+              <span>{t("documents.indexingStatus")}</span>
+              <span>{t("documents.actions")}</span>
+            </div>
+            {documents.map((document) => {
+              const excluded = document.lifecycleState === "excluded";
+              const reason = document.statusReason ?? document.errorMessage ?? document.importError;
+              const treeLabel = !excluded && document.hasIndexTree
+                ? t("documents.viewTreeFor", { name: document.fileName })
+                : t("documents.treeUnavailableFor", { name: document.fileName });
+              return (
+                <div key={document.id} className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,2fr)_5rem_7rem_8rem] md:items-center md:gap-4 md:px-5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] text-[var(--pi-brand)]">
+                      <FileText aria-hidden="true" size={15} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--pi-ink)]">{document.fileName}</p>
+                      <p className="mt-1 truncate text-xs text-[var(--pi-muted)]" title={document.sourceRelativePath ?? document.projectRelativePath ?? ""}>
                         {document.projectRelativePath ?? document.sourceRelativePath ?? "-"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--pi-ink)]/90">{document.pageCount}</td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center rounded-md border border-[var(--pi-border)] bg-white px-3 py-1 text-xs font-medium uppercase tracking-[0.08em] text-[var(--pi-ink)]">
-                        {excluded
-                          ? t("documents.excluded")
-                          : formatStatus(document.status, t("documents.statusUnknown"))}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-xs text-[var(--pi-muted)]">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium text-[var(--pi-ink)]/90">
-                          {formatDuration(document.lastIndexDurationMs, t("documents.pending"))}
-                        </span>
-                        <span>
-                          {formatTokens(document.lastIndexTotalTokens, t)}
-                        </span>
-                        <span>
-                          {formatCalls(document.lastIndexLlmCallCount, t)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-[var(--pi-muted)]">
-                      {formatUploadedAt(document.createdAt, locale, t("common.unknown"))}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void handleOpenIndexTree(document)}
-                          disabled={excluded || !document.hasIndexTree}
-                          aria-label={
-                            !excluded && document.hasIndexTree
-                              ? t("documents.viewTreeFor", { name: document.fileName })
-                              : t("documents.treeUnavailableFor", { name: document.fileName })
-                          }
-                          title={
-                            excluded
-                              ? t("documents.excludedAction")
-                              : document.hasIndexTree
-                              ? typeof document.indexNodeCount === "number"
-                                ? t("documents.viewNodeCount", { count: document.indexNodeCount })
-                                : t("documents.viewTree")
-                              : t("documents.treeAfterIndex")
-                          }
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
-                        >
-                          <FolderTree className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleReindex(document)}
-                          disabled={excluded || pendingReindexId === document.id}
-                          aria-label={t("documents.reindex", { name: document.fileName })}
-                          title={excluded ? t("documents.excludedAction") : undefined}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <RefreshCcw className={`h-4 w-4 ${pendingReindexId === document.id ? "animate-spin" : ""}`} aria-hidden="true" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </p>
+                      {reason ? <p className={`mt-1 line-clamp-2 text-xs ${excluded ? "text-[var(--pi-muted)]" : "text-[var(--pi-danger)]"}`}>{reason}</p> : null}
+                      <p className="mt-1 text-xs text-[var(--pi-muted)] md:hidden">
+                        {formatUploadedAt(document.createdAt, locale, t("common.unknown"))}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[var(--pi-muted)]"><span className="md:hidden">{t("documents.pageCount")}: </span>{document.pageCount}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit items-center rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg)] px-2 py-1 text-[11px] font-medium text-[var(--pi-ink)]">
+                      {excluded ? t("documents.excluded") : formatStatus(document.status, t("documents.statusUnknown"))}
+                    </span>
+                    <span className="text-xs text-[var(--pi-muted)] md:hidden">
+                      <span>{formatDuration(document.lastIndexDurationMs, t("documents.pending"))}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>{formatTokens(document.lastIndexTotalTokens, t)}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>{formatCalls(document.lastIndexLlmCallCount, t)}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 md:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenIndexTree(document)}
+                      disabled={excluded || !document.hasIndexTree}
+                      aria-label={treeLabel}
+                      title={excluded ? t("documents.excludedAction") : document.hasIndexTree ? (typeof document.indexNodeCount === "number" ? t("documents.viewNodeCount", { count: document.indexNodeCount }) : t("documents.viewTree")) : t("documents.treeAfterIndex")}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <FolderTree className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleReindex(document)}
+                      disabled={excluded || pendingReindexId === document.id}
+                      aria-label={t("documents.reindex", { name: document.fileName })}
+                      title={excluded ? t("documents.excludedAction") : undefined}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--pi-border)] bg-white text-[var(--pi-ink)] transition hover:border-[var(--pi-brand)] hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <RefreshCcw className={`h-4 w-4 ${pendingReindexId === document.id ? "animate-spin" : ""}`} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <IndexTreeDialog state={treeState} onClose={closeTree} />
     </>
@@ -309,12 +274,12 @@ function IndexTreeDialog({
 
   const title = t("documents.pageIndexTreeFor", { name: state.document.fileName });
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(24,31,44,0.42)] p-3 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(24,31,44,0.42)] p-3 md:justify-end md:p-0">
       <section
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel)] shadow-2xl"
+        className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-[var(--pi-border)] bg-[var(--pi-panel)] shadow-2xl md:h-full md:max-h-none md:max-w-[min(42rem,calc(100vw-var(--pi-sidebar-width)))] md:rounded-none md:rounded-l-lg"
       >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--pi-border)] px-5 py-4">
           <div className="min-w-0">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Folder, FolderOpen, FlaskConical } from "lucide-react";
 import { LanguageSwitcher, useI18n } from "@/lib/i18n";
@@ -89,6 +89,7 @@ function isAbsoluteHostPath(value: string) {
 }
 
 export function SystemSettingsForm({
+  embeddingSettings,
   initialIndexWorkerConcurrency,
   initialRetrievalDocumentLimit,
   initialLlmApiKeyConfigured,
@@ -108,6 +109,7 @@ export function SystemSettingsForm({
   corpusSource = "local",
   smbCorpusTarget = "",
 }: {
+  embeddingSettings?: ReactNode;
   initialIndexWorkerConcurrency: number;
   initialRetrievalDocumentLimit: number;
   initialLlmApiKeyConfigured: boolean;
@@ -286,8 +288,7 @@ export function SystemSettingsForm({
     setShowProjectsRootPicker(false);
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (!canSubmit) {
       return;
     }
@@ -448,27 +449,12 @@ export function SystemSettingsForm({
         : "0%";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
-              {t("language.settingsEyebrow")}
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
-              {t("language.settingsTitle")}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
-              {t("language.settingsDescription")}
-            </p>
-          </div>
-          <div className="w-full lg:w-[18rem]">
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
+    <div className="space-y-6">
+      <section
+        id="settings-models"
+        className="scroll-mt-6 overflow-hidden rounded-lg border border-[var(--pi-border)] bg-white"
+      >
+        <div className="p-5 md:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
@@ -682,7 +668,7 @@ export function SystemSettingsForm({
                   type="button"
                   disabled={!isValidBaseUrl || !isValidModel || llmTestSubmitting}
                   onClick={handleLlmTest}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex flex-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <FlaskConical aria-hidden="true" className="h-4 w-4" />
                   {llmTestSubmitting
@@ -731,9 +717,19 @@ export function SystemSettingsForm({
             </div>
           </div>
         </div>
+        </div>
+        {embeddingSettings ? (
+          <div className="border-t border-[var(--pi-border)] bg-[var(--pi-bg)]/35">
+            {embeddingSettings}
+          </div>
+        ) : null}
       </section>
 
-      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
+      <section
+        id="settings-indexing"
+        className="scroll-mt-6 overflow-hidden rounded-lg border border-[var(--pi-border)] bg-white"
+      >
+        <div className="p-5 md:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
@@ -901,9 +897,9 @@ export function SystemSettingsForm({
             ) : null}
           </div>
         </div>
-      </section>
+        </div>
 
-      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
+        <div className="border-t border-[var(--pi-border)] p-5 md:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
@@ -941,9 +937,9 @@ export function SystemSettingsForm({
             </p>
           </div>
         </div>
-      </section>
+        </div>
 
-      <section className="rounded-lg border border-[var(--pi-border)] bg-white p-5">
+        <div className="border-t border-[var(--pi-border)] p-5 md:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
@@ -981,23 +977,47 @@ export function SystemSettingsForm({
             </p>
           </div>
         </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-[var(--pi-border)] bg-[var(--pi-bg)]/55 px-5 py-4 sm:flex-row sm:items-center md:px-6">
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+            className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {submitting ? t("common.saving") : t("settings.saveSettings")}
+          </button>
+          {statusMessage ? (
+            <p className="text-sm text-[var(--pi-brand)]">{statusMessage}</p>
+          ) : null}
+          {errorMessage ? (
+            <p className="text-sm text-[var(--pi-danger)]">{errorMessage}</p>
+          ) : null}
+        </div>
       </section>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="rounded-lg border border-[var(--pi-brand)] bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {submitting ? t("common.saving") : t("settings.saveSettings")}
-        </button>
-        {statusMessage ? (
-          <p className="text-sm text-[var(--pi-brand)]">{statusMessage}</p>
-        ) : null}
-        {errorMessage ? (
-          <p className="text-sm text-[var(--pi-danger)]">{errorMessage}</p>
-        ) : null}
-      </div>
+      <section
+        id="settings-interface"
+        className="scroll-mt-6 rounded-lg border border-[var(--pi-border)] bg-white p-5 md:p-6"
+      >
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
+              {t("language.settingsEyebrow")}
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--pi-ink)]">
+              {t("language.settingsTitle")}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pi-muted)]">
+              {t("language.settingsDescription")}
+            </p>
+          </div>
+          <div className="w-full lg:w-[18rem]">
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </section>
 
       {showProjectsRootPicker ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
@@ -1167,6 +1187,6 @@ export function SystemSettingsForm({
           </div>
         </div>
       ) : null}
-    </form>
+    </div>
   );
 }

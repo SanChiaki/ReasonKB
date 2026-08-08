@@ -208,15 +208,15 @@ export default async function ChatPage({
   return (
     <AppShell conversations={conversations}>
       <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--pi-bg)]">
-        <header className="shrink-0 border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-4 md:px-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
+        <header className="shrink-0 border-b border-[var(--pi-border)] bg-[var(--pi-panel)] px-4 py-4 md:px-8 md:py-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--pi-brand)]">
             <LocalizedText id="chat.eyebrow" />
           </p>
           <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-2xl font-semibold text-[var(--pi-ink)]">
+            <h1 className="min-w-0 truncate text-xl font-semibold text-[var(--pi-ink)] md:text-2xl">
               <LocalizedConversationTitle title={conversation?.title ?? "New Chat"} />
             </h1>
-            <div className="inline-flex items-center gap-2 self-start rounded-md border border-[var(--pi-border)] bg-white px-3 py-1.5 text-xs text-[var(--pi-muted)]">
+            <div className="inline-flex shrink-0 items-center gap-2 self-start rounded-md border border-[var(--pi-border)] bg-[var(--pi-bg-soft)] px-3 py-1.5 text-xs text-[var(--pi-muted)]">
               <span className="font-semibold uppercase tracking-[0.06em]">
                 <LocalizedText id="chat.scope" />
               </span>

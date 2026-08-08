@@ -35,6 +35,7 @@ function validHttpUrl(value: string) {
 }
 
 export function EmbeddingSettingsPanel({
+  embedded = false,
   initialApiKeyConfigured,
   initialApiKeyInherited,
   initialBaseUrl,
@@ -42,6 +43,7 @@ export function EmbeddingSettingsPanel({
   initialModel,
   semanticIndex,
 }: {
+  embedded?: boolean;
   initialApiKeyConfigured: boolean;
   initialApiKeyInherited: boolean;
   initialBaseUrl: string;
@@ -178,7 +180,11 @@ export function EmbeddingSettingsPanel({
   return (
     <form
       onSubmit={save}
-      className="rounded-lg border border-[var(--pi-border)] bg-white p-5"
+      className={
+        embedded
+          ? "p-5 md:p-6"
+          : "rounded-lg border border-[var(--pi-border)] bg-white p-5"
+      }
     >
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 lg:max-w-md">
@@ -362,7 +368,7 @@ export function EmbeddingSettingsPanel({
               type="button"
               disabled={!canTest}
               onClick={testConnection}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex flex-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[var(--pi-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--pi-ink)] transition enabled:hover:border-[var(--pi-brand)] enabled:hover:text-[var(--pi-brand)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <FlaskConical aria-hidden="true" className="h-4 w-4" />
               {testing
@@ -372,7 +378,7 @@ export function EmbeddingSettingsPanel({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="rounded-lg bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:bg-[var(--pi-brand-strong)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="whitespace-nowrap rounded-lg bg-[var(--pi-brand)] px-4 py-2.5 text-sm font-medium text-white transition enabled:hover:bg-[var(--pi-brand-strong)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {submitting
                 ? t("settings.embeddingSaving")

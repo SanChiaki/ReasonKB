@@ -146,7 +146,7 @@ export function ChatConversation({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-8">
+      <div className="rk-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
         {modelWarning}
         {visibleMessages.length > 0 ? (
           <div className="pb-4">
@@ -157,7 +157,7 @@ export function ChatConversation({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-5 py-5 md:px-8">
+      <div className="shrink-0 border-t border-[var(--pi-border)] bg-[var(--pi-panel)] px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] md:px-8 md:py-4">
         <div className="mx-auto w-full max-w-4xl">
           <ChatComposer
             availableProjects={availableProjects}
