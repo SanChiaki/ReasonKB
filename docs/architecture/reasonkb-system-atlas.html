@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReasonKB System Atlas</title>
+  <style>
+    :root {
+      --ink: #111315;
+      --paper: #f7f8fa;
+      --surface: #ffffff;
+      --line: #d8dde3;
+      --muted: #66707a;
+      --blue: #165dff;
+      --green: #008f5d;
+      --orange: #d85812;
+      --red: #cf2e2e;
+      --yellow: #f4d44d;
+      --sidebar: 280px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--paper); color: var(--ink); font-family: "Avenir Next", "PingFang SC", sans-serif; letter-spacing: 0; }
+    body { margin: 0; min-width: 320px; }
+    button { font: inherit; letter-spacing: 0; }
+    .atlas { min-height: 100vh; display: grid; grid-template-rows: 58px 1fr; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 24px; border-bottom: 1px solid var(--ink); background: var(--surface); }
+    .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+    .brand strong { font-family: "Avenir Next Condensed", "PingFang SC", sans-serif; font-size: 20px; font-weight: 700; white-space: nowrap; }
+    .brand span { color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 11px; }
+    .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .workspace { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); min-height: 0; }
+    .rail { border-right: 1px solid var(--ink); background: var(--surface); padding: 22px 18px; }
+    .rail-label { margin: 0 0 9px; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 10px; text-transform: uppercase; }
+    .view-switch { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--ink); margin-bottom: 30px; }
+    .view-switch button { min-height: 38px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+    .view-switch button + button { border-left: 1px solid var(--ink); }
+    .view-switch button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+    .scenario-list { display: grid; gap: 4px; }
+    .scenario { width: 100%; min-height: 56px; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 10px; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--ink); text-align: left; cursor: pointer; padding: 7px 10px; }
+    .scenario:hover { background: #f0f3f6; }
+    .scenario[aria-pressed="true"] { border-left-color: var(--blue); background: #eef3ff; }
+    .scenario b { font-family: "Avenir Next Condensed", sans-serif; font-size: 20px; }
+    .scenario span { font-size: 13px; }
+    .scope { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .main { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+    .titlebar { display: flex; justify-content: space-between; align-items: end; gap: 20px; padding: 26px 32px 18px; }
+    .titlebar h1 { margin: 0; font-family: "Avenir Next Condensed", "PingFang SC", sans-serif; font-size: 34px; line-height: 1; }
+    .titlebar p { max-width: 620px; margin: 9px 0 0; color: var(--muted); font-size: 13px; }
+    .mode-key { display: flex; gap: 18px; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 10px; white-space: nowrap; }
+    .mode-key span::before { content: ""; display: inline-block; width: 18px; height: 2px; margin-right: 7px; vertical-align: middle; background: var(--blue); }
+    .mode-key span:nth-child(2)::before { background: var(--orange); }
+    .canvas { min-width: 0; padding: 0 32px 28px; overflow: hidden; }
+    .panel[hidden] { display: none; }
+    .architecture { display: grid; gap: 14px; }
+    .layer { display: grid; grid-template-columns: 140px minmax(0, 1fr); border-top: 1px solid var(--line); padding-top: 14px; }
+    .layer:last-child { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+    .layer-name { color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 11px; padding-top: 16px; }
+    .components { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .component { min-height: 96px; padding: 15px; border: 1px solid var(--line); border-top: 4px solid var(--blue); background: var(--surface); }
+    .component:nth-child(2) { border-top-color: var(--orange); }
+    .component:nth-child(3) { border-top-color: var(--green); }
+    .component h3 { margin: 0 0 8px; font-size: 15px; }
+    .component p { margin: 0; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 10px; line-height: 1.55; }
+    .trace { position: relative; display: grid; grid-template-columns: minmax(120px, .7fr) minmax(300px, 1.4fr) minmax(170px, .8fr); gap: 18px; align-items: start; }
+    .trace::before { content: ""; position: absolute; top: 0; bottom: 0; left: calc(35% + 9px); width: 1px; background: var(--line); }
+    .outcomes { display: grid; gap: 12px; padding-top: 184px; }
+    .pipeline { position: relative; display: grid; gap: 12px; }
+    .stage { position: relative; min-height: 74px; padding: 13px 16px 13px 54px; border: 1px solid var(--line); background: var(--surface); transition: opacity .18s ease, transform .18s ease, border-color .18s ease; }
+    .stage::before { content: attr(data-index); position: absolute; left: 16px; top: 15px; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 11px; }
+    .stage::after { content: ""; position: absolute; left: 31px; bottom: -13px; height: 12px; width: 1px; background: var(--blue); }
+    .stage:last-child::after { display: none; }
+    .stage h3 { margin: 0 0 5px; font-size: 14px; }
+    .stage code { color: var(--blue); font-family: "SFMono-Regular", Menlo, monospace; font-size: 10px; overflow-wrap: anywhere; }
+    .stage p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+    .stage[data-gate] { border-left: 5px solid var(--orange); }
+    .stage[data-success] { border-left: 5px solid var(--green); }
+    .stage.is-dim, .outcome.is-dim { opacity: .15; }
+    .stage.is-active { border-color: var(--ink); transform: translateX(5px); }
+    .outcome { min-height: 104px; padding: 14px; border: 1px solid var(--line); background: var(--surface); transition: opacity .18s ease, transform .18s ease; }
+    .outcome.is-active { transform: translateX(-5px); border-color: var(--ink); }
+    .outcome.red { border-left: 5px solid var(--red); }
+    .outcome.green { border-left: 5px solid var(--green); }
+    .outcome b { display: block; margin-bottom: 7px; font-size: 13px; }
+    .outcome code { color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 10px; overflow-wrap: anywhere; }
+    .inspector { position: sticky; top: 16px; border: 1px solid var(--ink); background: var(--surface); }
+    .inspector-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; border-bottom: 1px solid var(--ink); background: var(--yellow); }
+    .inspector-head strong { font-size: 12px; }
+    .inspector-head span { font-family: "SFMono-Regular", Menlo, monospace; font-size: 9px; }
+    .inspect-body { padding: 14px; }
+    .inspect-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .inspect-row:last-child { border-bottom: 0; }
+    .inspect-row small { display: block; margin-bottom: 5px; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 9px; text-transform: uppercase; }
+    .inspect-row span { font-size: 12px; line-height: 1.55; }
+    .contract { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); background: var(--surface); }
+    .contract div { min-width: 0; padding: 14px 18px; border-right: 1px solid var(--line); }
+    .contract div:last-child { border-right: 0; }
+    .contract small { display: block; margin-bottom: 5px; color: var(--muted); font-family: "SFMono-Regular", Menlo, monospace; font-size: 9px; }
+    .contract strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
+    @media (max-width: 1080px) {
+      :root { --sidebar: 230px; }
+      .trace { grid-template-columns: minmax(130px, .7fr) minmax(300px, 1.3fr); }
+      .trace::before { display: none; }
+      .inspector { grid-column: 1 / -1; position: static; display: grid; grid-template-columns: 190px 1fr; }
+      .inspector-head { border-bottom: 0; border-right: 1px solid var(--ink); }
+      .inspect-body { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .inspect-row { border-bottom: 0; border-right: 1px solid var(--line); padding: 0 12px 0 0; }
+    }
+    @media (max-width: 760px) {
+      .atlas { grid-template-rows: auto 1fr; }
+      .topbar { min-height: 58px; padding: 10px 16px; }
+      .brand span, .status { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .rail { border-right: 0; border-bottom: 1px solid var(--ink); padding: 14px 16px; }
+      .view-switch { margin-bottom: 12px; }
+      .scenario-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .scope, .rail-label { display: none; }
+      .titlebar { padding: 22px 16px 16px; align-items: start; }
+      .titlebar h1 { font-size: 28px; }
+      .mode-key { display: none; }
+      .canvas { padding: 0 16px 22px; }
+      .layer { grid-template-columns: 1fr; gap: 8px; }
+      .components { grid-template-columns: 1fr; }
+      .trace { grid-template-columns: 1fr; }
+      .outcomes { padding-top: 0; grid-row: 2; grid-template-columns: 1fr 1fr; }
+      .pipeline { grid-row: 1; }
+      .inspector { grid-row: 3; display: block; }
+      .inspector-head { border-right: 0; border-bottom: 1px solid var(--ink); }
+      .inspect-body { display: block; }
+      .inspect-row { border-right: 0; border-bottom: 1px solid var(--line); padding: 9px 0; }
+      .contract { grid-template-columns: 1fr 1fr; }
+      .contract div:nth-child(2) { border-right: 0; }
+      .contract div:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <main class="atlas">
+    <header class="topbar">
+      <div class="brand"><strong>REASONKB / SYSTEM ATLAS</strong><span>fdaa8d3 · evidence-first contract</span></div>
+      <div class="status">CURRENT CODE PATH</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="rail">
+        <p class="rail-label">Map view</p>
+        <div class="view-switch" role="group" aria-label="图谱视图">
+          <button type="button" data-view="architecture" aria-pressed="false">项目架构</button>
+          <button type="button" data-view="retrieval" aria-pressed="true">检索轨迹</button>
+        </div>
+        <p class="rail-label">Retrieval outcome</p>
+        <div class="scenario-list">
+          <button type="button" class="scenario" data-scenario="none" aria-pressed="false"><b>A</b><span>无候选文档</span></button>
+          <button type="button" class="scenario" data-scenario="candidate" aria-pressed="false"><b>B</b><span>已有候选文档</span></button>
+          <button type="button" class="scenario" data-scenario="no-evidence" aria-pressed="false"><b>C</b><span>最终没有证据</span></button>
+          <button type="button" class="scenario" data-scenario="evidence" aria-pressed="true"><b>D</b><span>最终得到证据</span></button>
+        </div>
+        <div class="scope">候选相关性与证据接受分离。PageIndex 负责文档内导航，ReasonKB 负责跨文档 grounding、coverage 与最终状态。</div>
+      </aside>
+
+      <section class="main">
+        <div class="titlebar">
+          <div><h1 data-title>检索轨迹</h1><p data-subtitle>沿真实事件序列观察一个 Query 如何成为可引用的 EvidenceSet。</p></div>
+          <div class="mode-key"><span>EVENT / DATA</span><span>GATE / LOOP</span></div>
+        </div>
+
+        <div class="canvas">
+          <section class="panel architecture" data-panel="architecture" hidden>
+            <div class="layer"><div class="layer-name">01 / ENTRY</div><div class="components"><article class="component"><h3>Web 用户 / 管理员</h3><p>Chat · projects · source admin</p></article><article class="component"><h3>Agent REST / CLI</h3><p>query · evidence · documents</p></article><article class="component"><h3>MCP Client</h3><p>Streamable HTTP :43173</p></article></div></div>
+            <div class="layer"><div class="layer-name">02 / ACCESS</div><div class="components"><article class="component"><h3>Next.js Web</h3><p>UI · API routes · admin auth</p></article><article class="component"><h3>Agent Access</h3><p>API key · project scope · stream projection</p></article><article class="component"><h3>MCP Server</h3><p>session · tools · concurrency</p></article></div></div>
+            <div class="layer"><div class="layer-name">03 / CORE</div><div class="components"><article class="component"><h3>Retrieval API</h3><p>route · navigate · validate · answer</p></article><article class="component"><h3>Source Worker</h3><p>discover · sync revision · lifecycle</p></article><article class="component"><h3>Index Worker</h3><p>fetch · convert · PageIndex · publish</p></article></div></div>
+            <div class="layer"><div class="layer-name">04 / STATE</div><div class="components"><article class="component"><h3>SQLite + Index Artifacts</h3><p>projects · documents · jobs · current index</p></article><article class="component"><h3>Read-only Sources</h3><p>Local · SMB · Seeyon</p></article><article class="component"><h3>External Compute</h3><p>Gotenberg · LLM · embedding provider</p></article></div></div>
+          </section>
+
+          <section class="panel trace" data-panel="retrieval">
+            <div class="outcomes">
+              <article class="outcome red" data-path="none"><b>A · 无候选</b><code>retrievalStatus = no_match | degraded</code></article>
+              <article class="outcome red" data-path="no-evidence"><b>C · 候选耗尽，无证据</b><code>stopReason = candidate_exhausted</code></article>
+              <article class="outcome green" data-path="evidence"><b>D · 得到 EvidenceSet</b><code>coverage = complete | partial | unknown</code></article>
+            </div>
+            <div class="pipeline">
+              <article class="stage" data-index="01" data-path="common"><h3>接收 Query</h3><code>retrieval_started</code><p>query + projectIds + mode</p></article>
+              <article class="stage" data-index="02" data-path="common"><h3>加载可检索文档</h3><code>documents_loaded</code><p>ready · active · retrieval_eligible · current index</p></article>
+              <article class="stage" data-index="03" data-path="common" data-gate><h3>候选文档路由</h3><code>document_selection_started → documents_selected</code><p>semantic + BM25 + LLM + deterministic fallback</p></article>
+              <article class="stage" data-index="04" data-path="candidate no-evidence evidence"><h3>开始 Evidence Wave</h3><code>evidence_wave_started</code><p>首轮少量文档，必要时继续扩展</p></article>
+              <article class="stage" data-index="05" data-path="candidate no-evidence evidence"><h3>并行文档内导航</h3><code>document_pages_selected</code><p>选页、读取、充分性判断、继续树导航</p></article>
+              <article class="stage" data-index="06" data-path="candidate no-evidence evidence"><h3>形成暂定证据</h3><code>pending_validation | loaded</code><p>保留页码与出处，尚未完成集合判断</p></article>
+              <article class="stage" data-index="07" data-path="candidate no-evidence evidence" data-gate><h3>EvidenceSet 校验与覆盖</h3><code>evidence_set_assessment_completed</code><p>supporting_pages · aspects · unresolved · confidence</p></article>
+              <article class="stage" data-index="08" data-path="evidence" data-success><h3>输出适配</h3><code>evidence | answer_generation_* → result</code><p>同一 EvidenceSet，按 mode 直接返回或生成答案</p></article>
+            </div>
+            <aside class="inspector" aria-live="polite">
+              <div class="inspector-head"><strong>PATH INSPECTOR</strong><span data-code>D / GROUNDED</span></div>
+              <div class="inspect-body">
+                <div class="inspect-row"><small>推进条件</small><span data-gate>至少一份 grounded result 可返回。</span></div>
+                <div class="inspect-row"><small>停止条件</small><span data-stop>覆盖完整、候选耗尽或技术降级。</span></div>
+                <div class="inspect-row"><small>最终产物</small><span data-output>EvidenceSet + provenance + coverage；answer 模式追加答案与引用。</span></div>
+              </div>
+            </aside>
+          </section>
+        </div>
+
+        <footer class="contract">
+          <div><small>PRIMARY OBJECT</small><strong>EvidenceSet</strong></div>
+          <div><small>NAVIGATION</small><strong>PageIndex tree + pages</strong></div>
+          <div><small>GROUNDING OWNER</small><strong>ReasonKB</strong></div>
+          <div><small>FINAL STATUS</small><strong data-final-status>matched</strong></div>
+        </footer>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const viewButtons = [...document.querySelectorAll('[data-view]')];
+      const panels = [...document.querySelectorAll('[data-panel]')];
+      const scenarioButtons = [...document.querySelectorAll('[data-scenario]')];
+      const pathItems = [...document.querySelectorAll('[data-path]')];
+      const title = document.querySelector('[data-title]');
+      const subtitle = document.querySelector('[data-subtitle]');
+      const finalStatus = document.querySelector('[data-final-status]');
+      const inspectorRoot = document.querySelector('.inspector');
+      const inspector = {
+        code: inspectorRoot.querySelector('[data-code]'), gate: inspectorRoot.querySelector('[data-gate]'),
+        stop: inspectorRoot.querySelector('[data-stop]'), output: inspectorRoot.querySelector('[data-output]')
+      };
+      const scenarios = {
+        none: { code: 'A / NO CANDIDATE', gate: '候选路由返回空集合。', stop: 'documents_selected 后立即停止。', output: '空 EvidenceSet；业务无匹配为 no_match，技术失败为 degraded。', status: 'no_match | degraded' },
+        candidate: { code: 'B / CANDIDATE', gate: 'selected.length > 0，当前索引可装载。', stop: '这是中间状态；必须继续页面导航与集合判断。', output: '尚无最终产物，仅进入 Evidence Wave。', status: 'in progress' },
+        'no-evidence': { code: 'C / EXHAUSTED', gate: '候选页面没有形成可接受的原子支持。', stop: '候选耗尽或 deadline 到达。', output: '空 EvidenceSet，retrievalStatus = no_match。', status: 'no_match' },
+        evidence: { code: 'D / GROUNDED', gate: '至少一份 grounded result 可返回。', stop: '覆盖完整、候选耗尽或技术降级。', output: 'EvidenceSet + provenance + coverage；answer 模式追加答案与引用。', status: 'matched' }
+      };
+      function setView(name) {
+        panels.forEach(panel => panel.hidden = panel.dataset.panel !== name);
+        viewButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === name)));
+        const architecture = name === 'architecture';
+        title.textContent = architecture ? '项目架构' : '检索轨迹';
+        subtitle.textContent = architecture ? '从访问入口到持久化状态，查看当前单节点部署的服务边界。' : '沿真实事件序列观察一个 Query 如何成为可引用的 EvidenceSet。';
+      }
+      function setScenario(name) {
+        const state = scenarios[name];
+        pathItems.forEach(item => {
+          const tokens = item.dataset.path.split(' ');
+          const active = tokens.includes('common') || tokens.includes(name);
+          item.classList.toggle('is-dim', !active);
+          item.classList.toggle('is-active', active && !tokens.includes('common'));
+        });
+        scenarioButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.scenario === name)));
+        inspector.code.textContent = state.code;
+        inspector.gate.textContent = state.gate;
+        inspector.stop.textContent = state.stop;
+        inspector.output.textContent = state.output;
+        finalStatus.textContent = state.status;
+        setView('retrieval');
+      }
+      viewButtons.forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+      scenarioButtons.forEach(button => button.addEventListener('click', () => setScenario(button.dataset.scenario)));
+      setScenario('evidence');
+    })();
+  </script>
+</body>
+</html>

@@ -134,7 +134,14 @@ Before handing off:
 ```sh
 git status --short
 git diff --stat
+python3 scripts/check_diagram_impact.py --base origin/main
 ```
+
+The diagram impact check is required for every code change. If it reports an
+affected atlas, inspect the semantic change and either update and browser-test
+`docs/architecture/reasonkb-system-atlas.html` or explicitly state in the
+handoff why the represented topology or retrieval behavior did not change.
+See `docs/architecture/README.md` for the maintained scope and decision rules.
 
 Summarize:
 - current branch
@@ -142,6 +149,7 @@ Summarize:
 - changed files
 - any high-conflict files touched
 - whether the branch was rebased or merged before handoff
+- diagram impact decision and whether the System Atlas was updated and tested
 
 ## Post-Merge Validation Cleanup
 
