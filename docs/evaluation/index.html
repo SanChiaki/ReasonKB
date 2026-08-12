@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ReasonKB Evidence-first 公开评测报告。">
+  <title>ReasonKB / Evidence Evaluation</title>
+  <style>
+    :root { --paper:#f3f0e8; --ink:#171b1a; --muted:#686d68; --line:#c7c0b3; --surface:#fffdf8; --red:#d93f2b; --green:#14705c; --amber:#c38a12; --blue:#246a82; --serif:"Iowan Old Style","Songti SC",serif; --sans:"Avenir Next","PingFang SC",sans-serif; --mono:"SFMono-Regular","Cascadia Mono",monospace; }
+    * { box-sizing: border-box; }
+    html { min-width:320px; background:var(--paper); color:var(--ink); scroll-behavior:smooth; }
+    body { margin:0; font-family:var(--sans); letter-spacing:0; background:repeating-linear-gradient(0deg,transparent 0 31px,rgba(23,27,26,.028) 31px 32px),var(--paper); }
+    a { color:inherit; }
+    a:focus-visible { outline:3px solid var(--amber); outline-offset:3px; }
+    .masthead { min-height:68px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:10px clamp(16px,4vw,56px); color:white; background:var(--ink); border-bottom:4px solid var(--red); position:sticky; top:0; z-index:20; }
+    .brand { display:flex; align-items:baseline; gap:14px; text-decoration:none; min-width:0; }
+    .brand strong { font:800 21px var(--serif); white-space:nowrap; }
+    .brand span { color:#b9c0bb; font:10px var(--mono); text-transform:uppercase; }
+    nav { display:flex; gap:22px; }
+    nav a { color:#d7dcd8; font-size:12px; font-weight:700; text-decoration:none; }
+    main { max-width:1500px; margin:auto; }
+    .section { padding:clamp(42px,6vw,82px) clamp(18px,5vw,70px); border-bottom:1px solid var(--line); }
+    .kicker { margin:0 0 9px; color:var(--red); font:800 10px var(--mono); text-transform:uppercase; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:1050px; margin-bottom:16px; font:800 clamp(38px,5vw,70px)/1.02 var(--serif); }
+    h2 { margin-bottom:14px; font:800 clamp(25px,3vw,40px)/1.1 var(--serif); }
+    h3 { margin-bottom:9px; font:800 18px var(--serif); }
+    .lede { max-width:980px; color:#424844; font-size:15px; line-height:1.72; }
+    .verdict { display:grid; grid-template-columns:minmax(260px,.7fr) minmax(0,1.3fr); gap:50px; align-items:end; margin-top:40px; }
+    .score { border-left:8px solid var(--green); padding:8px 0 8px 20px; }
+    .score strong { display:block; color:var(--green); font:800 clamp(44px,6vw,76px)/1 var(--mono); }
+    .score span { display:block; margin-top:12px; color:var(--muted); font-size:12px; line-height:1.55; }
+    .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid var(--ink); border-left:1px solid var(--ink); }
+    .metric { min-height:105px; padding:17px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink); background:rgba(255,253,248,.45); }
+    .metric b { display:block; font:800 26px var(--mono); }
+    .metric span { display:block; margin-top:8px; color:var(--muted); font-size:11px; line-height:1.4; }
+    .tracks { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--ink); border-left:1px solid var(--ink); }
+    .track { min-height:270px; padding:26px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink); background:rgba(255,253,248,.4); }
+    .track code { color:var(--blue); font:800 11px var(--mono); }
+    .track h3 { margin-top:46px; font-size:24px; }
+    .track p { color:var(--muted); font-size:13px; line-height:1.7; }
+    .track strong { display:block; margin-top:22px; font:800 28px var(--mono); }
+    .finding-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); border-top:1px solid var(--ink); border-left:1px solid var(--ink); }
+    .finding { min-height:190px; padding:20px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink); background:rgba(255,253,248,.4); }
+    .finding b { display:block; color:var(--red); font:800 34px var(--mono); }
+    .finding strong { display:block; margin:20px 0 8px; font-size:14px; }
+    .finding span { color:var(--muted); font-size:11px; line-height:1.5; }
+    .priority { background:#e6eef0; }
+    .priority-list { border-top:2px solid var(--ink); }
+    .priority-row { display:grid; grid-template-columns:90px minmax(220px,.75fr) minmax(0,1.25fr); gap:24px; padding:22px 0; border-bottom:1px solid var(--line); align-items:start; }
+    .priority-row code { color:var(--red); font:800 12px var(--mono); }
+    .priority-row strong { font-size:16px; }
+    .priority-row p { margin:0; color:var(--muted); font-size:13px; line-height:1.65; }
+    .method { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid var(--ink); }
+    .method div { min-height:190px; padding:22px; border-right:1px solid var(--line); }
+    .method div:last-child { border-right:0; }
+    .method b { display:block; margin-bottom:18px; color:var(--red); font:800 12px var(--mono); }
+    .method p { color:var(--muted); font-size:13px; line-height:1.7; }
+    .notice { padding:18px 20px; border-left:7px solid var(--amber); background:#fff6d7; font-size:12px; line-height:1.65; }
+    footer { display:flex; justify-content:space-between; gap:20px; padding:22px clamp(16px,4vw,56px); color:#b9c0bb; background:var(--ink); font:10px var(--mono); }
+    @media(max-width:1000px){ .metrics{grid-template-columns:repeat(2,1fr)} .finding-grid{grid-template-columns:repeat(2,1fr)} }
+    @media(max-width:720px){ .masthead{position:static;align-items:stretch;flex-direction:column;gap:10px;padding:12px 14px 10px} .brand strong{font-size:16px;white-space:normal} .brand span{display:none} nav{justify-content:space-between;gap:12px;padding-top:9px;border-top:1px solid #4f5652} .verdict,.tracks{grid-template-columns:1fr} .metrics{grid-template-columns:1fr 1fr} .finding-grid{grid-template-columns:1fr} .priority-row{grid-template-columns:64px 1fr} .priority-row p{grid-column:2} .method{grid-template-columns:1fr} .method div{border-right:0;border-bottom:1px solid var(--line)} footer{flex-direction:column} }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="../"><strong>REASONKB / EVIDENCE AUDIT</strong><span>public summary · 2026-08-12</span></a>
+    <nav aria-label="报告导航"><a href="#results">结果</a><a href="#gaps">缺口</a><a href="#method">口径</a></nav>
+  </header>
+  <main>
+    <section class="section" id="results">
+      <p class="kicker">Natural-language Evidence benchmark / 616 ready documents</p>
+      <h1>像同事一样提问，而不是像测试脚本一样报题</h1>
+      <p class="lede">默认评测使用 100 道自然问题，不向检索器暴露文件名、页码、扩展名或答案关键词。来源、页面与事实锚点作为隐藏契约，用来核验 ReasonKB 返回的 Evidence 是否足以交给 Agent 继续判断。</p>
+      <div class="verdict">
+        <div class="score"><strong>70 / 100</strong><span>人工裁决后通过；原始严格隐藏契约为 64 / 100。6 道调整来自等价权威来源或契约收敛，并非放宽 Evidence 质量。</span></div>
+        <div class="metrics">
+          <div class="metric"><b>16.7s</b><span>Evidence P50</span></div><div class="metric"><b>27.4s</b><span>Evidence P95</span></div><div class="metric"><b>75.7%</b><span>必需文档召回</span></div>
+          <div class="metric"><b>72.2%</b><span>可读文档召回</span></div><div class="metric"><b>70.9%</b><span>逐字锚点召回</span></div><div class="metric"><b>100%</b><span>请求成功率</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="kicker">Two-track evaluation</p><h2>自然问题测产品，诊断题定位链路</h2>
+      <div class="tracks">
+        <article class="track"><code>PRODUCT TRACK / 100</code><h3>自然语言问题</h3><p>只描述人的处境和想解决的事，包含比较、追问、模糊措辞和跨来源判断。它测量端到端 Evidence 召回能力。</p><strong>64 strict / 70 adjudicated</strong></article>
+        <article class="track"><code>CONTROL TRACK / 106</code><h3>诊断控制题</h3><p>显式提供来源、页码或事实锚点，用于判断解析、PageIndex 建树、页面窗口和 Evidence 组装在哪一步失效，不代表真实用户体验。</p><strong>87 / 99 retrievable</strong></article>
+      </div>
+    </section>
+
+    <section class="section" id="gaps">
+      <p class="kicker">Natural-question failure audit</p><h2>30 道真实 Evidence 缺口</h2><p class="lede">失败不是一个总分能够解释的。下面按结果现象分组，避免用 Answer 生成掩盖上游召回与原始信息质量问题。</p>
+      <div class="finding-grid">
+        <div class="finding"><b>7</b><strong>零 Evidence</strong><span>候选或树导航最终没有留下任何可返回证据。</span></div>
+        <div class="finding"><b>12</b><strong>近似材料误路由</strong><span>返回主题接近的材料，却没有覆盖具体制度或事实。</span></div>
+        <div class="finding"><b>4</b><strong>跨来源漏召回</strong><span>比较或冲突问题只返回部分必需来源。</span></div>
+        <div class="finding"><b>4</b><strong>证据窗口不完整</strong><span>目标文档已命中，但相邻步骤、表格行或后续事实缺失。</span></div>
+        <div class="finding"><b>3</b><strong>源文本质量</strong><span>乱码、不可读正文或目标版本缺失阻止有效 Evidence。</span></div>
+      </div>
+    </section>
+
+    <section class="section priority">
+      <p class="kicker">Implementation order</p><h2>问题必须在丢失信息的阶段解决</h2>
+      <div class="priority-list">
+        <div class="priority-row"><code>P0</code><strong>索引源文本质量门禁</strong><p>在建树前识别空页、控制字符、乱码、扫描件与表格结构异常；坏正文不能以 ready 状态污染后续索引。</p></div>
+        <div class="priority-row"><code>P0</code><strong>PageIndex 树输出溢出</strong><p>高密度编号正文会让结构化输出远大于输入。按输出预算分段、递归退避并保留页级树兜底，不能只提高 max_tokens。</p></div>
+        <div class="priority-row"><code>P1</code><strong>路由与证据校验可观测</strong><p>区分候选缺失、近似材料误选、校验误删和技术降级，让空 Evidence 能落到真实责任阶段。</p></div>
+        <div class="priority-row"><code>P1</code><strong>自适应证据窗口</strong><p>命中页面后按结构、表格跨度和未覆盖事项扩展相邻页，解决跨页步骤与表格续页丢失。</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="method">
+      <p class="kicker">Method & boundary</p><h2>报告怎样读，哪些内容没有公开</h2>
+      <div class="method">
+        <div><b>01 / PRIMARY METRIC</b><p>优先评估必需来源是否命中、原文是否可读、目标页面与事实锚点是否覆盖。Answer 仅作为附加 smoke test。</p></div>
+        <div><b>02 / SCALE</b><p>基线覆盖 616 份 ready 文档。扩容轨迹用于观察尾延迟，不把不同题量的阶段结果直接横向合并。</p></div>
+        <div><b>03 / VERSIONING</b><p>本公开摘要随代码版本提交，Git 历史保留每次快照。生成时间为 2026-08-12 15:31 CST，数据版本 evidence-first-natural-v2-100。</p></div>
+      </div>
+      <p class="notice"><strong>公开边界：</strong>原始审计报告包含受限语料的文件名、问题、页面内容和完整 Evidence，不适合发布到公开 GitHub Pages。本页保留方法、汇总指标、失败分类和改进方向；逐题证据审计继续在受控环境中进行。</p>
+    </section>
+  </main>
+  <footer><span>REASONKB / VERSIONED EVIDENCE EVALUATION</span><a href="../">返回首页</a></footer>
+</body>
+</html>

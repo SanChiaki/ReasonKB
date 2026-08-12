@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ReasonKB 为 Agent 提供有范围、有出处、可继续判断的原始证据。">
+  <title>ReasonKB / Evidence for agents</title>
+  <style>
+    :root {
+      --ink: #171b1a;
+      --muted: #68706b;
+      --paper: #f5f3ed;
+      --surface: #fffdf8;
+      --line: #c9c7bf;
+      --blue: #1e5de8;
+      --red: #d9422d;
+      --green: #14705c;
+      --yellow: #f0cf3a;
+      --serif: "Iowan Old Style", "Songti SC", "Noto Serif CJK SC", serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "SFMono-Regular", "Cascadia Mono", "JetBrains Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; scroll-behavior: smooth; background: var(--paper); color: var(--ink); }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      letter-spacing: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 31px, rgba(23, 27, 26, .026) 31px 32px),
+        var(--paper);
+    }
+    a { color: inherit; }
+    a:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+    .topbar {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 clamp(18px, 4vw, 64px);
+      border-bottom: 1px solid var(--ink);
+      background: rgba(255, 253, 248, .94);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; }
+    .brand-mark { width: 34px; aspect-ratio: 1; display: grid; place-items: center; color: white; background: var(--ink); font: 800 12px var(--mono); }
+    .brand strong { font: 800 19px var(--sans); white-space: nowrap; }
+    .nav { display: flex; align-items: center; gap: clamp(14px, 2.6vw, 34px); }
+    .nav a { color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .nav a:hover { color: var(--blue); }
+    .hero {
+      min-height: calc(100svh - 66px);
+      max-height: 840px;
+      display: grid;
+      grid-template-columns: minmax(0, .93fr) minmax(480px, 1.07fr);
+      border-bottom: 1px solid var(--ink);
+      overflow: hidden;
+    }
+    .hero-copy { padding: clamp(48px, 7vw, 104px) clamp(24px, 6vw, 92px) 46px; display: flex; flex-direction: column; justify-content: space-between; }
+    .eyebrow { margin: 0 0 18px; color: var(--red); font: 800 11px/1.3 var(--mono); text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 760px; margin-bottom: 24px; font: 800 clamp(56px, 6.7vw, 108px)/.9 var(--serif); }
+    .lede { max-width: 650px; margin-bottom: 32px; color: #424844; font-size: clamp(16px, 1.5vw, 20px); line-height: 1.72; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .action { min-height: 45px; display: inline-flex; align-items: center; gap: 10px; padding: 0 17px; border: 1px solid var(--ink); font-size: 13px; font-weight: 800; text-decoration: none; }
+    .action.primary { color: white; background: var(--blue); border-color: var(--blue); }
+    .action:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--ink); }
+    .action svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .hero-note { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .hero-note div { min-width: 0; }
+    .hero-note b { display: block; margin-bottom: 5px; font: 800 11px var(--mono); }
+    .hero-note span { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .hero-visual { position: relative; min-width: 0; background: #e9edf3; border-left: 1px solid var(--ink); overflow: hidden; }
+    .hero-visual iframe { width: 151%; height: 151%; border: 0; transform: scale(.665); transform-origin: 0 0; pointer-events: none; filter: saturate(.88) contrast(.98); }
+    .visual-label { position: absolute; right: 18px; bottom: 18px; z-index: 2; padding: 8px 10px; color: white; background: var(--ink); font: 700 10px var(--mono); }
+    .section { padding: clamp(52px, 7vw, 96px) clamp(20px, 6vw, 92px); border-bottom: 1px solid var(--ink); }
+    .section-head { max-width: 1080px; display: grid; grid-template-columns: minmax(200px, .42fr) minmax(0, 1fr); gap: 42px; margin-bottom: 42px; }
+    .section-index { color: var(--blue); font: 800 12px var(--mono); }
+    h2 { margin-bottom: 14px; font: 800 clamp(31px, 4vw, 55px)/1.04 var(--serif); }
+    .section-head p { max-width: 760px; color: var(--muted); font-size: 15px; line-height: 1.75; }
+    .pipeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
+    .stage { position: relative; min-height: 220px; padding: 22px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: rgba(255, 253, 248, .52); }
+    .stage::after { content: ""; position: absolute; top: 31px; right: -9px; width: 16px; height: 16px; z-index: 2; background: var(--yellow); border: 1px solid var(--ink); transform: rotate(45deg); }
+    .stage:last-child::after { display: none; }
+    .stage code { color: var(--red); font: 800 10px var(--mono); }
+    .stage h3 { margin: 42px 0 10px; font: 800 19px var(--serif); }
+    .stage p { color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .contract-band { display: grid; grid-template-columns: .95fr 1.05fr; padding: 0; background: var(--ink); color: white; }
+    .contract-copy { padding: clamp(48px, 7vw, 90px) clamp(24px, 6vw, 92px); }
+    .contract-copy .eyebrow { color: #ff765f; }
+    .contract-copy h2 { max-width: 620px; }
+    .contract-copy p { max-width: 620px; color: #c7cec9; line-height: 1.75; }
+    .contract-fields { display: grid; grid-template-columns: 1fr 1fr; border-left: 1px solid #505753; }
+    .field { min-height: 180px; padding: 25px; border-right: 1px solid #505753; border-bottom: 1px solid #505753; }
+    .field:nth-child(even) { border-right: 0; }
+    .field:nth-last-child(-n + 2) { border-bottom: 0; }
+    .field small { color: #8e9993; font: 700 10px var(--mono); }
+    .field strong { display: block; margin: 28px 0 8px; color: var(--yellow); font: 800 19px var(--mono); overflow-wrap: anywhere; }
+    .field span { color: #c7cec9; font-size: 12px; line-height: 1.55; }
+    .benchmark { background: #e7ecef; }
+    .snapshot { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.2fr); gap: clamp(30px, 6vw, 90px); align-items: start; }
+    .score { padding-left: 22px; border-left: 8px solid var(--green); }
+    .score strong { display: block; color: var(--green); font: 800 clamp(46px, 6vw, 82px)/1 var(--mono); }
+    .score span { display: block; max-width: 430px; margin-top: 14px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
+    .metric { min-height: 118px; padding: 20px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: rgba(255, 255, 255, .38); }
+    .metric b { display: block; font: 800 28px var(--mono); }
+    .metric span { display: block; margin-top: 9px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .route-band { display: grid; grid-template-columns: 1fr 1fr; }
+    .route { position: relative; min-height: 390px; padding: clamp(36px, 5vw, 72px); border-right: 1px solid var(--ink); text-decoration: none; overflow: hidden; }
+    .route:last-child { border-right: 0; }
+    .route small { font: 800 10px var(--mono); color: var(--red); }
+    .route h2 { max-width: 520px; margin-top: 84px; }
+    .route p { max-width: 540px; color: var(--muted); line-height: 1.7; }
+    .route-arrow { position: absolute; right: 28px; top: 28px; width: 44px; aspect-ratio: 1; display: grid; place-items: center; border: 1px solid var(--ink); font-size: 23px; transition: .18s ease; }
+    .route:hover { background: var(--surface); }
+    .route:hover .route-arrow { color: white; background: var(--blue); transform: translate(3px, -3px); }
+    footer { display: flex; justify-content: space-between; gap: 24px; padding: 24px clamp(18px, 4vw, 64px); color: #aeb6b1; background: var(--ink); font: 10px/1.5 var(--mono); }
+    .reveal { opacity: 0; transform: translateY(18px); animation: reveal .7s ease forwards; }
+    .reveal:nth-child(2) { animation-delay: .08s; }
+    .reveal:nth-child(3) { animation-delay: .16s; }
+    @keyframes reveal { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
+    @media (max-width: 920px) {
+      .hero { min-height: auto; max-height: none; grid-template-columns: 1fr; }
+      .hero-copy { min-height: 690px; }
+      .hero-visual { height: 410px; border-left: 0; border-top: 1px solid var(--ink); }
+      .pipeline { grid-template-columns: 1fr 1fr; }
+      .stage:nth-child(2)::after { display: none; }
+      .contract-band, .snapshot { grid-template-columns: 1fr; }
+      .contract-fields { border-left: 0; border-top: 1px solid #505753; }
+    }
+    @media (max-width: 620px) {
+      .topbar { position: static; min-height: 58px; padding: 10px 14px; }
+      .nav a:first-child { display: none; }
+      .nav { gap: 14px; }
+      .nav a { font-size: 11px; }
+      .hero-copy { min-height: auto; padding: 34px 18px 22px; }
+      h1 { font-size: 54px; margin-bottom: 18px; }
+      .lede { margin-bottom: 22px; font-size: 15px; line-height: 1.6; }
+      .hero-note { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 26px; padding-top: 13px; }
+      .hero-note span { font-size: 9px; line-height: 1.4; }
+      .hero-visual { height: 190px; }
+      .hero-visual iframe { width: 200%; height: 200%; transform: scale(.5); }
+      .section { padding: 54px 18px; }
+      .section-head { grid-template-columns: 1fr; gap: 16px; }
+      .pipeline { grid-template-columns: 1fr; }
+      .stage { min-height: 180px; }
+      .stage::after { top: auto; right: 24px; bottom: -9px; }
+      .stage:nth-child(2)::after { display: block; }
+      .contract-copy { padding: 54px 18px; }
+      .contract-fields { grid-template-columns: 1fr; }
+      .field, .field:nth-child(even), .field:nth-last-child(-n + 2) { min-height: 150px; border-right: 0; border-bottom: 1px solid #505753; }
+      .field:last-child { border-bottom: 0; }
+      .snapshot { gap: 36px; }
+      .metrics { grid-template-columns: 1fr; }
+      .route-band { grid-template-columns: 1fr; }
+      .route { min-height: 330px; border-right: 0; border-bottom: 1px solid var(--ink); padding: 42px 18px; }
+      .route h2 { margin-top: 72px; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="ReasonKB 首页"><span class="brand-mark">RK</span><strong>ReasonKB</strong></a>
+    <nav class="nav" aria-label="主要导航">
+      <a href="#contract">Evidence contract</a>
+      <a href="architecture/reasonkb-system-atlas.html">System Atlas</a>
+      <a href="evaluation/">测评报告</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div>
+          <p class="eyebrow reveal">Evidence retrieval infrastructure</p>
+          <h1 class="reveal">ReasonKB</h1>
+          <p class="lede reveal">为 Agent 检索有范围、有出处、可继续判断的原始证据。ReasonKB 保留来源、页码、覆盖情况与未解决事实；最终怎么整合，由调用方决定。</p>
+          <div class="actions reveal">
+            <a class="action primary" href="architecture/reasonkb-system-atlas.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6v6H4zM14 13h6v6h-6zM14 5h6M7 11v5h7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              打开系统图谱
+            </a>
+            <a class="action" href="evaluation/">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              查看测评报告
+            </a>
+          </div>
+        </div>
+        <div class="hero-note" aria-label="核心边界">
+          <div><b>01 / SCOPED</b><span>API Key 与 Project 范围限定可见语料。</span></div>
+          <div><b>02 / TRACEABLE</b><span>Evidence 保留文档、页面与原始内容。</span></div>
+          <div><b>03 / HONEST</b><span>缺口、冲突和降级状态不会被答案掩盖。</span></div>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="ReasonKB System Atlas 预览">
+        <iframe src="architecture/reasonkb-system-atlas.html" title="ReasonKB System Atlas 预览" tabindex="-1" loading="eager"></iframe>
+        <span class="visual-label">LIVE SYSTEM ATLAS / READ ONLY</span>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="section-head">
+        <span class="section-index">01 / WORKFLOW</span>
+        <div><h2>从问题到可引用的 EvidenceSet</h2><p>PageIndex 在文档内部沿树导航；ReasonKB 负责跨文档候选、证据落地、覆盖判断与访问范围。Answer 与 Evidence 共享同一条检索链，Answer 只在最后追加一次生成。</p></div>
+      </div>
+      <div class="pipeline">
+        <article class="stage"><code>ROUTE</code><h3>限定范围并选择候选</h3><p>从授权 Project 中组合语义、全文和模型路由信号，保留可继续检索的候选文档。</p></article>
+        <article class="stage"><code>NAVIGATE</code><h3>进入文档树和页面</h3><p>PageIndex 按问题判断相关节点，再读取对应页面内容；候选相关不等于证据成立。</p></article>
+        <article class="stage"><code>GROUND</code><h3>组成带出处的证据</h3><p>逐份保留文档身份、页码、原始文本与结构化表格，拒绝无法落回来源的结论。</p></article>
+        <article class="stage"><code>HAND OFF</code><h3>交给 Agent 继续判断</h3><p>返回支持项、未解决事项、置信度和停止原因；需要时再由 Answer 适配器生成答案。</p></article>
+      </div>
+    </section>
+
+    <section class="contract-band" id="contract">
+      <div class="contract-copy">
+        <p class="eyebrow">Primary product object</p>
+        <h2>Evidence 是主产品，不是答案生成的中间废料。</h2>
+        <p>面向 Agent 的知识服务不能只交付一段看似完整的文字。调用方需要知道证据来自哪里、覆盖了问题的哪些部分、哪些事实仍未解决，以及本次检索是否因上游异常而降级。</p>
+      </div>
+      <div class="contract-fields" aria-label="EvidenceSet 字段">
+        <div class="field"><small>PROVENANCE</small><strong>document + pages</strong><span>稳定的文档身份、来源路径与页面范围。</span></div>
+        <div class="field"><small>CONTENT</small><strong>excerpt + content</strong><span>可快速扫描的摘录与可继续读取的原始证据。</span></div>
+        <div class="field"><small>COVERAGE</small><strong>aspects + unresolved</strong><span>已支持的原子事项和仍缺失的信息。</span></div>
+        <div class="field"><small>STATUS</small><strong>matched | no_match | degraded</strong><span>区分业务无匹配与技术失败，避免静默空结果。</span></div>
+      </div>
+    </section>
+
+    <section class="section benchmark" id="benchmark">
+      <div class="section-head">
+        <span class="section-index">02 / BENCHMARK</span>
+        <div><h2>先量 Evidence 召回，再谈答案好不好看。</h2><p>当前公开快照来自 2026-08-12 的 616 份 ready 文档。100 道自然问题不向检索器暴露文件名、页码或答案关键词，另保留诊断控制组定位解析、建树、路由与证据窗口问题。</p></div>
+      </div>
+      <div class="snapshot">
+        <div class="score"><strong>70 / 100</strong><span>人工裁决后通过；严格隐藏契约为 64 / 100。该数值衡量 Evidence 是否覆盖目标来源与事实，不是最终答案准确率。</span></div>
+        <div class="metrics">
+          <div class="metric"><b>16.7s</b><span>自然问题 Evidence P50</span></div>
+          <div class="metric"><b>27.4s</b><span>自然问题 Evidence P95</span></div>
+          <div class="metric"><b>75.7%</b><span>必需文档召回</span></div>
+          <div class="metric"><b>100%</b><span>请求成功率</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="route-band" aria-label="深入阅读">
+      <a class="route" href="architecture/reasonkb-system-atlas.html"><span class="route-arrow">↗</span><small>INTERACTIVE MAP</small><h2>沿真实代码路径理解 ReasonKB</h2><p>查看服务边界、PageIndex 与 ReasonKB 的职责，以及四种检索结果如何沿事件序列形成。</p></a>
+      <a class="route" href="evaluation/"><span class="route-arrow">↗</span><small>VERSIONED AUDIT</small><h2>查看当前版本的 Evidence 审计</h2><p>阅读自然问题与诊断题的分轨结果、规模延迟、失败分布、实施优先级和评测口径。</p></a>
+    </section>
+  </main>
+
+  <footer><span>REASONKB / EVIDENCE-FIRST RETRIEVAL</span><span>LOCAL · SMB · SEEYON / WEB · AGENT API · MCP</span></footer>
+</body>
+</html>
