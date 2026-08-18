@@ -540,7 +540,7 @@ def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
             "${REASONKB_MCP_MAX_SESSIONS:-128}"
         )
         assert service["environment"]["REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS"] == (
-            "${REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS:-900}"
+            "${REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS:-1209600}"
         )
         assert service["ports"] == [
             "${MCP_BIND_ADDRESS:-127.0.0.1}:"
