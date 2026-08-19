@@ -28,6 +28,7 @@ async function startAppInstance(fetchImpl, options = {}) {
     reasonkbUrl: "http://reasonkb.test",
     fetchImpl,
     host: "127.0.0.1",
+    sessionMode: "stateful",
     ...options,
   });
   const listener = await new Promise((resolve, reject) => {
@@ -90,6 +91,123 @@ function postToSession(baseUrl, sessionId, apiKey, body) {
 }
 
 describe("Streamable HTTP MCP server", () => {
+  it("uses stateless Streamable HTTP by default", async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith("/api/agent/auth/verify")) {
+        return new Response(null, { status: 204 });
+      }
+      if (String(url).endsWith("/api/agent/projects")) {
+        return jsonResponse({ projects: [] });
+      }
+      return jsonResponse({ error: "Not found." }, 404);
+    });
+    const app = createReasonkbMcpHttpApp({
+      reasonkbUrl: "http://reasonkb.test",
+      fetchImpl,
+      host: "127.0.0.1",
+    });
+    const listener = await new Promise((resolve, reject) => {
+      const server = app.listen(0, "127.0.0.1", () => resolve(server));
+      server.on("error", reject);
+    });
+    listeners.push(listener);
+    const address = listener.address();
+    const baseUrl = "http://127.0.0.1:" + address.port;
+    const headers = {
+      accept: "application/json, text/event-stream",
+      authorization: "Bearer test-api-key",
+      "content-type": "application/json",
+    };
+
+    const initialize = await fetch(baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1.0.0" },
+        },
+      }),
+    });
+    const tools = await fetch(baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      }),
+    });
+    const call = await fetch(baseUrl, {
+      method: "POST",
+      headers: { ...headers, "mcp-session-id": "expired-client-session" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "reasonkb_list_projects", arguments: {} },
+      }),
+    });
+    const deleted = await fetch(baseUrl, {
+      method: "DELETE",
+      headers: {
+        authorization: "Bearer test-api-key",
+        "mcp-session-id": "expired-client-session",
+      },
+    });
+
+    expect(initialize.status).toBe(200);
+    expect(initialize.headers.get("mcp-session-id")).toBeNull();
+    expect(tools.status).toBe(200);
+    expect(await tools.text()).toContain('"tools"');
+    expect(call.status).toBe(200);
+    expect(await call.text()).toContain('"projects"');
+    expect(deleted.status).toBe(405);
+
+    const client = new Client({ name: "stateless-test", version: "1.0.0" });
+    clients.push(client);
+    const transport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+      requestInit: {
+        headers: { Authorization: "Bearer test-api-key" },
+      },
+    });
+    await client.connect(transport);
+    await expect(client.listTools()).resolves.toMatchObject({
+      tools: expect.arrayContaining([
+        expect.objectContaining({ name: "reasonkb_list_projects" }),
+      ]),
+    });
+    await expect(
+      client.callTool({
+        name: "reasonkb_list_projects",
+        arguments: {},
+      }),
+    ).resolves.toMatchObject({ structuredContent: { projects: [] } });
+    expect(transport.sessionId).toBeUndefined();
+  });
+
+  it("retains explicit stateful Streamable HTTP sessions", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const baseUrl = await startApp(fetchImpl, { sessionMode: "stateful" });
+
+    await expect(initializeSession(baseUrl)).resolves.toEqual(
+      expect.any(String),
+    );
+  });
+
+  it("rejects unsupported MCP session modes", () => {
+    expect(() =>
+      createReasonkbMcpHttpApp({ sessionMode: "sometimes" }),
+    ).toThrow(/MCP session mode must be stateless or stateful/);
+  });
+
   it("publishes health without an API key", async () => {
     const baseUrl = await startApp(vi.fn());
     const response = await fetch(baseUrl + "/health");

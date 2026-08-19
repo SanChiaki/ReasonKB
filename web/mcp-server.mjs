@@ -112,6 +112,18 @@ function configuredSessionIdleTimeoutMs() {
   );
 }
 
+function configuredSessionMode() {
+  const mode = (process.env.REASONKB_MCP_SESSION_MODE || "stateless")
+    .trim()
+    .toLowerCase();
+  if (mode !== "stateless" && mode !== "stateful") {
+    throw new Error(
+      "REASONKB_MCP_SESSION_MODE must be stateless or stateful.",
+    );
+  }
+  return mode;
+}
+
 function configuredMaxConcurrentRequests() {
   return positiveInteger(
     process.env.REASONKB_MCP_MAX_CONCURRENT_REQUESTS ||
@@ -723,9 +735,13 @@ export function createReasonkbMcpHttpApp({
   maxConcurrentRequests = configuredMaxConcurrentRequests(),
   maxConcurrentAuthRequests = configuredMaxConcurrentAuthRequests(),
   maxConcurrentControlRequests = configuredMaxConcurrentControlRequests(),
-  maxSessions = configuredMaxSessions(),
-  sessionIdleTimeoutMs = configuredSessionIdleTimeoutMs(),
+  sessionMode = configuredSessionMode(),
+  maxSessions,
+  sessionIdleTimeoutMs,
 } = {}) {
+  if (sessionMode !== "stateless" && sessionMode !== "stateful") {
+    throw new Error("MCP session mode must be stateless or stateful.");
+  }
   const effectiveRequestTimeoutMs = positiveInteger(
     requestTimeoutMs,
     "MCP request timeout",
@@ -748,15 +764,21 @@ export function createReasonkbMcpHttpApp({
     maxConcurrentControlRequests,
     "MCP maximum concurrent control requests",
   );
-  const effectiveMaxSessions = positiveInteger(
-    maxSessions,
-    "MCP maximum sessions",
-  );
-  const effectiveSessionIdleTimeoutMs = positiveInteger(
-    sessionIdleTimeoutMs,
-    "MCP session idle timeout",
-    MAX_TIMER_DELAY_MS,
-  );
+  const effectiveMaxSessions =
+    sessionMode === "stateful"
+      ? positiveInteger(
+          maxSessions ?? configuredMaxSessions(),
+          "MCP maximum sessions",
+        )
+      : undefined;
+  const effectiveSessionIdleTimeoutMs =
+    sessionMode === "stateful"
+      ? positiveInteger(
+          sessionIdleTimeoutMs ?? configuredSessionIdleTimeoutMs(),
+          "MCP session idle timeout",
+          MAX_TIMER_DELAY_MS,
+        )
+      : undefined;
   const effectiveAllowedHosts =
     allowedHosts.length > 0 ? allowedHosts : DEFAULT_ALLOWED_HOSTS;
   const effectiveAllowedOrigins = normalizeAllowedOrigins(allowedOrigins);
@@ -764,6 +786,7 @@ export function createReasonkbMcpHttpApp({
   const requestContexts = new WeakMap();
   const sessions = new Map();
   const pendingSessions = new Set();
+  const ephemeralSessions = new Set();
   let activeAuthRequests = 0;
   let activeControlRequests = 0;
   let activeToolRequests = 0;
@@ -805,6 +828,7 @@ export function createReasonkbMcpHttpApp({
   }
 
   function cleanupSession(entry) {
+    ephemeralSessions.delete(entry);
     if (entry.pending) {
       entry.pending = false;
       pendingSessions.delete(entry);
@@ -898,7 +922,12 @@ export function createReasonkbMcpHttpApp({
     }
     context.finished = true;
     clearRequestDeadline(context);
+    const ephemeralSession = context.ephemeralSession;
     detachSession(context);
+    if (ephemeralSession) {
+      context.ephemeralSession = undefined;
+      void closeSession(ephemeralSession);
+    }
   }
 
   function startPreAuthDeadline(request, response, context) {
@@ -969,11 +998,11 @@ export function createReasonkbMcpHttpApp({
     return undefined;
   }
 
-  async function executeTool(operation, extra) {
+  async function executeTool(operation, extra, requestEntry) {
     if (activeToolRequests >= effectiveMaxConcurrentRequests) {
       throw new McpError(ErrorCode.ConnectionClosed, "MCP server is busy.");
     }
-    const session = sessions.get(extra.sessionId);
+    const session = requestEntry || sessions.get(extra.sessionId);
     if (!session || session.closed) {
       throw new McpError(ErrorCode.ConnectionClosed, "MCP session is closed.");
     }
@@ -1196,6 +1225,48 @@ export function createReasonkbMcpHttpApp({
     }
   }
 
+  async function handleStatelessRequest(
+    request,
+    response,
+    context,
+    apiKey,
+    fingerprint,
+    scopes,
+  ) {
+    const entry = {
+      apiKeyFingerprint: fingerprint,
+      activeTools: new Map(),
+      closed: false,
+      closingPromise: undefined,
+      expiresAt: 0,
+      idleTimer: undefined,
+      inFlight: 0,
+      pending: false,
+      pendingRequests: new Map(),
+      server: undefined,
+      sessionId: undefined,
+      scopes: [...scopes],
+      transport: undefined,
+    };
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    entry.transport = transport;
+    context.ephemeralSession = entry;
+    ephemeralSessions.add(entry);
+    attachSession(context, entry, false);
+    setRequestAuthInfo(request, fingerprint, context, scopes);
+    entry.server = createReasonkbMcpServer({
+      apiKey,
+      baseUrl: reasonkbUrl,
+      scopes,
+      fetchImpl,
+      toolExecutor: (operation, extra) => executeTool(operation, extra, entry),
+    });
+    await entry.server.connect(transport);
+    await transport.handleRequest(request, response, request.body);
+  }
+
   app.use(hostHeaderValidation(effectiveAllowedHosts));
 
   app.get("/health", (_request, response) => {
@@ -1211,7 +1282,10 @@ export function createReasonkbMcpHttpApp({
   });
 
   app.get("/", (_request, response) => {
-    response.set("Allow", "POST, DELETE");
+    response.set(
+      "Allow",
+      sessionMode === "stateful" ? "POST, DELETE" : "POST",
+    );
     jsonRpcError(response, 405, "Method not allowed.");
   });
 
@@ -1265,6 +1339,36 @@ export function createReasonkbMcpHttpApp({
         "JSON-RPC batches are not supported.",
         ErrorCode.InvalidRequest,
       );
+      return;
+    }
+
+    if (sessionMode === "stateless") {
+      const capabilities = await authenticate(apiKey, response, context);
+      if (!capabilities) {
+        return;
+      }
+      clearRequestDeadline(context);
+      try {
+        await handleStatelessRequest(
+          request,
+          response,
+          context,
+          apiKey,
+          fingerprint,
+          capabilities.scopes,
+        );
+      } catch (error) {
+        if (context.abortController.signal.aborted) {
+          return;
+        }
+        console.error(
+          "[reasonkb-mcp-http] request failed:",
+          error instanceof Error ? error.message : error,
+        );
+        if (!response.headersSent) {
+          jsonRpcError(response, 500, "Internal MCP server error.");
+        }
+      }
       return;
     }
 
@@ -1415,6 +1519,11 @@ export function createReasonkbMcpHttpApp({
   });
 
   app.delete("/", async (request, response) => {
+    if (sessionMode === "stateless") {
+      response.set("Allow", "POST");
+      jsonRpcError(response, 405, "Stateless MCP does not support DELETE.");
+      return;
+    }
     const apiKey = bearerToken(request);
     const context = requestContexts.get(request);
     const fingerprint = apiKeyFingerprint(apiKey);
@@ -1457,7 +1566,10 @@ export function createReasonkbMcpHttpApp({
   });
 
   app.all("/", (_request, response) => {
-    response.set("Allow", "GET, POST, DELETE");
+    response.set(
+      "Allow",
+      sessionMode === "stateful" ? "GET, POST, DELETE" : "GET, POST",
+    );
     jsonRpcError(response, 405, "Method not allowed.");
   });
 
@@ -1466,7 +1578,11 @@ export function createReasonkbMcpHttpApp({
   app.locals.closeMcpSessions = async () => {
     shuttingDown = true;
     const activeSessions = [
-      ...new Set([...sessions.values(), ...pendingSessions.values()]),
+      ...new Set([
+        ...sessions.values(),
+        ...pendingSessions.values(),
+        ...ephemeralSessions.values(),
+      ]),
     ];
     await Promise.allSettled(
       activeSessions.map((entry) => closeSession(entry)),
