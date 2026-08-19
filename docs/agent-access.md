@@ -232,7 +232,7 @@ as the ReasonKB Docker deployment.
 
 ## Streamable HTTP MCP
 
-Docker also starts a stateful MCP Streamable HTTP endpoint:
+Docker also starts a stateless MCP Streamable HTTP endpoint:
 
 ```text
 http://localhost:43173
@@ -258,6 +258,7 @@ MCP_BIND_ADDRESS=0.0.0.0
 MCP_PORT=43173
 REASONKB_MCP_ALLOWED_HOSTS=kb.example.com,192.0.2.10
 REASONKB_MCP_ALLOWED_ORIGINS=https://agent.example.com
+REASONKB_MCP_SESSION_MODE=stateless
 REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS=30
 REASONKB_MCP_REQUEST_TIMEOUT_SECONDS=600
 REASONKB_MCP_MAX_CONCURRENT_REQUESTS=8
@@ -280,17 +281,18 @@ Tool calls that exceed the hard deadline are aborted. Body parsing and API Key
 verification use the shorter pre-authentication deadline, and request bodies are
 limited to 100 KiB.
 
-HTTP clients use stateful MCP sessions so protocol cancellation can stop the
-original tool call. A session remains bound to the API Key that initialized it.
-Every ordinary request revalidates that Key. Cancellation-only notifications
-may skip the remote verification call so cancellation remains available while
-the original request is waiting for or performing API Key verification, but
-they are accepted only when the supplied Bearer Key fingerprint matches the Key
-bound to that session. They do not invoke tools, extend session lifetime, or
-consume tool execution capacity. New sessions receive `503` when the session
-cap is full; idle sessions are closed after the configured timeout.
-Sessions are in memory, so a service restart invalidates them. Multi-replica
-deployments require sticky routing to the instance that created each session.
+The default `stateless` mode creates a fresh MCP server and transport for every
+HTTP request, does not issue `Mcp-Session-Id`, and ignores a stale session header
+sent by a client. Every request revalidates the Bearer API Key. This mode works
+across restarts and replicas without sticky routing, but it cannot use a
+separate `notifications/cancelled` request to cancel an in-flight tool call.
+Disconnecting the tool request still aborts its upstream ReasonKB work.
+
+Set `REASONKB_MCP_SESSION_MODE=stateful` when cross-request protocol
+cancellation is required. Stateful sessions bind the API Key used during
+initialization, return `404` after expiry or restart, and require sticky routing
+across replicas. `REASONKB_MCP_MAX_SESSIONS` and
+`REASONKB_MCP_SESSION_IDLE_TIMEOUT_SECONDS` apply only in stateful mode.
 Each POST accepts one JSON-RPC message. JSON-RPC batches receive `400`; this
 keeps request cancellation isolated because the upstream SDK otherwise shares
 one response stream across every request in a batch.

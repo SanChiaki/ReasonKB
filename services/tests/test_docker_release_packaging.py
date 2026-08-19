@@ -520,6 +520,9 @@ def test_mcp_http_service_forwards_to_web_without_mounting_secrets():
         assert service["environment"]["REASONKB_MCP_ALLOWED_ORIGINS"] == (
             "${REASONKB_MCP_ALLOWED_ORIGINS:-}"
         )
+        assert service["environment"]["REASONKB_MCP_SESSION_MODE"] == (
+            "${REASONKB_MCP_SESSION_MODE:-stateless}"
+        )
         assert service["environment"]["NODE_ENV"] == "production"
         assert service["environment"]["REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS"] == (
             "${REASONKB_MCP_PRE_AUTH_TIMEOUT_SECONDS:-30}"
