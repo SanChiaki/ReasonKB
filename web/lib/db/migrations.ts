@@ -645,4 +645,14 @@ export const schemaMigrations: SchemaMigration[] = [
       `);
     },
   },
+  {
+    version: 13,
+    name: "seeyon-source-url-migration-preflight",
+    up(db) {
+      ensureColumns(db, "corpus_source_migrations", [
+        ["allow_risk", "allow_risk INTEGER NOT NULL DEFAULT 0"],
+        ["preflight_json", "preflight_json TEXT"],
+      ]);
+    },
+  },
 ];

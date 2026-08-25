@@ -54,6 +54,21 @@ export type AdminSource = {
     status: string;
     targetScope: Record<string, unknown>;
     targetConfig: Record<string, unknown>;
+    preflight?: {
+      requiresConfirmation?: boolean;
+      collections?: Array<{
+        collectionId: string;
+        displayName: string;
+        existingCount: number;
+        observedCount: number;
+        overlapCount: number;
+        existingOverlapRatio: number;
+        observedOverlapRatio: number;
+        requiresConfirmation: boolean;
+        reasons: string[];
+      }>;
+    } | null;
+    requiresConfirmation?: boolean;
     errorSummary: string | null;
     progress: {
       totalCollections: number;
@@ -312,6 +327,29 @@ function SourceRow({
     }
   }
 
+  async function confirmRiskMigration() {
+    if (!source.migration?.requiresConfirmation) return;
+    const report = source.migration.preflight?.collections ?? [];
+    const detail = report
+      .filter((item) => item.requiresConfirmation)
+      .map((item) => `${item.displayName}: 旧 ${item.existingCount}，新 ${item.observedCount}，重叠 ${item.overlapCount}`)
+      .join("；");
+    if (!window.confirm(`目标文档库身份未能自动确认。${detail}\n\n仍要切换 URL，并接受可能的文档缺失或重新索引吗？`)) return;
+    setWorking(true);
+    setError("");
+    try {
+      await api(`/api/admin/sources/${source.id}/migration/confirm`, {
+        method: "POST",
+        body: JSON.stringify({ migrationId: source.migration.id }),
+      });
+      await onChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "风险确认失败。");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function remove(immediate = false) {
     if (!immediate && !window.confirm(`将“${source.displayName}”移入待清除状态？`)) return;
     let confirmation: string | undefined;
@@ -403,6 +441,24 @@ function SourceRow({
           <span className="ml-2">目标：{String(source.migration.targetScope.endpoint ?? "-")}</span>
           {source.migration.progress.totalCollections > 0 ? <span className="ml-2">目录 {source.migration.progress.completedCollections}/{source.migration.progress.totalCollections}</span> : null}
           {source.migration.errorSummary ? <span className="ml-2 text-[var(--pi-danger)]">{source.migration.errorSummary}</span> : null}
+          {source.migration.requiresConfirmation ? (
+            <div className="mt-2 border border-amber-300 bg-white/70 p-2 text-amber-900">
+              <p className="font-medium">目标文档库身份未确认，旧 URL 和旧索引尚未切换。</p>
+              <p className="mt-1">请检查预检结果；系统发现目标库为空或与原库稳定 ID 重叠过低。</p>
+              <div className="mt-2 space-y-1">
+                {(source.migration.preflight?.collections ?? [])
+                  .filter((item) => item.requiresConfirmation)
+                  .map((item) => (
+                    <p key={item.collectionId}>
+                      {item.displayName}：旧 {item.existingCount}，新 {item.observedCount}，稳定 ID 重叠 {item.overlapCount}（旧库 {Math.round(item.existingOverlapRatio * 100)}%，目标 {Math.round(item.observedOverlapRatio * 100)}%）
+                    </p>
+                  ))}
+              </div>
+              <button type="button" onClick={confirmRiskMigration} disabled={working} className="mt-2 inline-flex items-center gap-1 rounded border border-amber-400 px-2 py-1 font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50">
+                <AlertTriangle size={13} />确认仍要切换
+              </button>
+            </div>
+          ) : null}
           {["requested", "validating", "syncing", "applying"].includes(source.migration.status) ? <button type="button" onClick={cancelMigration} disabled={working} className="ml-3 underline">取消</button> : null}
         </div>
       ) : null}
@@ -439,13 +495,15 @@ function SeeyonMigrationForm({ source, onSaved }: { source: AdminSource; onSaved
       const value = String(data.get(key) ?? "").trim();
       if (value) credentials[key] = value;
     }
+    const endpoint = String(data.get("endpoint") ?? "").trim();
+    if (!window.confirm(`即将把“${source.displayName}”的数据源 URL 从\n${String(source.scope.endpoint ?? "")}\n切换为\n${endpoint}\n\n这不是普通配置修改，系统会先扫描目标文档库；目标库身份无法确认时会暂停并要求再次确认。继续吗？`)) return;
     setSaving(true);
     setError("");
     try {
       await api(`/api/admin/sources/${source.id}/migration`, {
         method: "POST",
         body: JSON.stringify({
-          scope: { endpoint: String(data.get("endpoint") ?? "").trim() },
+          scope: { endpoint },
           config: { loginName: String(data.get("loginName") ?? "").trim() },
           ...(Object.keys(credentials).length ? { credentials } : {}),
         }),
@@ -485,6 +543,11 @@ function SourceEditForm({ source, onSaved }: { source: AdminSource; onSaved: () 
     const config = source.kind === "seeyon"
       ? { loginName: String(data.get("loginName") ?? "").trim() }
       : undefined;
+    const connectionChanged = source.kind === "seeyon" && (
+      config?.loginName !== String(source.config.loginName ?? "") ||
+      Boolean(credentials.username || credentials.password)
+    );
+    if (connectionChanged && !window.confirm("这会修改致远数据源的连接身份，保存后后台会重新验证连接。继续吗？")) return;
     setSaving(true);
     setError("");
     try {

@@ -70,6 +70,36 @@ afterEach(() => {
 });
 
 describe("AdminSourceManager", () => {
+  it("warns before staging a Seeyon URL migration", async () => {
+    const source = sourceFixture();
+    const fetchMock = vi.fn(async (request: string | URL | Request, init?: RequestInit) => {
+      const url = String(request);
+      if (url.endsWith("/migration") && init?.method === "POST") {
+        return okJson({ migration: { id: "migration_1", status: "requested" } }, 202);
+      }
+      if (url === "/api/admin/sources") return okJson({ sources: [source] });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<AdminSourceManager initialSources={[source]} />);
+    fireEvent.click(screen.getByRole("button", { name: "迁移 URL" }));
+    fireEvent.change(screen.getByLabelText("新 Seeyon URL"), {
+      target: { value: "https://oa-public.example.test/seeyon" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "开始迁移" }));
+
+    await waitFor(() => {
+      expect(confirmation).toHaveBeenCalledWith(expect.stringContaining("这不是普通配置修改"));
+      expect(
+        fetchMock.mock.calls.some(
+          ([request, init]) => String(request).endsWith("/migration") && init?.method === "POST",
+        ),
+      ).toBe(true);
+    });
+  });
+
   it("shows the affected source next retry time", () => {
     const source: AdminSource = {
       id: "src_1",

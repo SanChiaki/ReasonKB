@@ -22,6 +22,20 @@ function parseJson(value: unknown) {
   return JSON.parse(String(value ?? "{}")) as Record<string, unknown>;
 }
 
+function parseNullableJson(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  try {
+    return JSON.parse(String(value)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function migrationRequiresConfirmation(value: unknown) {
+  const parsed = parseNullableJson(value);
+  return parsed?.requiresConfirmation === true;
+}
+
 function migrationView(db: Db, row: Record<string, unknown>) {
   const progress = db
     .prepare(
@@ -38,6 +52,12 @@ function migrationView(db: Db, row: Record<string, unknown>) {
     status: row.status,
     targetScope: parseJson(row.target_scope_json),
     targetConfig: parseJson(row.target_config_json),
+    preflight: parseNullableJson(row.preflight_json),
+    requiresConfirmation: Boolean(
+      row.status === "failed" &&
+      !Number(row.allow_risk ?? 0) &&
+      migrationRequiresConfirmation(row.preflight_json),
+    ),
     errorSummary: row.error_summary,
     createdAt: row.created_at,
     startedAt: row.started_at,
@@ -214,6 +234,68 @@ export function cancelSourceMigration(dbPath: string, sourceId: string) {
          ) VALUES (?, 'source.migration.cancel', 'corpus_source', ?, 'success', ?)`,
       ).run(`audit_${crypto.randomUUID()}`, sourceId, now);
       return migrationView(db, db.prepare("SELECT * FROM corpus_source_migrations WHERE id = ?").get(migration.id) as Record<string, unknown>);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export function confirmSourceMigration(
+  dbPath: string,
+  sourceId: string,
+  migrationId: string,
+) {
+  const now = new Date().toISOString();
+  const db = open(dbPath);
+  try {
+    return runImmediateTransaction(db, () => {
+      const migration = db
+        .prepare(
+          `SELECT * FROM corpus_source_migrations
+            WHERE id = ? AND source_id = ? AND status = 'failed'
+              AND allow_risk = 0 AND preflight_json IS NOT NULL`,
+        )
+        .get(migrationId, sourceId) as Record<string, unknown> | undefined;
+      if (!migration) {
+        throw new Error("No migration is awaiting administrator confirmation.");
+      }
+      if (!migrationRequiresConfirmation(migration.preflight_json)) {
+        throw new Error("This migration failed for a technical reason and cannot be retried as a risk confirmation.");
+      }
+      const source = db
+        .prepare("SELECT config_revision, state FROM corpus_sources WHERE id = ? AND deleted_at IS NULL")
+        .get(sourceId) as { config_revision: number; state: string } | undefined;
+      if (!source || source.state !== "active" || source.config_revision !== migration.source_config_revision) {
+        throw new Error("The source changed after this migration preflight; start a new migration.");
+      }
+      db.prepare(
+        `UPDATE sync_runs SET status = 'superseded', completed_at = ?,
+               error_summary = 'Retrying after administrator risk confirmation'
+          WHERE migration_id = ? AND status IN ('queued', 'running', 'scanned')`,
+      ).run(now, migrationId);
+      db.prepare(
+        "DELETE FROM sync_run_observations WHERE run_id IN (SELECT id FROM sync_runs WHERE migration_id = ?)",
+      ).run(migrationId);
+      db.prepare(
+        `UPDATE corpus_source_migrations
+            SET status = 'requested', allow_risk = 1, error_summary = NULL,
+                started_at = NULL, completed_at = NULL, updated_at = ?
+          WHERE id = ?`,
+      ).run(now, migrationId);
+      db.prepare(
+        `INSERT INTO admin_audit_events (
+           id, action, target_type, target_id, outcome, after_json, created_at
+         ) VALUES (?, 'source.migration.confirm-risk', 'corpus_source', ?, 'success', ?, ?)`,
+      ).run(
+        `audit_${crypto.randomUUID()}`,
+        sourceId,
+        JSON.stringify({ migrationId, allowRisk: true }),
+        now,
+      );
+      return migrationView(
+        db,
+        db.prepare("SELECT * FROM corpus_source_migrations WHERE id = ?").get(migrationId) as Record<string, unknown>,
+      );
     });
   } finally {
     db.close();

@@ -988,13 +988,147 @@ class SourceWorkerEngine:
             if migration_row is None or migration_row["status"] != "syncing":
                 return False
             runs = conn.execute(
-                "SELECT status FROM sync_runs WHERE migration_id = ?",
+                "SELECT status FROM sync_runs WHERE migration_id = ? AND status IN ('queued', 'running', 'scanned')",
                 (migration_id,),
             ).fetchall()
             if not runs or any(row["status"] != "scanned" for row in runs):
                 return False
-            self._apply_migration_in_connection(conn, dict(migration_row), now)
+            migration = dict(migration_row)
+            preflight = self._migration_preflight_in_connection(conn, migration)
+            conn.execute(
+                "UPDATE corpus_source_migrations SET preflight_json = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(preflight, ensure_ascii=False), now, migration_id),
+            )
+            if preflight["requiresConfirmation"] and not int(migration.get("allow_risk") or 0):
+                self._reject_migration_for_preflight_in_connection(
+                    conn, migration, preflight, now
+                )
+                return False
+            self._apply_migration_in_connection(conn, migration, now)
             return True
+
+    @staticmethod
+    def _migration_preflight_in_connection(
+        conn: sqlite3.Connection,
+        migration: dict[str, object],
+    ) -> dict[str, object]:
+        runs = conn.execute(
+            """
+            SELECT r.id, r.collection_id, c.display_name
+              FROM sync_runs r
+              JOIN source_collections c ON c.id = r.collection_id
+             WHERE r.migration_id = ?
+               AND r.status IN ('queued', 'running', 'scanned')
+             ORDER BY r.id
+            """,
+            (migration["id"],),
+        ).fetchall()
+        collections: list[dict[str, object]] = []
+        for run in runs:
+            observed_ids = {
+                str(row["external_id"])
+                for row in conn.execute(
+                    "SELECT external_id FROM sync_run_observations WHERE run_id = ?",
+                    (run["id"],),
+                ).fetchall()
+            }
+            existing_ids = {
+                str(row["external_id"])
+                for row in conn.execute(
+                    """
+                    SELECT external_id FROM source_items
+                     WHERE collection_id = ? AND deleted_at IS NULL
+                       AND lifecycle_state NOT IN ('missing', 'access_revoked', 'excluded')
+                    """,
+                    (run["collection_id"],),
+                ).fetchall()
+            }
+            overlap_count = len(existing_ids & observed_ids)
+            existing_count = len(existing_ids)
+            observed_count = len(observed_ids)
+            existing_overlap_ratio = overlap_count / existing_count if existing_count else 0.0
+            observed_overlap_ratio = overlap_count / observed_count if observed_count else 0.0
+            reasons: list[str] = []
+            if existing_count == 0:
+                reasons.append("no-existing-items")
+            if observed_count == 0:
+                reasons.append("target-empty")
+            if overlap_count == 0:
+                reasons.append("no-stable-id-overlap")
+            if existing_count > 0 and existing_overlap_ratio < 0.5:
+                reasons.append("existing-overlap-below-50-percent")
+            if observed_count > 0 and observed_overlap_ratio < 0.5:
+                reasons.append("target-overlap-below-50-percent")
+            collections.append(
+                {
+                    "collectionId": str(run["collection_id"]),
+                    "displayName": str(run["display_name"]),
+                    "existingCount": existing_count,
+                    "observedCount": observed_count,
+                    "overlapCount": overlap_count,
+                    "existingOverlapRatio": round(existing_overlap_ratio, 4),
+                    "observedOverlapRatio": round(observed_overlap_ratio, 4),
+                    "requiresConfirmation": bool(reasons),
+                    "reasons": reasons,
+                }
+            )
+        return {
+            "requiresConfirmation": any(item["requiresConfirmation"] for item in collections),
+            "collections": collections,
+        }
+
+    @staticmethod
+    def _reject_migration_for_preflight_in_connection(
+        conn: sqlite3.Connection,
+        migration: dict[str, object],
+        preflight: dict[str, object],
+        now: str,
+    ) -> None:
+        summary = "Target library identity could not be verified; administrator confirmation is required"
+        conn.execute(
+            """
+            UPDATE corpus_source_migrations
+               SET status = 'failed', error_summary = ?, completed_at = ?, updated_at = ?,
+                   preflight_json = ?
+             WHERE id = ?
+            """,
+            (
+                summary,
+                now,
+                now,
+                json.dumps(preflight, ensure_ascii=False),
+                migration["id"],
+            ),
+        )
+        conn.execute(
+            """
+            UPDATE sync_runs SET status = 'superseded', completed_at = ?, error_summary = ?
+             WHERE migration_id = ? AND status IN ('queued', 'running', 'scanned')
+            """,
+            (now, summary, migration["id"]),
+        )
+        conn.execute(
+            "DELETE FROM sync_run_observations WHERE run_id IN (SELECT id FROM sync_runs WHERE migration_id = ?)",
+            (migration["id"],),
+        )
+        conn.execute(
+            "UPDATE corpus_sources SET next_sync_at = ?, updated_at = ? WHERE id = ? AND state = 'active'",
+            (now, now, migration["source_id"]),
+        )
+        conn.execute(
+            """
+            INSERT INTO admin_audit_events (
+              id, action, target_type, target_id, outcome, error_summary, after_json, created_at
+            ) VALUES (?, 'source.migration.preflight-rejected', 'corpus_source', ?, 'failed', ?, ?, ?)
+            """,
+            (
+                f"audit_{uuid.uuid4()}",
+                migration["source_id"],
+                summary,
+                json.dumps({"migrationId": migration["id"], "preflight": preflight}, ensure_ascii=False),
+                now,
+            ),
+        )
 
     def _apply_migration_in_connection(
         self,

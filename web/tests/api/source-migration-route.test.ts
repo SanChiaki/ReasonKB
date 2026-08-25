@@ -161,4 +161,53 @@ describe("Seeyon source URL migration route", () => {
     expect(response.status).toBe(409);
     expect((await response.json()).error).toContain("source discovery");
   });
+
+  it("requires an explicit administrator confirmation to retry a risky preflight", async () => {
+    const { dbPath, headers } = fixture();
+    const source = await createSource(headers);
+    const db = new Database(dbPath);
+    const now = new Date().toISOString();
+    db.prepare(
+      `UPDATE corpus_sources
+          SET state = 'active', validated_at = ?, ever_validated_at = ?, health_state = 'normal'
+        WHERE id = ?`,
+    ).run(now, now, source.id);
+    db.prepare(
+      `INSERT INTO corpus_source_migrations (
+         id, source_id, source_config_revision, target_scope_json, target_config_json,
+         encrypted_credentials, status, error_summary, allow_risk, preflight_json,
+         created_at, updated_at
+       ) VALUES (?, ?, 1, ?, ?, 'placeholder', 'failed', ?, 0, ?, ?, ?)`,
+    ).run(
+      "migration_risk",
+      source.id,
+      JSON.stringify({ endpoint: "https://public.example" }),
+      JSON.stringify({ loginName: "reader" }),
+      "Target library identity could not be verified; administrator confirmation is required",
+      JSON.stringify({ requiresConfirmation: true, collections: [] }),
+      now,
+      now,
+    );
+    db.close();
+
+    const { POST } = await import("@/app/api/admin/sources/[sourceId]/migration/confirm/route");
+    const response = await POST(
+      new Request(`http://localhost/api/admin/sources/${source.id}/migration/confirm`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ migrationId: "migration_risk" }),
+      }),
+      { params: Promise.resolve({ sourceId: source.id }) },
+    );
+
+    expect(response.status).toBe(202);
+    expect((await response.json()).migration).toMatchObject({
+      id: "migration_risk",
+      status: "requested",
+      requiresConfirmation: false,
+    });
+    const after = new Database(dbPath, { readonly: true });
+    expect(after.prepare("SELECT allow_risk FROM corpus_source_migrations WHERE id = ?").get("migration_risk")).toEqual({ allow_risk: 1 });
+    after.close();
+  });
 });

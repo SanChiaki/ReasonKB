@@ -315,6 +315,8 @@ CREATE TABLE IF NOT EXISTS corpus_source_migrations (
   created_at TEXT NOT NULL,
   started_at TEXT,
   completed_at TEXT,
+  allow_risk INTEGER NOT NULL DEFAULT 0,
+  preflight_json TEXT,
   updated_at TEXT NOT NULL,
   FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE
 );

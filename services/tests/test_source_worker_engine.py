@@ -1963,6 +1963,100 @@ def test_seeyon_url_migration_preserves_old_index_until_changed_document_reindex
     assert job == ("queued", None, "seeyon:file-1:20", 2)
 
 
+def test_seeyon_url_migration_rejects_empty_target_before_mutating_documents(
+    tmp_path, monkeypatch
+):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+
+    class Connector:
+        def validate(self):
+            return None
+
+        def scan_collection(self, collection, exclusions):
+            if False:
+                yield None
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    monkeypatch.setattr(engine, "_build_connector", lambda source: Connector())
+    engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    source = conn.execute(
+        "SELECT scope_json, config_revision FROM corpus_sources WHERE id = 'src_seeyon'"
+    ).fetchone()
+    migration = conn.execute(
+        "SELECT status, error_summary, preflight_json FROM corpus_source_migrations WHERE id = 'migration_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, retrieval_eligible, lifecycle_state FROM documents WHERE id = 'document_seeyon'"
+    ).fetchone()
+    index = conn.execute(
+        "SELECT id, is_current FROM document_indexes WHERE document_id = 'document_seeyon'"
+    ).fetchone()
+    conn.close()
+
+    report = json.loads(migration[2])
+    assert json.loads(source[0])["endpoint"] == "http://old.intranet"
+    assert source[1] == 1
+    assert migration[0] == "failed"
+    assert "administrator confirmation" in migration[1]
+    assert report["requiresConfirmation"] is True
+    assert report["collections"][0]["reasons"] == [
+        "target-empty",
+        "no-stable-id-overlap",
+        "existing-overlap-below-50-percent",
+    ]
+    assert document == ("ready", 1, "active")
+    assert index == ("index_seeyon", 1)
+
+
+def test_confirmed_risky_seeyon_url_migration_can_continue_explicitly(
+    tmp_path, monkeypatch
+):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+
+    class Connector:
+        def validate(self):
+            return None
+
+        def scan_collection(self, collection, exclusions):
+            if False:
+                yield None
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    monkeypatch.setattr(engine, "_build_connector", lambda source: Connector())
+    engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE corpus_source_migrations SET status = 'requested', allow_risk = 1, error_summary = NULL WHERE id = 'migration_1'"
+    )
+    conn.commit()
+    conn.close()
+    engine.run_once()
+    engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    source = conn.execute(
+        "SELECT scope_json, config_revision FROM corpus_sources WHERE id = 'src_seeyon'"
+    ).fetchone()
+    migration = conn.execute(
+        "SELECT status, allow_risk, preflight_json FROM corpus_source_migrations WHERE id = 'migration_1'"
+    ).fetchone()
+    document = conn.execute(
+        "SELECT status, retrieval_eligible, lifecycle_state FROM documents WHERE id = 'document_seeyon'"
+    ).fetchone()
+    conn.close()
+
+    assert json.loads(source[0])["endpoint"] == "https://public.example"
+    assert source[1] == 2
+    assert migration[:2] == ("completed", 1)
+    assert len(json.loads(migration[2])["collections"]) == 1
+    assert document == ("deleted", 0, "missing")
+
+
 def test_failed_seeyon_url_migration_keeps_old_scope(tmp_path, monkeypatch):
     db_path = _create_db(tmp_path)
     _insert_seeyon_migration_fixture(db_path)

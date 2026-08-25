@@ -133,6 +133,7 @@ describe("multi-source schema migration", () => {
       { version: 10 },
       { version: 11 },
       { version: 12 },
+      { version: 13 },
     ]);
     expect(
       migrated
@@ -225,6 +226,7 @@ describe("multi-source schema migration", () => {
       { version: 10, name: "document-search-fts5-bm25f" },
       { version: 11, name: "semantic-routing-generations" },
       { version: 12, name: "seeyon-source-url-migrations" },
+      { version: 13, name: "seeyon-source-url-migration-preflight" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
@@ -675,6 +677,7 @@ describe("multi-source schema migration", () => {
       { version: 10 },
       { version: 11 },
       { version: 12 },
+      { version: 13 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,
