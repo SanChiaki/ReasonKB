@@ -213,7 +213,9 @@ Source Collection 与 Project 一一对应。不同 source 的 Project 始终隔
 
 手工同步会同时请求一次 Collection 发现，因此 manual-only 的 Local/SMB source 在首次验证后也能发现目录；发现结束后不会留下周期调度时间。
 
-Source endpoint、SMB scope 或 Local 根路径定义 source 身份边界，不能原地修改；需要创建新的 source。`loginName`、username 和 password 可在原 source 上更新。身份变化会先停止旧可见性的检索，直到验证和权威同步完成。
+SMB scope 或 Local 根路径定义 source 身份边界，仍不能原地修改；需要创建新的 source。Seeyon endpoint 通常也不能直接编辑，但管理员可以在数据源卡片中使用“迁移 URL”：填写公网 endpoint（以及需要变更的 loginName/REST 凭据）后，worker 会先用新地址验证并完整扫描已选择的文档库。扫描期间旧地址继续是权威配置；全部成功后才在一个事务中切换 endpoint 和凭据，保留原有 source、Project、document 和索引身份。Seeyon `fr_id` 未变且 `file_id + fr_size` 未变的文档复用旧索引，只有 revision 变化的文档重新索引；失败或取消不会改动旧地址。
+
+普通的 `loginName`、username 和 password 编辑仍按凭据/Source Principal 变更流程处理。URL 迁移进行期间不能编辑、停用或手工同步该 source。
 
 ## 9. 数据保留
 

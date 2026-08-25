@@ -132,6 +132,7 @@ describe("multi-source schema migration", () => {
       { version: 9 },
       { version: 10 },
       { version: 11 },
+      { version: 12 },
     ]);
     expect(
       migrated
@@ -223,12 +224,14 @@ describe("multi-source schema migration", () => {
       { version: 9, name: "llm-provider-observability" },
       { version: 10, name: "document-search-fts5-bm25f" },
       { version: 11, name: "semantic-routing-generations" },
+      { version: 12, name: "seeyon-source-url-migrations" },
     ]);
     expect(tables).toEqual(
       expect.objectContaining(
         new Set([
           "corpus_sources",
           "source_credentials",
+          "corpus_source_migrations",
           "source_collections",
           "source_items",
           "source_exclusion_rules",
@@ -261,6 +264,7 @@ describe("multi-source schema migration", () => {
     );
     expect(collectionColumns).toContain("filter_revision");
     expect(syncRunColumns).toContain("collection_filter_revision");
+    expect(syncRunColumns).toContain("migration_id");
     db.close();
   });
 
@@ -670,6 +674,7 @@ describe("multi-source schema migration", () => {
       { version: 9 },
       { version: 10 },
       { version: 11 },
+      { version: 12 },
     ]);
     expect(resumed.prepare("SELECT COUNT(*) AS count FROM corpus_sources").get()).toEqual({
       count: 1,

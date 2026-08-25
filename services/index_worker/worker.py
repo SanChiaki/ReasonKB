@@ -43,6 +43,11 @@ def claim_next_job(db_path: str, worker_id: str = "index-worker"):
                WHERE type = 'document_index'
                  AND j.status = 'queued'
                  AND (j.available_at IS NULL OR j.available_at <= ?)
+                 AND NOT EXISTS (
+                   SELECT 1 FROM corpus_source_migrations migration
+                    WHERE migration.source_id = j.source_id
+                      AND migration.status IN ('requested', 'validating', 'syncing', 'applying')
+                 )
                ORDER BY j.priority ASC,
                         (SELECT COUNT(*) FROM jobs running
                           WHERE running.status = 'running'

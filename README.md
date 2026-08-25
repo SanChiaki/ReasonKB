@@ -6,11 +6,12 @@ The formal product supports any number of Local directory, SMB share, and Seeyon
 
 ## Source Model
 
-- A Corpus Source is one connection and immutable content scope.
+- A Corpus Source is one connection and immutable content scope through the ordinary edit API.
 - A Source Collection becomes one deployment-shared Project when selected.
 - New sources default to `None`, with zero selected collections.
 - `All` continuously includes collections discovered or registered later.
 - Source configuration, credentials, collection selection, and manual sync take effect without restarting containers.
+- Seeyon sources have an explicit URL migration flow for moving an OA endpoint from an intranet address to a public address. The target is validated and fully scanned before the existing source identity and reusable indexes are switched over.
 - Connectors only list and read source content. ReasonKB never writes, moves, deletes, or changes permissions in a source system.
 
 Local and SMB collections are discovered from the root and its top-level directories. Seeyon libraries are registered explicitly with a document library ID and root archive ID.

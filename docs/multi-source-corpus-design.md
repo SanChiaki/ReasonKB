@@ -54,7 +54,7 @@ The Source Scope is immutable after creation:
 - SMB: host, share, and base path.
 - Seeyon: server endpoint.
 
-Changing scope creates a new source. Display name, schedule, size limit, and credentials remain editable on the same source.
+Changing scope creates a new source by default. Seeyon endpoint migration is the explicit exception for intranet-to-public OA moves: the target endpoint is staged, validated, and completely scanned before the existing source scope is switched in one transaction. Stable Seeyon `fr_id` identities and unchanged `file_id + fr_size` revisions retain their Projects, documents, and indexes; changed revisions queue reindexing. A failed or cancelled migration leaves the old source authoritative. Display name, schedule, size limit, and credentials remain editable on the same source outside an active migration.
 
 Every saved configuration change advances a Source Configuration Revision. Work created under an older revision may finish external I/O but cannot reconcile state or publish an index after a newer revision exists.
 

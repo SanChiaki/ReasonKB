@@ -172,6 +172,7 @@ export function ensureMultiSourceCompatibilityColumns(db: MigrationDatabase) {
   ensureColumns(db, "jobs", [
     ["source_id", "source_id TEXT"],
     ["source_collection_id", "source_collection_id TEXT"],
+    ["migration_id", "migration_id TEXT"],
     ["expected_source_revision", "expected_source_revision TEXT"],
     ["expected_source_config_revision", "expected_source_config_revision INTEGER"],
     ["priority", "priority INTEGER NOT NULL DEFAULT 300"],
@@ -182,6 +183,7 @@ export function ensureMultiSourceCompatibilityColumns(db: MigrationDatabase) {
     ["worker_id", "worker_id TEXT"],
     ["superseded_at", "superseded_at TEXT"],
   ]);
+  ensureColumns(db, "sync_runs", [["migration_id", "migration_id TEXT"]]);
 }
 
 function createMultiSourceFoundation(db: MigrationDatabase) {
@@ -612,6 +614,34 @@ export const schemaMigrations: SchemaMigration[] = [
         );
         CREATE INDEX IF NOT EXISTS idx_semantic_embeddings_generation_kind
           ON semantic_embeddings(generation_id, profile_kind, document_id);
+      `);
+    },
+  },
+  {
+    version: 12,
+    name: "seeyon-source-url-migrations",
+    up(db) {
+      ensureColumns(db, "jobs", [["migration_id", "migration_id TEXT"]]);
+      ensureColumns(db, "sync_runs", [["migration_id", "migration_id TEXT"]]);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS corpus_source_migrations (
+          id TEXT PRIMARY KEY,
+          source_id TEXT NOT NULL,
+          source_config_revision INTEGER NOT NULL,
+          target_scope_json TEXT NOT NULL,
+          target_config_json TEXT NOT NULL,
+          encrypted_credentials TEXT NOT NULL,
+          status TEXT NOT NULL
+            CHECK (status IN ('requested', 'validating', 'syncing', 'applying', 'completed', 'failed', 'cancelled')),
+          error_summary TEXT,
+          created_at TEXT NOT NULL,
+          started_at TEXT,
+          completed_at TEXT,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_source_migrations_source_status
+          ON corpus_source_migrations(source_id, status, created_at DESC);
       `);
     },
   },

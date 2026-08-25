@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   finished_at TEXT,
   source_id TEXT,
   source_collection_id TEXT,
+  migration_id TEXT,
   expected_source_revision TEXT,
   expected_source_config_revision INTEGER,
   priority INTEGER NOT NULL DEFAULT 300,
@@ -301,6 +302,26 @@ CREATE TABLE IF NOT EXISTS source_credentials (
   FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS corpus_source_migrations (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  source_config_revision INTEGER NOT NULL,
+  target_scope_json TEXT NOT NULL,
+  target_config_json TEXT NOT NULL,
+  encrypted_credentials TEXT NOT NULL,
+  status TEXT NOT NULL
+    CHECK (status IN ('requested', 'validating', 'syncing', 'applying', 'completed', 'failed', 'cancelled')),
+  error_summary TEXT,
+  created_at TEXT NOT NULL,
+  started_at TEXT,
+  completed_at TEXT,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_source_migrations_source_status
+  ON corpus_source_migrations(source_id, status, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS source_collections (
   id TEXT PRIMARY KEY,
   source_id TEXT NOT NULL,
@@ -342,6 +363,7 @@ CREATE TABLE IF NOT EXISTS sync_runs (
   id TEXT PRIMARY KEY,
   source_id TEXT NOT NULL,
   collection_id TEXT NOT NULL,
+  migration_id TEXT,
   source_config_revision INTEGER NOT NULL,
   collection_filter_revision INTEGER NOT NULL DEFAULT 1,
   trigger_kind TEXT NOT NULL,
@@ -355,7 +377,8 @@ CREATE TABLE IF NOT EXISTS sync_runs (
   cursor_json TEXT,
   error_summary TEXT,
   FOREIGN KEY(source_id) REFERENCES corpus_sources(id) ON DELETE CASCADE,
-  FOREIGN KEY(collection_id) REFERENCES source_collections(id) ON DELETE CASCADE
+  FOREIGN KEY(collection_id) REFERENCES source_collections(id) ON DELETE CASCADE,
+  FOREIGN KEY(migration_id) REFERENCES corpus_source_migrations(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS sync_run_observations (

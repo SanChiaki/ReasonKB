@@ -64,6 +64,27 @@ const seeyonSource = z.object({
   schedule,
 });
 
+const seeyonMigration = z
+  .object({
+    scope: z.object({
+      endpoint: z.string().trim().url().refine((value) => {
+        const protocol = new URL(value).protocol;
+        return protocol === "http:" || protocol === "https:";
+      }, "Seeyon endpoint must use HTTP or HTTPS."),
+    }),
+    config: z
+      .object({ loginName: z.string().trim().min(1).max(255) })
+      .optional(),
+    credentials: z
+      .object({
+        username: z.string().trim().min(1).max(255).optional(),
+        password: z.string().min(1).max(4096).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 export const createCorpusSourceSchema = z.discriminatedUnion("kind", [
   localSource,
   smbSource,
@@ -71,6 +92,7 @@ export const createCorpusSourceSchema = z.discriminatedUnion("kind", [
 ]);
 
 export type CreateCorpusSourceInput = z.infer<typeof createCorpusSourceSchema>;
+export type SeeyonSourceMigrationInput = z.infer<typeof seeyonMigration>;
 
 const updateCommon = {
   displayName: displayName.optional(),
@@ -212,4 +234,16 @@ export function parseCorpusSourceUpdate(
     };
   }
   return { success: true as const, data: parsed.data as UpdateCorpusSourceInput };
+}
+
+export function parseSeeyonSourceMigration(value: unknown) {
+  const parsed = seeyonMigration.safeParse(value);
+  if (!parsed.success) return parsed;
+  return {
+    success: true as const,
+    data: {
+      ...parsed.data,
+      scope: { endpoint: parsed.data.scope.endpoint.replace(/\/+$/, "") },
+    },
+  };
 }

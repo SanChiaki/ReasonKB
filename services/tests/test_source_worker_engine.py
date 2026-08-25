@@ -1819,6 +1819,127 @@ def test_validation_does_not_erase_concurrent_manual_discovery_request(tmp_path)
     assert collections == [("Engineering",)]
 
 
+def _insert_seeyon_migration_fixture(db_path: Path) -> None:
+    now = "2026-01-01T00:00:00+00:00"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        INSERT INTO corpus_sources (
+          id, kind, display_name, state, scope_json, config_json, config_revision,
+          selection_policy, schedule_mode, sync_interval_seconds,
+          max_document_size_bytes, health_state, created_at, updated_at
+        ) VALUES ('src_seeyon', 'seeyon', 'Seeyon', 'active',
+                  '{"endpoint":"http://old.intranet"}',
+                  '{"loginName":"reader"}', 1, 'explicit', 'manual', 600,
+                  104857600, 'normal', '2025-12-01T00:00:00+00:00', '2025-12-01T00:00:00+00:00');
+        INSERT INTO source_credentials (source_id, encrypted_payload, created_at, updated_at)
+          VALUES ('src_seeyon', 'placeholder', '2025-12-01T00:00:00+00:00', '2025-12-01T00:00:00+00:00');
+        INSERT INTO source_collections (
+          id, source_id, identity_key, external_id, root_external_id, display_name,
+          origin, registration_state, validation_state, lifecycle_state, selected,
+          created_at, updated_at
+        ) VALUES ('collection_seeyon', 'src_seeyon', 'seeyon:1:2', '1', '2', 'Docs',
+                  'registered', 'active', 'valid', 'active', 1, '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00');
+        INSERT INTO projects (
+          id, owner_user_id, name, source_id, source_collection_id,
+          lifecycle_state, retrieval_eligible, created_at, updated_at
+        ) VALUES ('project_seeyon', 'deployment', 'Docs', 'src_seeyon', 'collection_seeyon',
+                  'active', 1, '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00');
+        INSERT INTO source_items (
+          id, source_id, collection_id, external_id, item_type, name, relative_path,
+          mime_type, size_bytes, source_revision, fetch_locator, lifecycle_state,
+          last_seen_run_id, created_at, updated_at
+        ) VALUES ('item_seeyon', 'src_seeyon', 'collection_seeyon', 'doc-1', 'document',
+                  'guide.pdf', 'guide.pdf', 'application/pdf', 10, 'seeyon:file-1:10',
+                      'file-1', 'active', NULL, '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00');
+        INSERT INTO documents (
+          id, project_id, owner_user_id, file_name, storage_path, mime_type, file_size,
+          status, source_kind, source_id, source_collection_id, source_item_id,
+          source_item_external_id, source_revision, expected_source_revision,
+          expected_source_config_revision, lifecycle_state, retrieval_eligible,
+          created_at, updated_at
+        ) VALUES ('document_seeyon', 'project_seeyon', 'deployment', 'guide.pdf', 'file-1',
+                  'application/pdf', 10, 'ready', 'seeyon', 'src_seeyon', 'collection_seeyon',
+                  'item_seeyon', 'doc-1', 'seeyon:file-1:10', 'seeyon:file-1:10', 1,
+                      'active', 1, '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00');
+        UPDATE source_items SET document_id = 'document_seeyon' WHERE id = 'item_seeyon';
+        INSERT INTO document_indexes (
+          id, document_id, doc_name, doc_description, structure_json, pages_json,
+          index_version, indexed_at, source_revision, is_current
+        ) VALUES ('index_seeyon', 'document_seeyon', 'guide.pdf', '', '[]', '[]',
+                  'v1', '2026-01-01T00:00:00+00:00', 'seeyon:file-1:10', 1);
+        """,
+    )
+    conn.execute(
+        "INSERT INTO corpus_source_migrations (id, source_id, source_config_revision, target_scope_json, target_config_json, encrypted_credentials, status, created_at, updated_at) VALUES ('migration_1', 'src_seeyon', 1, ?, ?, 'placeholder', 'requested', ?, ?)",
+        ('{"endpoint":"https://public.example"}', '{"loginName":"reader"}', now, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_seeyon_url_migration_reuses_document_and_index_identity(tmp_path, monkeypatch):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+
+    class Connector:
+        def validate(self):
+            return None
+
+        def scan_collection(self, collection, exclusions):
+            yield SourceItemMetadata(
+                external_id="doc-1",
+                parent_external_id=None,
+                item_type="document",
+                name="guide.pdf",
+                relative_path="guide.pdf",
+                mime_type="application/pdf",
+                size_bytes=10,
+                source_revision="seeyon:file-1:10",
+                fetch_locator="file-1",
+                media_type="pdf",
+            )
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    monkeypatch.setattr(engine, "_build_connector", lambda source: Connector())
+    result = engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    source = conn.execute("SELECT scope_json, config_revision FROM corpus_sources WHERE id = 'src_seeyon'").fetchone()
+    migration = conn.execute("SELECT status FROM corpus_source_migrations WHERE id = 'migration_1'").fetchone()
+    document = conn.execute("SELECT id, status, retrieval_eligible, expected_source_config_revision FROM documents WHERE id = 'document_seeyon'").fetchone()
+    index = conn.execute("SELECT id, is_current FROM document_indexes WHERE document_id = 'document_seeyon'").fetchone()
+    conn.close()
+    assert result["synchronized"] == 1
+    assert json.loads(source[0])["endpoint"] == "https://public.example"
+    assert source[1] == 2
+    assert migration == ("completed",)
+    assert document == ("document_seeyon", "ready", 1, 2)
+    assert index == ("index_seeyon", 1)
+
+
+def test_failed_seeyon_url_migration_keeps_old_scope(tmp_path, monkeypatch):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+
+    class Connector:
+        def validate(self):
+            raise RuntimeError("target endpoint unavailable")
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    monkeypatch.setattr(engine, "_build_connector", lambda source: Connector())
+    engine.run_once()
+
+    conn = sqlite3.connect(db_path)
+    source = conn.execute("SELECT scope_json, config_revision FROM corpus_sources WHERE id = 'src_seeyon'").fetchone()
+    migration = conn.execute("SELECT status, error_summary FROM corpus_source_migrations WHERE id = 'migration_1'").fetchone()
+    conn.close()
+    assert json.loads(source[0])["endpoint"] == "http://old.intranet"
+    assert source[1] == 1
+    assert migration[0] == "failed"
+    assert "target endpoint unavailable" in migration[1]
+
+
 def test_worker_startup_requeues_abandoned_active_source_validation(tmp_path):
     db_path = _create_db(tmp_path)
     access_root = tmp_path / "sources"

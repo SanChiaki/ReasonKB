@@ -86,6 +86,9 @@ class SourceWorkerEngine:
             discovery_runs = conn.execute(
                 "SELECT id, source_id FROM source_discovery_runs WHERE status = 'running'"
             ).fetchall()
+            migrations = conn.execute(
+                "SELECT id FROM corpus_source_migrations WHERE status IN ('validating', 'syncing', 'applying')"
+            ).fetchall()
             affected_sources.update(str(row["source_id"]) for row in sync_runs)
             affected_sources.update(str(row["source_id"]) for row in discovery_runs)
             if sync_runs:
@@ -112,6 +115,10 @@ class SourceWorkerEngine:
                      WHERE id IN ({placeholders})
                     """,
                     [now, error_summary, *run_ids],
+                )
+            for migration in migrations:
+                self._cancel_migration_in_connection(
+                    conn, str(migration["id"]), now, error_summary, failed=True
                 )
             collection_validations = conn.execute(
                 """
@@ -152,7 +159,7 @@ class SourceWorkerEngine:
 
     def run_once(self) -> dict[str, int]:
         self._report_progress()
-        summary = {"validated": 0, "discovered": 0, "synchronized": 0, "failed": 0}
+        summary = {"validated": 0, "discovered": 0, "synchronized": 0, "migrated": 0, "failed": 0}
         validation = self._claim_validation()
         if validation:
             try:
@@ -169,6 +176,15 @@ class SourceWorkerEngine:
                 summary["validated"] += 1
             except Exception as error:
                 self._fail_collection_validation(collection_validation, error)
+                summary["failed"] += 1
+
+        migration = self._claim_migration()
+        if migration:
+            try:
+                if self._validate_migration(migration):
+                    summary["migrated"] += 1
+            except Exception as error:
+                self._fail_migration(migration, error)
                 summary["failed"] += 1
 
         due_source = self._claim_due_source()
@@ -192,6 +208,112 @@ class SourceWorkerEngine:
                 else:
                     self._supersede_sync_run(run)
         return summary
+
+    def _claim_migration(self) -> dict[str, object] | None:
+        with open_db(self.db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT m.*, s.kind, s.state, s.config_revision,
+                       s.max_document_size_bytes
+                  FROM corpus_source_migrations m
+                  JOIN corpus_sources s ON s.id = m.source_id
+                 WHERE m.status = 'requested'
+                   AND s.state = 'active' AND s.deleted_at IS NULL
+                 ORDER BY m.created_at
+                 LIMIT 1
+                """
+            ).fetchone()
+            if row is None:
+                return None
+            changed = conn.execute(
+                """
+                UPDATE corpus_source_migrations
+                   SET status = 'validating', started_at = COALESCE(started_at, ?), updated_at = ?
+                 WHERE id = ? AND status = 'requested'
+                """,
+                (iso_now(), iso_now(), row["id"]),
+            ).rowcount
+            return dict(row) if changed else None
+
+    def _validate_migration(self, migration: dict[str, object]) -> bool:
+        connector = self._build_connector(
+            {
+                **migration,
+                "scope_json": migration["target_scope_json"],
+                "config_json": migration["target_config_json"],
+                "migration_id": migration["id"],
+            }
+        )
+        connector.validate()
+        now = iso_now()
+        with open_db(self.db_path) as conn:
+            current = conn.execute(
+                "SELECT config_revision, state FROM corpus_sources WHERE id = ?",
+                (migration["source_id"],),
+            ).fetchone()
+            if (
+                current is None
+                or current["config_revision"] != migration["source_config_revision"]
+                or current["state"] != "active"
+            ):
+                self._cancel_migration_in_connection(conn, str(migration["id"]), now, "Source configuration changed during migration")
+                return False
+            blocked = conn.execute(
+                """
+                SELECT COUNT(*) AS count FROM source_collections
+                 WHERE source_id = ? AND selected = 1
+                   AND registration_state = 'active' AND validation_state = 'valid'
+                   AND lifecycle_state IN ('missing', 'access_revoked')
+                   AND deleted_at IS NULL
+                """,
+                (migration["source_id"],),
+            ).fetchone()
+            if blocked and int(blocked["count"] or 0) > 0:
+                raise RuntimeError("Cannot migrate while a selected Seeyon collection is missing or access-revoked")
+            collections = conn.execute(
+                """
+                SELECT id, filter_revision FROM source_collections
+                 WHERE source_id = ? AND selected = 1
+                   AND validation_state = 'valid'
+                   AND registration_state = 'active'
+                   AND lifecycle_state NOT IN ('missing', 'access_revoked')
+                   AND deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM source_exclusion_rules e
+                      WHERE e.collection_id = source_collections.id
+                        AND e.target_type = 'collection'
+                   )
+                 ORDER BY id
+                """,
+                (migration["source_id"],),
+            ).fetchall()
+            conn.execute(
+                "UPDATE corpus_source_migrations SET status = 'syncing', updated_at = ? WHERE id = ?",
+                (now, migration["id"]),
+            )
+            for collection in collections:
+                conn.execute(
+                    """
+                    INSERT INTO sync_runs (
+                      id, source_id, collection_id, migration_id,
+                      source_config_revision, collection_filter_revision,
+                      trigger_kind, status, started_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'migration', 'queued', ?)
+                    """,
+                    (
+                        f"sync_{uuid.uuid4()}",
+                        migration["source_id"],
+                        collection["id"],
+                        migration["id"],
+                        migration["source_config_revision"],
+                        collection["filter_revision"],
+                        now,
+                    ),
+                )
+            if not collections:
+                self._apply_migration_in_connection(conn, migration, now)
+                return True
+        return False
 
     def _claim_validation(self) -> dict[str, object] | None:
         with open_db(self.db_path) as conn:
@@ -292,6 +414,11 @@ class SourceWorkerEngine:
                        AND next_sync_at IS NOT NULL AND next_sync_at <= ?)
                    )
                    AND deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM corpus_source_migrations m
+                      WHERE m.source_id = corpus_sources.id
+                        AND m.status IN ('requested', 'validating', 'syncing', 'applying')
+                   )
                  ORDER BY COALESCE(next_sync_at, created_at)
                  LIMIT 1
                 """,
@@ -330,6 +457,11 @@ class SourceWorkerEngine:
                    AND c.validation_state = 'unvalidated'
                    AND s.state = 'active'
                    AND s.deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM corpus_source_migrations m
+                      WHERE m.source_id = s.id
+                        AND m.status IN ('requested', 'validating', 'syncing', 'applying')
+                   )
                  ORDER BY c.created_at
                  LIMIT 1
                 """
@@ -695,6 +827,13 @@ class SourceWorkerEngine:
                         AND c.validation_state = 'valid'
                         AND c.lifecycle_state NOT IN ('missing', 'access_revoked')
                         AND c.deleted_at IS NULL
+                        AND (
+                          r.migration_id IS NULL OR EXISTS (
+                            SELECT 1 FROM corpus_source_migrations m
+                             WHERE m.id = r.migration_id AND m.source_id = r.source_id
+                               AND m.status = 'syncing'
+                          )
+                        )
                         AND NOT EXISTS (
                           SELECT 1 FROM source_exclusion_rules e
                            WHERE e.collection_id = c.id AND e.target_type = 'collection'
@@ -707,17 +846,23 @@ class SourceWorkerEngine:
             row = conn.execute(
                 """
                 SELECT r.*, c.external_id, c.root_external_id, c.display_name,
-                       c.identity_key, s.kind, s.scope_json, s.config_json,
+                       c.identity_key, s.kind,
+                       CASE WHEN r.migration_id IS NULL THEN s.scope_json ELSE m.target_scope_json END AS scope_json,
+                       CASE WHEN r.migration_id IS NULL THEN s.config_json ELSE m.target_config_json END AS config_json,
                        s.max_document_size_bytes
                   FROM sync_runs r
                   JOIN source_collections c ON c.id = r.collection_id
                   JOIN corpus_sources s ON s.id = r.source_id
+                  LEFT JOIN corpus_source_migrations m ON m.id = r.migration_id
                  WHERE r.status = 'queued' AND s.state = 'active' AND c.selected = 1
                    AND s.config_revision = r.source_config_revision
                    AND c.filter_revision = r.collection_filter_revision
                    AND c.registration_state = 'active' AND c.validation_state = 'valid'
                    AND c.lifecycle_state NOT IN ('missing', 'access_revoked')
                    AND c.deleted_at IS NULL
+                   AND (
+                     r.migration_id IS NULL OR (m.source_id = s.id AND m.status = 'syncing')
+                   )
                    AND NOT EXISTS (
                      SELECT 1 FROM source_exclusion_rules e
                       WHERE e.collection_id = c.id AND e.target_type = 'collection'
@@ -763,6 +908,19 @@ class SourceWorkerEngine:
             self._supersede_sync_run(run)
             return False
 
+        if run.get("migration_id"):
+            with open_db(self.db_path) as conn:
+                conn.execute(
+                    """
+                    UPDATE sync_runs SET status = 'scanned', seen_item_count = ?,
+                           completed_at = ?
+                     WHERE id = ? AND status = 'running'
+                    """,
+                    (count, iso_now(), run["id"]),
+                )
+            self._maybe_apply_migration(str(run["migration_id"]))
+            return True
+
         changed = 0
         try:
             while True:
@@ -776,6 +934,230 @@ class SourceWorkerEngine:
             return False
 
         return self._complete_sync_run(run, count, changed)
+
+    def _maybe_apply_migration(self, migration_id: str) -> bool:
+        now = iso_now()
+        with open_db(self.db_path) as conn:
+            migration_row = conn.execute(
+                "SELECT * FROM corpus_source_migrations WHERE id = ?",
+                (migration_id,),
+            ).fetchone()
+            if migration_row is None or migration_row["status"] != "syncing":
+                return False
+            runs = conn.execute(
+                "SELECT status FROM sync_runs WHERE migration_id = ?",
+                (migration_id,),
+            ).fetchall()
+            if not runs or any(row["status"] != "scanned" for row in runs):
+                return False
+            self._apply_migration_in_connection(conn, dict(migration_row), now)
+            return True
+
+    def _apply_migration_in_connection(
+        self,
+        conn: sqlite3.Connection,
+        migration: dict[str, object],
+        now: str,
+    ) -> None:
+        conn.execute(
+            "UPDATE corpus_source_migrations SET status = 'applying', updated_at = ? WHERE id = ?",
+            (now, migration["id"]),
+        )
+        runs = conn.execute(
+            """
+            SELECT r.*, c.external_id, c.root_external_id, c.display_name, c.identity_key,
+                   s.kind, m.target_scope_json AS scope_json,
+                   m.target_config_json AS config_json, s.max_document_size_bytes
+              FROM sync_runs r
+              JOIN source_collections c ON c.id = r.collection_id
+              JOIN corpus_sources s ON s.id = r.source_id
+              JOIN corpus_source_migrations m ON m.id = r.migration_id
+             WHERE r.migration_id = ? AND r.status = 'scanned'
+             ORDER BY r.id
+            """,
+            (migration["id"],),
+        ).fetchall()
+        for raw_run in runs:
+            run = dict(raw_run)
+            exclusions = self._exclusion_plan_in_connection(conn, str(run["collection_id"]))
+            observations = conn.execute(
+                """
+                SELECT * FROM sync_run_observations
+                 WHERE run_id = ? ORDER BY CASE item_type WHEN 'folder' THEN 0 ELSE 1 END, external_id
+                """,
+                (run["id"],),
+            ).fetchall()
+            run_changed = 0
+            for observation in observations:
+                run_changed += self._reconcile_observation_in_connection(
+                    conn, run, dict(observation), exclusions, preserve_index=True
+                )
+            missing_rows = conn.execute(
+                """
+                SELECT id FROM source_items
+                 WHERE collection_id = ? AND deleted_at IS NULL
+                   AND (last_seen_run_id IS NULL OR last_seen_run_id <> ?)
+                   AND lifecycle_state <> 'missing'
+                """,
+                (run["collection_id"], run["id"]),
+            ).fetchall()
+            conn.execute(
+                """
+                UPDATE documents SET lifecycle_state = 'missing', retrieval_eligible = 0,
+                       status = 'deleted', deleted_at = ?, updated_at = ?
+                 WHERE source_item_id IN (
+                   SELECT id FROM source_items
+                    WHERE collection_id = ? AND deleted_at IS NULL
+                      AND (last_seen_run_id IS NULL OR last_seen_run_id <> ?)
+                      AND lifecycle_state <> 'missing'
+                 )
+                """,
+                (now, now, run["collection_id"], run["id"]),
+            )
+            conn.execute(
+                """
+                UPDATE source_items SET lifecycle_state = 'missing', updated_at = ?
+                 WHERE collection_id = ? AND deleted_at IS NULL
+                   AND (last_seen_run_id IS NULL OR last_seen_run_id <> ?)
+                   AND lifecycle_state <> 'missing'
+                """,
+                (now, run["collection_id"], run["id"]),
+            )
+            conn.execute(
+                """
+                UPDATE projects SET lifecycle_state = 'active', retrieval_eligible = 1,
+                       deleted_at = NULL, updated_at = ? WHERE source_collection_id = ?
+                """,
+                (now, run["collection_id"]),
+            )
+            conn.execute(
+                """
+                UPDATE sync_runs SET status = 'completed', completed_at = ?,
+                       seen_item_count = ?, changed_item_count = ?,
+                       missing_item_count = ?
+                 WHERE id = ?
+                """,
+                (now, len(observations), run_changed, len(missing_rows), run["id"]),
+            )
+            conn.execute("DELETE FROM sync_run_observations WHERE run_id = ?", (run["id"],))
+
+        source = conn.execute(
+            "SELECT config_revision, schedule_mode FROM corpus_sources WHERE id = ?",
+            (migration["source_id"],),
+        ).fetchone()
+        if source is None or source["config_revision"] != migration["source_config_revision"]:
+            raise RuntimeError("Source configuration changed during Seeyon URL migration")
+        next_revision = int(source["config_revision"]) + 1
+        next_sync_at = now if source["schedule_mode"] == "scheduled" else None
+        conn.execute(
+            """
+            UPDATE corpus_sources
+               SET scope_json = ?, config_json = ?, config_revision = ?,
+                   validated_at = ?, ever_validated_at = COALESCE(ever_validated_at, ?),
+                   health_state = 'normal', consecutive_failure_count = 0,
+                   error_summary = NULL, next_sync_at = ?, updated_at = ?
+             WHERE id = ?
+            """,
+            (
+                migration["target_scope_json"],
+                migration["target_config_json"],
+                next_revision,
+                now,
+                now,
+                next_sync_at,
+                now,
+                migration["source_id"],
+            ),
+        )
+        conn.execute(
+            """
+            UPDATE source_credentials SET encrypted_payload = ?, updated_at = ?
+             WHERE source_id = ?
+            """,
+            (migration["encrypted_credentials"], now, migration["source_id"]),
+        )
+        conn.execute(
+            "UPDATE documents SET expected_source_config_revision = ? WHERE source_id = ?",
+            (next_revision, migration["source_id"]),
+        )
+        conn.execute(
+            "UPDATE jobs SET expected_source_config_revision = ?, migration_id = NULL WHERE source_id = ? AND status = 'queued'",
+            (next_revision, migration["source_id"]),
+        )
+        conn.execute(
+            "UPDATE corpus_source_migrations SET status = 'completed', completed_at = ?, updated_at = ? WHERE id = ?",
+            (now, now, migration["id"]),
+        )
+        conn.execute(
+            """
+            INSERT INTO admin_audit_events (
+              id, action, target_type, target_id, outcome, after_json, created_at
+            ) VALUES (?, 'source.migration.completed', 'corpus_source', ?, 'success', ?, ?)
+            """,
+            (
+                f"audit_{uuid.uuid4()}",
+                migration["source_id"],
+                json.dumps({"migrationId": migration["id"], "configRevision": next_revision}),
+                now,
+            ),
+        )
+
+    @staticmethod
+    def _exclusion_plan_in_connection(
+        conn: sqlite3.Connection, collection_id: str
+    ) -> ExclusionPlan:
+        rows = conn.execute(
+            "SELECT target_type, target_external_id FROM source_exclusion_rules WHERE collection_id = ?",
+            (collection_id,),
+        ).fetchall()
+        return ExclusionPlan(
+            collection_excluded=any(row["target_type"] == "collection" for row in rows),
+            folder_external_ids=frozenset(
+                str(row["target_external_id"]) for row in rows if row["target_type"] == "folder"
+            ),
+            document_external_ids=frozenset(
+                str(row["target_external_id"])
+                for row in rows if row["target_type"] == "document"
+            ),
+        )
+
+    def _fail_migration(self, migration: dict[str, object], error: Exception) -> None:
+        now = iso_now()
+        summary = self._safe_error(error)
+        with open_db(self.db_path) as conn:
+            self._cancel_migration_in_connection(conn, str(migration["id"]), now, summary, failed=True)
+
+    @staticmethod
+    def _cancel_migration_in_connection(
+        conn: sqlite3.Connection,
+        migration_id: str,
+        now: str,
+        summary: str,
+        *,
+        failed: bool = False,
+    ) -> None:
+        status = "failed" if failed else "cancelled"
+        source = conn.execute(
+            "SELECT source_id FROM corpus_source_migrations WHERE id = ?",
+            (migration_id,),
+        ).fetchone()
+        conn.execute(
+            "UPDATE corpus_source_migrations SET status = ?, error_summary = ?, completed_at = ?, updated_at = ? WHERE id = ? AND status NOT IN ('completed', 'cancelled', 'failed')",
+            (status, summary, now, now, migration_id),
+        )
+        conn.execute(
+            "UPDATE sync_runs SET status = 'superseded', completed_at = ?, error_summary = ? WHERE migration_id = ? AND status IN ('queued', 'running', 'scanned')",
+            (now, summary, migration_id),
+        )
+        conn.execute(
+            "DELETE FROM sync_run_observations WHERE run_id IN (SELECT id FROM sync_runs WHERE migration_id = ?)",
+            (migration_id,),
+        )
+        if source:
+            conn.execute(
+                "UPDATE corpus_sources SET next_sync_at = ?, updated_at = ? WHERE id = ? AND state = 'active'",
+                (now, now, source["source_id"]),
+            )
 
     def _load_exclusion_plan(self, run: dict[str, object]) -> ExclusionPlan | None:
         with open_db(self.db_path) as conn:
@@ -886,6 +1268,8 @@ class SourceWorkerEngine:
         run: dict[str, object],
         observation: dict[str, object],
         exclusions: ExclusionPlan,
+        *,
+        preserve_index: bool = False,
     ) -> int:
         now = iso_now()
         parent_id = None
@@ -963,7 +1347,9 @@ class SourceWorkerEngine:
             )
         changed = 0
         if observation["item_type"] == "document":
-            changed = self._reconcile_document(conn, run, observation, item_id, lifecycle, now)
+            changed = self._reconcile_document(
+                conn, run, observation, item_id, lifecycle, now, preserve_index=preserve_index
+            )
         elif lifecycle == "excluded":
             self._exclude_known_descendants(conn, run, item_id, now)
         conn.execute(
@@ -1064,6 +1450,8 @@ class SourceWorkerEngine:
         item_id: str,
         lifecycle: str,
         now: str,
+        *,
+        preserve_index: bool = False,
     ) -> int:
         project = conn.execute(
             "SELECT id FROM projects WHERE source_collection_id = ?",
@@ -1198,7 +1586,7 @@ class SourceWorkerEngine:
                 ),
             )
             conn.execute("UPDATE source_items SET document_id = ? WHERE id = ?", (document_id, item_id))
-        if supported and existing and not index_matches_revision:
+        if supported and existing and not index_matches_revision and not preserve_index:
             conn.execute(
                 "UPDATE document_indexes SET is_current = 0, retired_at = ? WHERE document_id = ?",
                 (now, document_id),
@@ -1243,10 +1631,10 @@ class SourceWorkerEngine:
             """
             INSERT INTO jobs (
               id, type, document_id, payload_json, status, source_id,
-              source_collection_id, expected_source_revision,
+              source_collection_id, migration_id, expected_source_revision,
               expected_source_config_revision, priority, available_at,
               max_attempts, created_at, updated_at
-            ) VALUES (?, 'document_index', ?, ?, 'queued', ?, ?, ?, ?, ?, ?, 6, ?, ?)
+            ) VALUES (?, 'document_index', ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, 6, ?, ?)
             """,
             (
                 f"job_{uuid.uuid4()}",
@@ -1254,6 +1642,7 @@ class SourceWorkerEngine:
                 json.dumps({"documentId": document_id, "expectedSourceRevision": revision}),
                 run["source_id"],
                 run["collection_id"],
+                run.get("migration_id"),
                 revision,
                 run["source_config_revision"],
                 priority,
@@ -1407,6 +1796,15 @@ class SourceWorkerEngine:
         now = iso_now()
         summary = self._safe_error(error)
         with open_db(self.db_path) as conn:
+            if run.get("migration_id"):
+                conn.execute(
+                    "UPDATE sync_runs SET status = 'failed', completed_at = ?, error_summary = ? WHERE id = ?",
+                    (now, summary, run["id"]),
+                )
+                self._cancel_migration_in_connection(
+                    conn, str(run["migration_id"]), now, summary, failed=True
+                )
+                return
             conn.execute(
                 "UPDATE sync_runs SET status = 'failed', completed_at = ?, error_summary = ? WHERE id = ?",
                 (now, summary, run["id"]),
@@ -1528,6 +1926,13 @@ class SourceWorkerEngine:
             and row["validation_state"] == "valid"
             and row["lifecycle_state"] not in ("missing", "access_revoked")
             and row["deleted_at"] is None
+            and (
+                not run.get("migration_id")
+                or conn.execute(
+                    "SELECT 1 FROM corpus_source_migrations WHERE id = ? AND source_id = ? AND status = 'syncing'",
+                    (run["migration_id"], run["source_id"]),
+                ).fetchone()
+            )
             and not conn.execute(
                 """
                 SELECT 1 FROM source_exclusion_rules
@@ -1591,14 +1996,21 @@ class SourceWorkerEngine:
         if self.master_key_path is None:
             raise RuntimeError("Source credential master key is not configured")
         with open_db(self.db_path) as conn:
-            row = conn.execute(
-                "SELECT encrypted_payload FROM source_credentials WHERE source_id = ?",
-                (source["source_id"] if "source_id" in source else source["id"],),
-            ).fetchone()
+            source_id = str(source["source_id"] if "source_id" in source else source["id"])
+            if source.get("migration_id"):
+                row = conn.execute(
+                    "SELECT encrypted_credentials AS encrypted_payload FROM corpus_source_migrations WHERE id = ?",
+                    (source["migration_id"],),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT encrypted_payload FROM source_credentials WHERE source_id = ?",
+                    (source_id,),
+                ).fetchone()
         if row is None:
             raise RuntimeError("Source credentials are not configured")
         return decrypt_source_credentials(
             load_master_key(self.master_key_path),
-            str(source["source_id"] if "source_id" in source else source["id"]),
+            source_id,
             row["encrypted_payload"],
         )

@@ -90,6 +90,9 @@ export function disableCorpusSource(dbPath: string, sourceId: string) {
       if (!sourceState(db, sourceId)) {
         return false;
       }
+      if (hasActiveSourceMigration(db, sourceId)) {
+        throw new Error("Cancel the active Seeyon URL migration before disabling this source.");
+      }
       db.prepare(
         `UPDATE corpus_sources
             SET state = 'disabled', next_sync_at = NULL, updated_at = ?
@@ -183,6 +186,16 @@ export function queueManualSourceSync(dbPath: string, sourceId: string) {
       if (source.state !== "active") {
         throw new Error("Only an active Corpus Source can synchronize.");
       }
+      const migration = db
+        .prepare(
+          `SELECT 1 FROM corpus_source_migrations
+            WHERE source_id = ? AND status IN ('requested', 'validating', 'syncing', 'applying')
+            LIMIT 1`,
+        )
+        .get(sourceId);
+      if (migration) {
+        throw new Error("Cannot synchronize while a Seeyon URL migration is in progress.");
+      }
       db.prepare(
         `UPDATE corpus_sources SET next_sync_at = ?, updated_at = ? WHERE id = ?`,
       ).run(now, now, sourceId);
@@ -250,6 +263,9 @@ export function requestCorpusSourcePurge(
       if (!sourceState(db, sourceId)) {
         return null;
       }
+      if (hasActiveSourceMigration(db, sourceId)) {
+        throw new Error("Cancel the active Seeyon URL migration before purging this source.");
+      }
       disableCorpusSourceWithinTransaction(db, sourceId, now);
       db.prepare(
         `UPDATE corpus_sources
@@ -273,6 +289,18 @@ export function requestCorpusSourcePurge(
   } finally {
     db.close();
   }
+}
+
+function hasActiveSourceMigration(db: Db, sourceId: string) {
+  return Boolean(
+    db
+      .prepare(
+        `SELECT 1 FROM corpus_source_migrations
+          WHERE source_id = ? AND status IN ('requested', 'validating', 'syncing', 'applying')
+          LIMIT 1`,
+      )
+      .get(sourceId),
+  );
 }
 
 export function restoreCorpusSource(dbPath: string, sourceId: string) {

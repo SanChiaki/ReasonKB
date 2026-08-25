@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  ArrowRightLeft,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -48,6 +49,19 @@ export type AdminSource = {
   };
   validatedAt: string | null;
   purgeAfter: string | null;
+  migration?: {
+    id: string;
+    status: string;
+    targetScope: Record<string, unknown>;
+    targetConfig: Record<string, unknown>;
+    errorSummary: string | null;
+    progress: {
+      totalCollections: number;
+      completedCollections: number;
+      pendingCollections: number;
+      failedCollections: number;
+    };
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -243,12 +257,22 @@ function SourceRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [migrating, setMigrating] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [detailRevision, setDetailRevision] = useState(0);
   const refreshDetails = useCallback(() => {
     setDetailRevision((value) => value + 1);
   }, []);
+
+  useEffect(() => {
+    const status = source.migration?.status;
+    if (!status || ["completed", "cancelled", "failed"].includes(status)) return;
+    const timer = window.setInterval(() => {
+      void onChanged();
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [onChanged, source.id, source.migration?.status]);
 
   async function action(name: "validate" | "enable" | "disable" | "sync" | "restore") {
     setWorking(true);
@@ -270,6 +294,19 @@ function SourceRow({
       refreshDetails();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "操作失败。");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function cancelMigration() {
+    setWorking(true);
+    setError("");
+    try {
+      await api(`/api/admin/sources/${source.id}/migration`, { method: "DELETE" });
+      await onChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "迁移取消失败。");
     } finally {
       setWorking(false);
     }
@@ -337,6 +374,9 @@ function SourceRow({
 
         <div className="flex items-center gap-1">
           <ActionButton label="编辑" icon={Pencil} onClick={() => setEditing((value) => !value)} disabled={working || source.state === "pending_purge"} />
+          {source.kind === "seeyon" && !["requested", "validating", "syncing", "applying"].includes(source.migration?.status ?? "") ? (
+            <ActionButton label="迁移 URL" icon={ArrowRightLeft} onClick={() => setMigrating((value) => !value)} disabled={working || source.state !== "active"} />
+          ) : null}
           <ActionButton label="验证连接" icon={CheckCircle2} onClick={() => action("validate")} disabled={working || ["disabled", "pending_purge"].includes(source.state)} />
           <ActionButton label="立即同步" icon={Play} onClick={() => action("sync")} disabled={working || source.state !== "active"} />
           {source.state === "disabled" || source.state === "needs_attention" ? (
@@ -356,7 +396,18 @@ function SourceRow({
         </p>
       ) : null}
 
+      {source.migration && !["completed", "cancelled"].includes(source.migration.status) ? (
+        <div className="border-t border-[var(--pi-border)] bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          <span className="font-medium">URL 迁移：{source.migration.status}</span>
+          <span className="ml-2">目标：{String(source.migration.targetScope.endpoint ?? "-")}</span>
+          {source.migration.progress.totalCollections > 0 ? <span className="ml-2">目录 {source.migration.progress.completedCollections}/{source.migration.progress.totalCollections}</span> : null}
+          {source.migration.errorSummary ? <span className="ml-2 text-[var(--pi-danger)]">{source.migration.errorSummary}</span> : null}
+          {["requested", "validating", "syncing", "applying"].includes(source.migration.status) ? <button type="button" onClick={cancelMigration} disabled={working} className="ml-3 underline">取消</button> : null}
+        </div>
+      ) : null}
+
       {editing ? <SourceEditForm source={source} onSaved={async () => { setEditing(false); await onChanged(); }} /> : null}
+      {migrating && source.kind === "seeyon" ? <SeeyonMigrationForm source={source} onSaved={async () => { setMigrating(false); await onChanged(); }} /> : null}
       {expanded ? (
         <>
           <CollectionManager
@@ -372,6 +423,49 @@ function SourceRow({
         </>
       ) : null}
     </article>
+  );
+}
+
+function SeeyonMigrationForm({ source, onSaved }: { source: AdminSource; onSaved: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const credentials: Record<string, string> = {};
+    for (const key of ["username", "password"] as const) {
+      const value = String(data.get(key) ?? "").trim();
+      if (value) credentials[key] = value;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await api(`/api/admin/sources/${source.id}/migration`, {
+        method: "POST",
+        body: JSON.stringify({
+          scope: { endpoint: String(data.get("endpoint") ?? "").trim() },
+          config: { loginName: String(data.get("loginName") ?? "").trim() },
+          ...(Object.keys(credentials).length ? { credentials } : {}),
+        }),
+      });
+      await onSaved();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "迁移请求失败。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 border-t border-[var(--pi-border)] bg-amber-50 px-4 py-4 md:grid-cols-3 lg:grid-cols-6">
+      <Field label="新 Seeyon URL"><input name="endpoint" type="url" required placeholder="https://oa.example.com" /></Field>
+      <Field label="loginName"><input name="loginName" required defaultValue={String(source.config.loginName ?? "")} /></Field>
+      <Field label="新用户名"><input name="username" autoComplete="off" placeholder="留空沿用当前账号" /></Field>
+      <Field label="新密码"><input name="password" type="password" autoComplete="new-password" placeholder="留空沿用当前密码" /></Field>
+      <div className="flex items-end"><button disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--pi-brand)] px-3 text-sm text-white disabled:opacity-50"><ArrowRightLeft size={15} />{saving ? "提交中" : "开始迁移"}</button></div>
+      {error ? <p className="md:col-span-3 lg:col-span-6 text-xs text-[var(--pi-danger)]">{error}</p> : null}
+    </form>
   );
 }
 

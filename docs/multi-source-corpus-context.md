@@ -9,7 +9,7 @@ A deployment-scoped, read-only connection to a content origin, such as a local d
 _Avoid_: Corpus, backend, directory
 
 **Source Scope**:
-The endpoint and root boundary that define a Corpus Source's content origin. Changing the Source Scope defines a different Corpus Source rather than relocating the existing one.
+The endpoint and root boundary that define a Corpus Source's content origin. Changing the Source Scope defines a different Corpus Source rather than relocating the existing one, except for the explicit Seeyon URL migration workflow, which stages and validates a replacement endpoint before switching the existing source identity.
 _Avoid_: Editable connection setting, source name
 
 **Source Display Name**:

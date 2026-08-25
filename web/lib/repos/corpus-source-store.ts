@@ -9,6 +9,7 @@ import {
   decryptSourceCredentials,
   encryptSourceCredentials,
 } from "@/lib/security/source-credentials";
+import { latestSourceMigrationInDatabase } from "@/lib/repos/source-migration-store";
 
 function open(dbPath: string) {
   const db = new Database(dbPath);
@@ -21,7 +22,7 @@ function parseJsonObject(value: string) {
   return JSON.parse(value) as Record<string, unknown>;
 }
 
-function sourceView(row: Record<string, unknown>) {
+function sourceView(row: Record<string, unknown>, migration: unknown = null) {
   return {
     id: row.id,
     kind: row.kind,
@@ -45,6 +46,7 @@ function sourceView(row: Record<string, unknown>) {
     },
     validatedAt: row.validated_at,
     purgeAfter: row.purge_after,
+    migration,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -90,7 +92,7 @@ export function listCorpusSources(dbPath: string) {
           ORDER BY display_name COLLATE NOCASE`,
       )
       .all() as Array<Record<string, unknown>>;
-    return rows.map(sourceView);
+    return rows.map((row) => sourceView(row, latestSourceMigrationInDatabase(db, String(row.id))));
   } finally {
     db.close();
   }
@@ -102,7 +104,7 @@ export function getCorpusSource(dbPath: string, sourceId: string) {
     const row = db
       .prepare("SELECT * FROM corpus_sources WHERE id = ? AND deleted_at IS NULL")
       .get(sourceId) as Record<string, unknown> | undefined;
-    return row ? sourceView(row) : null;
+    return row ? sourceView(row, latestSourceMigrationInDatabase(db, sourceId)) : null;
   } finally {
     db.close();
   }
@@ -188,6 +190,16 @@ export function updateCorpusSource(
       if (!row) {
         return null;
       }
+      const activeMigration = db
+        .prepare(
+          `SELECT 1 FROM corpus_source_migrations
+            WHERE source_id = ? AND status IN ('requested', 'validating', 'syncing', 'applying')
+            LIMIT 1`,
+        )
+        .get(sourceId);
+      if (activeMigration) {
+        throw new Error("Finish or cancel the active Seeyon URL migration before editing this source.");
+      }
       const oldView = sourceView(row);
       const oldConfig = parseJsonObject(row.config_json as string);
       const oldCredentialRow = db
@@ -270,7 +282,7 @@ export function updateCorpusSource(
         after: sourceView(nextRow),
         now,
       });
-      return sourceView(nextRow);
+      return sourceView(nextRow, null);
     });
   } finally {
     db.close();
