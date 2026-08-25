@@ -160,6 +160,9 @@ export function requestSourceValidation(dbPath: string, sourceId: string) {
       if (source.state === "disabled" || source.state === "pending_purge") {
         throw new Error("Disabled or pending-purge sources cannot be validated.");
       }
+      if (hasActiveSourceMigration(db, sourceId)) {
+        throw new Error("Wait for the active Seeyon URL migration to finish before validating this source.");
+      }
       db.prepare(
         `UPDATE corpus_sources
             SET validation_requested_at = ?, health_state = 'unknown',

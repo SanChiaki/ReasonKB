@@ -109,5 +109,56 @@ describe("Seeyon source URL migration route", () => {
     const sourcePayload = await sourceResponse.json();
     expect(sourcePayload.source.scope.endpoint).toBe("http://intranet.example/seeyon");
     expect(sourcePayload.source.migration.status).toBe("requested");
+
+    const updateResponse = await sourceRoute.PATCH(
+      new Request(`http://localhost/api/admin/sources/${source.id}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ displayName: "renamed source" }),
+      }),
+      { params: Promise.resolve({ sourceId: source.id }) },
+    );
+    expect(updateResponse.status).toBe(409);
+
+    const actionsRoute = await import("@/app/api/admin/sources/[sourceId]/actions/route");
+    const validationResponse = await actionsRoute.POST(
+      new Request(`http://localhost/api/admin/sources/${source.id}/actions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "validate" }),
+      }),
+      { params: Promise.resolve({ sourceId: source.id }) },
+    );
+    expect(validationResponse.status).toBe(409);
+  });
+
+  it("waits for an active source discovery before staging a URL migration", async () => {
+    const { dbPath, headers } = fixture();
+    const source = await createSource(headers);
+    const db = new Database(dbPath);
+    const now = new Date().toISOString();
+    db.prepare(
+      `UPDATE corpus_sources
+          SET state = 'active', validated_at = ?, ever_validated_at = ?, health_state = 'normal'
+        WHERE id = ?`,
+    ).run(now, now, source.id);
+    db.prepare(
+      `INSERT INTO source_discovery_runs (
+         id, source_id, source_config_revision, status, started_at
+       ) VALUES (?, ?, 1, 'running', ?)`,
+    ).run("discovery_running", source.id, now);
+    db.close();
+
+    const { POST } = await import("@/app/api/admin/sources/[sourceId]/migration/route");
+    const response = await POST(
+      new Request(`http://localhost/api/admin/sources/${source.id}/migration`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ scope: { endpoint: "https://public.example" } }),
+      }),
+      { params: Promise.resolve({ sourceId: source.id }) },
+    );
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toContain("source discovery");
   });
 });

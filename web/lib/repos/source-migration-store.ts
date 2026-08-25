@@ -107,6 +107,12 @@ export function requestSeeyonSourceMigration(
         )
         .get(sourceId);
       if (runningSync) throw new Error("Wait for the current source synchronization to finish before migrating.");
+      const runningDiscovery = db
+        .prepare(
+          `SELECT 1 FROM source_discovery_runs WHERE source_id = ? AND status = 'running' LIMIT 1`,
+        )
+        .get(sourceId);
+      if (runningDiscovery) throw new Error("Wait for the current source discovery to finish before migrating.");
       const runningJob = db
         .prepare(
           `SELECT 1 FROM jobs WHERE source_id = ? AND status = 'running' LIMIT 1`,

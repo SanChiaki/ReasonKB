@@ -65,6 +65,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         { status: 503 },
       );
     }
+    if (error instanceof Error && error.message.includes("active Seeyon URL migration")) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     throw error;
   }
 }
@@ -89,6 +92,14 @@ export async function DELETE(request: Request, context: RouteContext) {
       { status: 400 },
     );
   }
-  const result = requestCorpusSourcePurge(appConfig.dbPath, sourceId, { immediate });
-  return NextResponse.json({ pendingPurge: true, purgeAfter: result!.purgeAfter });
+  try {
+    const result = requestCorpusSourcePurge(appConfig.dbPath, sourceId, { immediate });
+    return NextResponse.json({ pendingPurge: true, purgeAfter: result!.purgeAfter });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to purge Corpus Source.";
+    return NextResponse.json(
+      { error: message },
+      { status: message.includes("active Seeyon URL migration") ? 409 : 400 },
+    );
+  }
 }

@@ -339,6 +339,7 @@ function SourceRow({
       : source.kind === "smb"
         ? `//${String(source.scope.host ?? "")}/${String(source.scope.share ?? "")}/${String(source.scope.basePath ?? "")}`.replace(/\/$/, "")
         : String(source.scope.endpoint ?? "");
+  const migrationActive = ["requested", "validating", "syncing", "applying"].includes(source.migration?.status ?? "");
 
   return (
     <article className="border border-[var(--pi-border)] bg-white">
@@ -373,20 +374,20 @@ function SourceRow({
         </div>
 
         <div className="flex items-center gap-1">
-          <ActionButton label="编辑" icon={Pencil} onClick={() => setEditing((value) => !value)} disabled={working || source.state === "pending_purge"} />
+          <ActionButton label="编辑" icon={Pencil} onClick={() => setEditing((value) => !value)} disabled={working || migrationActive || source.state === "pending_purge"} />
           {source.kind === "seeyon" && !["requested", "validating", "syncing", "applying"].includes(source.migration?.status ?? "") ? (
             <ActionButton label="迁移 URL" icon={ArrowRightLeft} onClick={() => setMigrating((value) => !value)} disabled={working || source.state !== "active"} />
           ) : null}
-          <ActionButton label="验证连接" icon={CheckCircle2} onClick={() => action("validate")} disabled={working || ["disabled", "pending_purge"].includes(source.state)} />
-          <ActionButton label="立即同步" icon={Play} onClick={() => action("sync")} disabled={working || source.state !== "active"} />
+          <ActionButton label="验证连接" icon={CheckCircle2} onClick={() => action("validate")} disabled={working || migrationActive || ["disabled", "pending_purge"].includes(source.state)} />
+          <ActionButton label="立即同步" icon={Play} onClick={() => action("sync")} disabled={working || migrationActive || source.state !== "active"} />
           {source.state === "disabled" || source.state === "needs_attention" ? (
-            <ActionButton label="启用并验证" icon={RotateCcw} onClick={() => action("enable")} disabled={working} />
+            <ActionButton label="启用并验证" icon={RotateCcw} onClick={() => action("enable")} disabled={working || migrationActive} />
           ) : source.state === "pending_purge" ? (
-            <ActionButton label="恢复" icon={RotateCcw} onClick={() => action("restore")} disabled={working} />
+            <ActionButton label="恢复" icon={RotateCcw} onClick={() => action("restore")} disabled={working || migrationActive} />
           ) : (
-            <ActionButton label="停用" icon={X} onClick={() => action("disable")} disabled={working} />
+            <ActionButton label="停用" icon={X} onClick={() => action("disable")} disabled={working || migrationActive} />
           )}
-          <ActionButton label={source.state === "pending_purge" ? "立即清除" : "移入待清除"} icon={Trash2} onClick={() => remove(source.state === "pending_purge")} danger disabled={working} />
+          <ActionButton label={source.state === "pending_purge" ? "立即清除" : "移入待清除"} icon={Trash2} onClick={() => remove(source.state === "pending_purge")} danger disabled={working || migrationActive} />
         </div>
       </div>
 

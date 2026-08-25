@@ -1918,6 +1918,51 @@ def test_seeyon_url_migration_reuses_document_and_index_identity(tmp_path, monke
     assert index == ("index_seeyon", 1)
 
 
+def test_seeyon_url_migration_preserves_old_index_until_changed_document_reindexes(
+    tmp_path, monkeypatch
+):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+
+    class Connector:
+        def validate(self):
+            return None
+
+        def scan_collection(self, collection, exclusions):
+            yield SourceItemMetadata(
+                external_id="doc-1",
+                parent_external_id=None,
+                item_type="document",
+                name="guide.pdf",
+                relative_path="guide.pdf",
+                mime_type="application/pdf",
+                size_bytes=20,
+                source_revision="seeyon:file-1:20",
+                fetch_locator="file-1",
+                media_type="pdf",
+            )
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    monkeypatch.setattr(engine, "_build_connector", lambda source: Connector())
+    assert engine.run_once()["synchronized"] == 1
+
+    conn = sqlite3.connect(db_path)
+    document = conn.execute(
+        "SELECT id, status, retrieval_eligible, source_revision FROM documents WHERE id = 'document_seeyon'"
+    ).fetchone()
+    index = conn.execute(
+        "SELECT id, is_current, source_revision FROM document_indexes WHERE document_id = 'document_seeyon'"
+    ).fetchone()
+    job = conn.execute(
+        "SELECT status, migration_id, expected_source_revision, expected_source_config_revision FROM jobs WHERE document_id = 'document_seeyon' ORDER BY created_at DESC LIMIT 1"
+    ).fetchone()
+    conn.close()
+
+    assert document == ("document_seeyon", "uploaded", 0, "seeyon:file-1:20")
+    assert index == ("index_seeyon", 1, "seeyon:file-1:10")
+    assert job == ("queued", None, "seeyon:file-1:20", 2)
+
+
 def test_failed_seeyon_url_migration_keeps_old_scope(tmp_path, monkeypatch):
     db_path = _create_db(tmp_path)
     _insert_seeyon_migration_fixture(db_path)
@@ -1938,6 +1983,27 @@ def test_failed_seeyon_url_migration_keeps_old_scope(tmp_path, monkeypatch):
     assert source[1] == 1
     assert migration[0] == "failed"
     assert "target endpoint unavailable" in migration[1]
+
+
+def test_normal_sync_runs_are_not_claimed_during_seeyon_url_migration(tmp_path):
+    db_path = _create_db(tmp_path)
+    _insert_seeyon_migration_fixture(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO sync_runs (
+          id, source_id, collection_id, source_config_revision,
+          collection_filter_revision, trigger_kind, status, started_at
+        ) VALUES ('sync_normal', 'src_seeyon', 'collection_seeyon', 1, 1, 'scheduled', 'queued', ?)
+        """,
+        ("2026-01-01T00:00:00+00:00",),
+    )
+    conn.execute("UPDATE corpus_source_migrations SET status = 'syncing' WHERE id = 'migration_1'")
+    conn.commit()
+    conn.close()
+
+    engine = SourceWorkerEngine(str(db_path), tmp_path)
+    assert engine._claim_sync_run() is None
 
 
 def test_worker_startup_requeues_abandoned_active_source_validation(tmp_path):

@@ -324,6 +324,11 @@ class SourceWorkerEngine:
                  WHERE validation_requested_at IS NOT NULL
                    AND state NOT IN ('disabled', 'pending_purge')
                    AND deleted_at IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1 FROM corpus_source_migrations m
+                      WHERE m.source_id = corpus_sources.id
+                        AND m.status IN ('requested', 'validating', 'syncing', 'applying')
+                   )
                  ORDER BY validation_requested_at
                  LIMIT 1
                 """
@@ -567,7 +572,6 @@ class SourceWorkerEngine:
                 )
 
     def _discover_source(self, source: dict[str, object]) -> None:
-        connector = self._build_connector(source)
         run_id = f"discovery_{uuid.uuid4()}"
         now = iso_now()
         with open_db(self.db_path) as conn:
@@ -579,6 +583,23 @@ class SourceWorkerEngine:
                 """,
                 (run_id, source["id"], source["config_revision"], now),
             )
+            migration = conn.execute(
+                """
+                SELECT 1 FROM corpus_source_migrations
+                 WHERE source_id = ?
+                   AND status IN ('requested', 'validating', 'syncing', 'applying')
+                 LIMIT 1
+                """,
+                (source["id"],),
+            ).fetchone()
+            if migration:
+                conn.execute(
+                    "UPDATE source_discovery_runs SET status = 'superseded', completed_at = ? WHERE id = ?",
+                    (iso_now(), run_id),
+                )
+                return
+
+        connector = self._build_connector(source)
 
         count = 0
         for descriptor in connector.discover_collections():
@@ -776,6 +797,15 @@ class SourceWorkerEngine:
             or collection["deleted_at"] is not None
             or conn.execute(
                 """
+                SELECT 1 FROM corpus_source_migrations
+                 WHERE source_id = ?
+                   AND status IN ('requested', 'validating', 'syncing', 'applying')
+                 LIMIT 1
+                """,
+                (source_id,),
+            ).fetchone()
+            or conn.execute(
+                """
                 SELECT 1 FROM source_exclusion_rules
                  WHERE collection_id = ? AND target_type = 'collection'
                  LIMIT 1
@@ -834,6 +864,13 @@ class SourceWorkerEngine:
                                AND m.status = 'syncing'
                           )
                         )
+                        AND (
+                          r.migration_id IS NOT NULL OR NOT EXISTS (
+                            SELECT 1 FROM corpus_source_migrations m
+                             WHERE m.source_id = r.source_id
+                               AND m.status IN ('requested', 'validating', 'syncing', 'applying')
+                          )
+                        )
                         AND NOT EXISTS (
                           SELECT 1 FROM source_exclusion_rules e
                            WHERE e.collection_id = c.id AND e.target_type = 'collection'
@@ -861,7 +898,13 @@ class SourceWorkerEngine:
                    AND c.lifecycle_state NOT IN ('missing', 'access_revoked')
                    AND c.deleted_at IS NULL
                    AND (
-                     r.migration_id IS NULL OR (m.source_id = s.id AND m.status = 'syncing')
+                     (r.migration_id IS NOT NULL AND m.source_id = s.id AND m.status = 'syncing')
+                     OR
+                     (r.migration_id IS NULL AND NOT EXISTS (
+                       SELECT 1 FROM corpus_source_migrations active_migration
+                        WHERE active_migration.source_id = r.source_id
+                          AND active_migration.status IN ('requested', 'validating', 'syncing', 'applying')
+                     ))
                    )
                    AND NOT EXISTS (
                      SELECT 1 FROM source_exclusion_rules e
