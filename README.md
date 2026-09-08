@@ -306,3 +306,7 @@ docker compose -f docker/compose.release.yml config --quiet
 ```
 
 Before release, rebuild the full Compose stack and validate administrator login, Local/SMB/Seeyon source changes, synchronization, indexing, retrieval, and desktop/mobile layouts.
+
+## 标准评测集
+
+题集、历史基线及原始语料 Release 的下载、拼接和校验方法见 [标准评测使用说明](benchmarks/standard-v1/README.md)。
