@@ -1,0 +1,144 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽然提供了关于WBS分解方式的丰富信息，但没有体现参考依据中H011-E1“以交付结果为导向”这一核心要求；且关于WBS与项目范围的关系，回答强调“WBS必须符合项目范围”和100%原则，而未说明WBS“定义了整个项目的工作范围”；对项目范围说明书仅作为WBS输入提及，未反映其定义描述工作范围的书面文件的功能。整体上未完整回答参考标准问题。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "工作分解结构（WBS）是以项目的交付结果为导向而分解出的、表明项目具体工作任务的书面文件。",
+          "reason": "待测材料未提及以交付结果为导向，而是列举功能/技术、组织结构、子系统等分解原则，以及按交付结果分、按职能分、按产品结构分等，但未明确绑定‘以交付结果为导向’；虽有‘按项目的主要交付结果分’作为选项，但整体并不等于导向。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "WBS必须符合项目的范围。WBS必须包括，也仅仅包括为了完成项目的可交付成果的活动。",
+          "reason": "材料提到WBS必须符合项目范围、必须包括仅包括完成可交付成果的活动，但未说明WBS定义了整个项目的工作范围，反而走向了范围约束的关系，即缺missing或部分？",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "项目范围说明书 是创建WBS的输入之一。",
+          "reason": "仅提到‘项目范围说明书’是创建WBS的输入，缺少对其作为描述交付结果和工作范围书面文件的定义与描述。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2406,
+      "completion_tokens": 419,
+      "total_tokens": 2825,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "00e9100632f049849c12906b07d50962",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 22193,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H011-E1",
+      "invalid_quote:H011-E2",
+      "invalid_quote:H011-E3"
+    ],
+    "materialSha256": "523c4437e5bf62b7c0d4a1555ee5cb0758c8e16a70cedd44b3fc36d3a2d70dac"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测终答虽然与问题相关且未包含重大错误，但它主要基于额外的、不在参考答案所依赖文档中的大量材料提供了详细的WBS分解原则与关系说明，并未直接、明确地支持参考答案的三个最小要素（尤其是项目范围说明书的定义），内容与参考答案允许的文档依据存在明显不一致。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "工作分解结构（ WBS）是以项目的交付结果为导向而分解出的、表明项目具体工作任务的书面文件，它定义了整个项目的工作范围",
+          "reason": "reference给出的quote并未出现在待测材料中。待测材料给出了WBS的多种分解原则（功能/技术、组织结构、子系统等）和示例（按交付结果、按职能、按产品结构等），但是这些材料从未明确将WBS描述为“以项目的交付结果为导向而分解出的、表明项目具体工作任务的书面文件”。视频/材料中的定义更侧重分解方法的多样性和原则，而非强调唯一“交付结果导向”的书面文件属性。因此未完整支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "WBS必须符合项目的范围。 WBS必须包括，也仅包拈为了完成坝目的可交付成果的活动。 100%原则（包含原则）认为，在 WBS中，所有干－级的元素之和必须 100%的代表上一级元素。",
+          "reason": "这是从待测材料的描述中提取的与要素最接近的表述，但参考要素强调的是“WBS定义了整个项目的工作范围”，待测材料引用了“符合项目范围”的内容，但并未明确表述“WBS定义”了范围。因此最多是部分支持，而非完全等价。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "",
+          "reason": "待测材料中提到了“项目范围说明书是创建WBS的输入之一”以及“项目范围说明书描述项目交付结果和工作范围的书面文件”并未出现在待测材料中。待测材料页面30的导图中只提到了“项目范围说明书”作为创建WBS的输入，但并未将其定义或描述为“描述项目交付结果和工作范围的书面文件”，因此该关键属性缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7603,
+      "completion_tokens": 527,
+      "total_tokens": 8130,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "0573dfb784b445b38246ea154fe81de8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 37053,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e09eecf7d47730952f1a2bba6935066a7ddc31aee01d12f0718c7656d0fd4a41"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答虽然提供了大量关于WBS拆分原则和与项目范围关系的信息，但没有完整覆盖参考标准中三个关键定义性要素（H011-E1、H011-E2、H011-E3），尤其是遗漏了‘WBS定义了整个项目的工作范围’和‘项目范围说明书是描述项目交付结果和工作范围的书面文件’两个核心定义，因此整体回答不能认定为正确回答该问题。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "工作分解结构（ WBS）\n是以项目的交付结果为导向而分解出的、表明项目具体工作任务的书面文件",
+          "reason": "待测材料中未找到与参考定义完全一致的表述，虽然提到了‘面向可交付成果的对项目工作的层次化分解’，但未明确表述为‘书面文件’，也未完整表述‘以项目的交付结果为导向而分解出的、表明项目具体工作任务的书面文件’。",
+          "support": "missing"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "WBS 组织并定义项目的整个范围",
+          "reason": "待测材料第18页提到‘WBS 组织并定义项目的整个范围’，与参考要素‘WBS定义了整个项目的工作范围’语义一致，但表述不完全一致，且未明确‘工作范围’。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "项目范围说明书\n是制定项目和产品详细描述的过程，详细项目范围说明书的编制，对项目成功至关重要。",
+          "reason": "待测材料中对‘项目范围说明书’有提及，但未明确说明是‘描述项目交付结果和工作范围的书面文件’，仅从定义过程的角度进行描述。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7603,
+      "completion_tokens": 405,
+      "total_tokens": 8008,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "3d08d9dd4bd9486f8952cd0aa9338036",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 26490,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H011-E2",
+      "invalid_quote:H011-E3"
+    ],
+    "materialSha256": "e09eecf7d47730952f1a2bba6935066a7ddc31aee01d12f0718c7656d0fd4a41"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "H023-e1",
+          "support": "complete",
+          "quote": "不处理广播报文、多播报文，但正常转发。",
+          "reason": "待测材料明确表述NetStream对不支持的报文正常转发但不处理，与要素完全一致。"
+        },
+        {
+          "id": "H023-e2",
+          "support": "complete",
+          "quote": "不处理广播报文、多播报文，但正常转发。",
+          "reason": "待测材料明确指出广播报文属于不支持且不处理的报文，与要素一致。"
+        },
+        {
+          "id": "H023-e3",
+          "support": "complete",
+          "quote": "不处理广播报文、多播报文，但正常转发。",
+          "reason": "待测材料明确指出多播报文属于不支持且不处理的报文，与要素一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题，明确指出不支持的报文（广播和多播）被正常转发但不处理，并补充了其他未明确报文的说明，无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 1660,
+      "completion_tokens": 198,
+      "total_tokens": 1858,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-dk83ydmxhv",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2155,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "476cb203335acf5f36f2a18076dc94d7ea5a101e75964f2722852bac7779a4d6"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "H023-e1",
+          "support": "complete",
+          "quote": "不处理 广播报文、 多播报文， 但正常转发。",
+          "reason": "待测材料中原文明确说明NetStream不支持特性包括不处理广播报文和多播报文但正常转发，与要素完全一致。"
+        },
+        {
+          "id": "H023-e2",
+          "support": "complete",
+          "quote": "不处理 广播报文",
+          "reason": "待测材料明确列出广播报文为不支持处理的报文类型，与要素完全一致。"
+        },
+        {
+          "id": "H023-e3",
+          "support": "complete",
+          "quote": "多播报文",
+          "reason": "待测材料明确列出多播报文为不支持处理的报文类型，与要素完全一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，明确指出不支持的报文会被正常转发但不处理，并列举了广播报文和多播报文，与文档证据一致，没有重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 5450,
+      "completion_tokens": 246,
+      "total_tokens": 5696,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-gcekxvgak4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2602,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5703cc7ace8583b8c0038e08e68c79a4caf7599e98f64deb893fad36f043f19a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "H023-e1",
+          "support": "complete",
+          "quote": "不处理 广播报文、 多播报文， 但正常转发。",
+          "reason": "待测材料中多处出现此句，完整支持'不处理但正常转发'的陈述。"
+        },
+        {
+          "id": "H023-e2",
+          "support": "complete",
+          "quote": "不处理 广播报文、 多播报文",
+          "reason": "待测材料明确列出广播报文为不处理的对象，支持该要素。"
+        },
+        {
+          "id": "H023-e3",
+          "support": "complete",
+          "quote": "多播报文",
+          "reason": "待测材料明确列出多播报文为不处理的对象，支持该要素。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答正确总结了不处理但正常转发的处理方式，并明确列出了广播报文和多播报文作为不支持类型，未包含重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 5450,
+      "completion_tokens": 236,
+      "total_tokens": 5686,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-gh1y36tn25",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2579,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5703cc7ace8583b8c0038e08e68c79a4caf7599e98f64deb893fad36f043f19a"
+  }
+}

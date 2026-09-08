@@ -1,0 +1,74 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户的提问，且不包含对参考答案的表述。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "在项目有质保期的情况下，项目进度最大等于“1-质保金额比例”。",
+          "reason": "待测材料原文完整表述了该语句，实体、数量和条件均绑定正确，因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "产值进度公式为“生产进度*（1-质保金额/合同金额）”",
+          "reason": "待测材料在页面48有完全相同的公式表述，实体和数量关系均正确绑定，因此完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1180,
+      "completion_tokens": 187,
+      "total_tokens": 1367,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RENdplFyuo6ZJfyCOKSlz84T",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5503,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "68d68b1e27d89597da388e2725720505e3f9a3626f1f94d96a0c15c6710420af"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的finalAnswer为空，未提供最终回答内容，无法判定其是否正确回答用户问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "在项目有质保期的情况下，项目进度最大等于“1-质保金额比例”。",
+          "reason": "原材料第31页直接支持该要素，且与参考引文完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "产值进度公式为“生产进度*（1-质保金额/合同金额）”",
+          "reason": "原材料第48页直接支持该要素，且与参考引文完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1180,
+      "completion_tokens": 178,
+      "total_tokens": 1358,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RFboH6nYmuTHBZS0vFkajELu",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10018,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "68d68b1e27d89597da388e2725720505e3f9a3626f1f94d96a0c15c6710420af"
+  }
+}

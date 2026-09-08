@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整准确回答了问题，明确说明了非项目经理人员只有存放和查看权限，无修改删除权限，且没有包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "所有参与项目的公司人员（除项目经理外）对文档服务器上的文档**具有查看的权限**。\n*   **存放权限**：所有参与项目的公司人员（除项目经理外）对文档服务器上的文档**具有存放的权限**。",
+          "reason": "待测材料明确说明除项目经理外的人员具有查看和存放权限，与E1完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "所有参与项目的公司人员（**除项目经理外**）对文档服务器上的文档**不具备修改、删除等任何操作权限**。",
+          "reason": "待测材料明确说明除项目经理外的人员不具备修改、删除等任何操作权限，与E2完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1285,
+      "completion_tokens": 244,
+      "total_tokens": 1529,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RAlrlguH8TSqnU7YZ22gnFC0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7003,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "33b71fbd42106bf438af370ef66f583c7228bed4ef8b61535d2d4fabdc374b57"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，基于文档明确说明除项目经理外只有存放和查看权限，无修改删除权限，且未推断项目经理权限，无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "公司参与项目的所有人员（ 除项目经理 外）对\n文档服务 器上的文档 只具有 存放和查 看的权限",
+          "reason": "待测材料在页面13中完整陈述了该要素，实体（所有人员）、否定（除项目经理外）、属性（存放和查看）均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "不具备 修改、删除等任 何操作权限。",
+          "reason": "待测材料在页面13中完整陈述了该要素，且紧接前文，主语一致，否定和例外均正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13202,
+      "completion_tokens": 227,
+      "total_tokens": 13429,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R0FsCknn3HSmu5CVEUdq4F4T",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6528,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "da590360c7b5282f1215bd3525385d5f63cc8f4471108f94f67642884664a581"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了用户的两个问题：项目成员能看和改到什么程度，以及项目经理以外的人是否有删除权限。回答明确说明了除项目经理外的人员具有存放和查看权限，不具备修改和删除权限，并指出了项目经理为例外但未具体说明其权限，这与参考答案一致。回答基于文档证据，未发现重大错误或矛盾。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "公司参与项目的所有人员（除项目经理外）对文档服务 器上的文档 只具有 存放和查 看的权限",
+          "reason": "待测材料中直接包含该表述，实体、属性、数量、条件和否定均正确绑定，完全支持E1。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "不具备 修改、删除等任 何操作权限。",
+          "reason": "待测材料中在相同语境下明确表述不具备修改、删除等任何操作权限，实体和否定绑定正确，完全支持E2。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13202,
+      "completion_tokens": 257,
+      "total_tokens": 13459,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R51VJptTMBNISmAtDROt9yJO",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8250,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "da590360c7b5282f1215bd3525385d5f63cc8f4471108f94f67642884664a581"
+  }
+}

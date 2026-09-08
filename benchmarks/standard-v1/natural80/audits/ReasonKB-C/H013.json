@@ -1,0 +1,98 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户问题，且无内容可判断是否支持参考答案。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "当风险责任人不能迅速并令人满意地响应风险的时候，将风险升级就成为响应风险的渠道。",
+          "reason": "待测材料中未出现“风险升级”或“风险责任人”相关内容，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料中未提及“PDT”或“项目组风险升级”内容，无法支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料中未提及“IPMT”或“PDT风险升级”内容，无法支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料中未提及“IRB”或“投资委员会”内容，无法支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1934,
+      "completion_tokens": 272,
+      "total_tokens": 2206,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R7fQB6PhYIxocOJcjHqHVMDA",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10646,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6b539380ae6ac123fd12fdc0e39b2e452c2d621fac35b057fb5e7b1fd8a84fdf"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答为空，未回答问题，也没有提供任何答案，因此不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "待测材料中未找到与E1语句相同或等价的内容，仅有模糊的风险管理描述，未提及\"风险升级\"或\"风险责任人\"等关键概念，因此不成立。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料中未出现\"PDT\"、\"课题组\"或项目组风险升级路径，因此不支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料中未提及\"产品线\"或\"IPMT\"，因此不支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料中未提及\"PL-IPMT\"、\"IRB\"或\"投资委员会\"，因此不支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1934,
+      "completion_tokens": 273,
+      "total_tokens": 2207,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RNIthwIMoSMD5uFS6Dk1jaJS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5986,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6b539380ae6ac123fd12fdc0e39b2e452c2d621fac35b057fb5e7b1fd8a84fdf"
+  }
+}

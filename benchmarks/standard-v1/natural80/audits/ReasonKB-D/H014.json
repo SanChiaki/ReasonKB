@@ -1,0 +1,116 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，没有回答问题。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料中未提及CCM，也没有交付问题处理的相关内容，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料中未提及CCM和行销部，也没有交付问题处理相关内容。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料中未提及RMT。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料中未提及PDT。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料中未提及行销产品经理。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2305,
+      "completion_tokens": 397,
+      "total_tokens": 2702,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RYqDpbUYU6RU3JWKtJyB3CL7",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8970,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "156eee32d35de89c08e89402ca219668ee987ee55960f924dc9f0e666b6d200b"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，没有回答任何问题。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "",
+          "reason": "材料中完全没有提到CCM或牵头组织处理交付问题，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "",
+          "reason": "材料中没有提及CCM或通知行销部，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "",
+          "reason": "材料中没有提及CCM或组织RMT，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "",
+          "reason": "材料中没有提及CCM或组织PDT，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "",
+          "reason": "材料中没有提及CCM或组织行销产品经理，无法支持该要素。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2305,
+      "completion_tokens": 276,
+      "total_tokens": 2581,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Re2UT81auLimQwOCIOWskiB2",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5845,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "156eee32d35de89c08e89402ca219668ee987ee55960f924dc9f0e666b6d200b"
+  }
+}

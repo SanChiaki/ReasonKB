@@ -1,0 +1,211 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整覆盖了参考回答的全部关键步骤和确认方式，未包含错误信息，且正确回应了用户问题。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "需通过最新版本的SmartKit软件来更新存储的管理证书",
+          "reason": "文本明确支持使用最新版本SmartKit，实体和条件匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "下载名为 `SmartKit_xx.x.x_Tool_ReplacingCertificates.zip` 的证书替换工具包",
+          "reason": "直接提及工具包文件名，完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "在SmartKit中加载工具包",
+          "reason": "文本完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "加载后找到“初始证书更换”功能",
+          "reason": "文本明确提到该功能，完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "添加存储设备，选择存储设备后，点击“初始证书替换”，进行证书替换",
+          "reason": "文本完整描述操作步骤，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "在替换过程中查看证书信息，选择证书策略，然后执行替换；替换完成后，需查看证书有效期",
+          "reason": "文本覆盖所有动作，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "e7",
+          "quote": "通过SmartKit更新完存储管理证书后，告警会自动消失",
+          "reason": "文本明确提及告警自动消失，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2004,
+      "completion_tokens": 440,
+      "total_tokens": 2444,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RPT3D21jkdDBmaBMt6DdFR2k",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11979,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e6"
+    ],
+    "materialSha256": "a3728463922e47d5e96fe37946bc84717e9604e96f1b38adebc85196c90c9a93"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答基于材料完整回答了问题，包含更换步骤和确认恢复方法，未引入重大错误，且标注了证据不足和无关文档，因此正确。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "通过最新版本的SmartKit软件更新存储的管理证书，首先下载最新版本的 SmartKit软件",
+          "reason": "材料页面2明确指出使用最新版本SmartKit，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "下载SmartKit_xx.x.x_Tool_ReplacingCertificates.zip 证书替换工具包",
+          "reason": "材料页面2包含相同工具包名称和下载行为。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "在SmartKit里面加载工具包",
+          "reason": "与材料页面2原句一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "加载完找到初始证书更换",
+          "reason": "与材料页面2原句一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "添加存储设备，选择存储设备，点击初始证书替换，进行证书替换。",
+          "reason": "与材料页面3原句一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "查看证书信息，选择证书策略，执行替换，替换完成后，查看证书有效期。",
+          "reason": "与材料页面4原句一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e7",
+          "quote": "通过SmartKit更新完存储管理证书后，告警会自动消失。",
+          "reason": "与材料页面4原句一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10258,
+      "completion_tokens": 445,
+      "total_tokens": 10703,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RsEvvoPle2A1hR7yGcKKNT9e",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15100,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6ddb3826fadfb9429ce15981931d876fb6f512d347e08e039ffb8e91ba2e0f07"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确，完整覆盖了更换证书的操作步骤和确认恢复的方法，包含所有关键信息，无重大错误，且明确指出了证据不足的部分。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "通过最新版本的SmartKit软件更新存储的管理证书，",
+          "reason": "待测材料页面2中明确说明“通过最新版本的SmartKit软件更新存储的管理证书”，实体和条件正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "然后下载SmartKit_xx.x.x_Tool_ReplacingCertificates.zip 证书替换工具包，",
+          "reason": "待测材料页面2中明确说明下载证书替换工具包，文件名完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "在SmartKit里面加载工具包",
+          "reason": "材料页面2原文直接支持，实体和动作一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "加载完找到初始证书更换",
+          "reason": "材料页面2原文直接支持，动作和对象一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "添加存储设备，选择存储设备，点击初始证书替换，进行证书替换。",
+          "reason": "材料页面3原文与描述完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "查看证书信息，选择证书策略，执行替换，替换完成后，查看证书有效期。",
+          "reason": "材料页面4原文完全支持，包含查看证书有效期和确认方式。",
+          "support": "complete"
+        },
+        {
+          "id": "e7",
+          "quote": "通过SmartKit更新完存储管理证书后，告警会自动消失。",
+          "reason": "材料页面4【结果】部分明确说明告警自动消失，与参考答案一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10258,
+      "completion_tokens": 481,
+      "total_tokens": 10739,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ro2GLXQkyBJgvEHXLCBsP5AQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11916,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6ddb3826fadfb9429ce15981931d876fb6f512d347e08e039ffb8e91ba2e0f07"
+  }
+}

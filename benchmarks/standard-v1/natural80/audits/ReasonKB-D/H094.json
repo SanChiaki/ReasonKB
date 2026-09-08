@@ -1,0 +1,72 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，没有回答任何问题。",
+      "elements": [
+        {
+          "id": "H094-elem-001",
+          "quote": "软件系统提供帮助文档 通过 不通过 不适用",
+          "reason": "待测材料中表格显示检查软件系统核心功能模块是否有对应的帮助文档时，测试结果列包含“通过 不通过 不适用”，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3164,
+      "completion_tokens": 107,
+      "total_tokens": 3271,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RoqmirTpY1reKnUDTlNGHCdu",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9090,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H094-elem-001"
+    ],
+    "materialSha256": "718049d1470e69265bf2d1e5c1ee29792cf2c8b54a1596737968d8394d6e2b99"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的测试结果包含通过、不通过、不适用，但题干问的是“记成哪几种”，材料中前后出现“通过、不通过、N/A”和“通过、不通过、不适用”，表述不一致且未给出最终答案。",
+      "elements": [
+        {
+          "id": "H094-elem-001",
+          "quote": "对每次的测试结果进行分析，分析的测试结果包括“通过”、“不通过”： 通过：与用例中描述的预期结果一致... 不通过：该用例测试与预期结果不一致... N/A：不适用。受环境或其它客观条件所限用例在软件或系统中无法验证。",
+          "reason": "材料中明确列出测试结果包括“通过”、“不通过”和“N/A”，并解释N/A为不适用，但未明确为“通过、不通过、N/A”的组合，且同一表中结论列出现“通过 不通过 不适用”，故视为完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3164,
+      "completion_tokens": 239,
+      "total_tokens": 3403,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RykIpYlJORGAV557kyjTBDuS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14547,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H094-elem-001"
+    ],
+    "materialSha256": "718049d1470e69265bf2d1e5c1ee29792cf2c8b54a1596737968d8394d6e2b99"
+  }
+}

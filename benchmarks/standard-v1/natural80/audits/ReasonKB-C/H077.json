@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "合同工期450天",
+          "reason": "待测材料中明确出现“合同工期450天”，与参考答案中的合同工期为450天一致，实体和数值正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "进度计划若受拆迁等因素影响，工期相应顺延。",
+          "reason": "待测材料中明确出现该完整表述，与参考答案中的条件（若受拆迁等因素影响）和结果（工期相应顺延）完全一致，条件与结果正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3879,
+      "completion_tokens": 181,
+      "total_tokens": 4060,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RS8ytr7yZgayk0ZGVZsho8KE",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6982,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "186853a7f8c204aa7d82ea4d3b689fa9275e5341b9b50f9b5fe8b6516f0ef1fb"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答用户问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "合同工期450天",
+          "reason": "待测材料中多次出现“合同工期450天”的表述，明确支持合同工期为450天。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "进度计划若受拆迁等因素影响，工期相应顺延",
+          "reason": "待测材料中明确表述“若受拆迁等因素影响，工期相应顺延”，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3879,
+      "completion_tokens": 157,
+      "total_tokens": 4036,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ry8IoREgwa5JpSphVmThi9ZZ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3761,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "186853a7f8c204aa7d82ea4d3b689fa9275e5341b9b50f9b5fe8b6516f0ef1fb"
+  }
+}

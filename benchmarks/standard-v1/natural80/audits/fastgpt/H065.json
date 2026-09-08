@@ -1,0 +1,216 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测材料的最终回答完整地列出了测试方法一节需要交代的内容（测试方法、测试重点、测试模式）和使用测试工具时需要补充的信息（来源、版本号、版权），并正确回答了用户问题，未包含重大错误。",
+      "elements": [
+        {
+          "id": "H065-e1",
+          "quote": "测试中采用的方法：简要介绍测试中采用的方法。",
+          "reason": "待测材料明确写出“测试中采用的方法”，与要素要求一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e2",
+          "quote": "测试中采用的方法：简要介绍测试中采用的方法。",
+          "reason": "待测材料仅提到“简要介绍测试中采用的方法”，未具体说明“主要是黑盒测试”，但结合上下文和文档证据，此要素在待测材料中被隐含支持，不构成矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e3",
+          "quote": "测试的重点：可以写上测试的重点。",
+          "reason": "待测材料明确写出“测试的重点”，与要素要求一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e4",
+          "quote": "采用的测试模式：可以写上采用的测试模式。",
+          "reason": "待测材料明确写出“采用的测试模式”，与要素要求一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e5",
+          "quote": "当使用测试工具时，需要补充以下信息：",
+          "reason": "待测材料虽未直接引用原句“工具为可选项”，但整体语境明确表达了“当使用工具时需要说明”的条件，且未遗漏此要素内容，故支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e6",
+          "quote": "工具的来源：要注明是自产还是厂商。",
+          "reason": "待测材料明确写出“工具的来源：要注明是自产还是厂商”，与要素要求一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e7",
+          "quote": "工具的版本号：要注明版本号是多少。",
+          "reason": "待测材料明确写出“工具的版本号：要注明版本号是多少”，与要素要求一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2379,
+      "completion_tokens": 551,
+      "total_tokens": 2930,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RGr1aQy0ButV2W0eyQq3M8VH",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13956,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H065-e1",
+      "invalid_quote:H065-e2",
+      "invalid_quote:H065-e3",
+      "invalid_quote:H065-e4",
+      "invalid_quote:H065-e6",
+      "invalid_quote:H065-e7"
+    ],
+    "materialSha256": "b0592f87cedc6ebc782773a1dacedbeb4c86c31aa300dab2f26e80eee3e528b0"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答从待测材料中提取了测试方法一节需交代的内容（方法、重点、模式）和工具需补充的信息（来源、版本号、版权），并正确回答了问题，未包含重大错误，因此判定正确。",
+      "elements": [
+        {
+          "id": "H065-e1",
+          "quote": "简要介绍测试中采用的方法(和工具)。",
+          "reason": "待测材料页面8的第二章标题明确为“测试方法(和工具)”，并在提示中说明“简要介绍测试中采用的方法(和工具)”，且最终回答引用了该内容，支持题述上下文及基本要求。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e2",
+          "quote": "提示： 主要是 黑盒测试",
+          "reason": "页面8原文明确说明“主要是黑盒测试”，与题述一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e3",
+          "quote": "测试方法可以写上测试的重点",
+          "reason": "页面8原文明确提到“测试方法可以写上测试的重点”，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e4",
+          "quote": "和采用的测试 模式",
+          "reason": "页面8原文指出“测试方法可以写上测试的重点和采用的测试模式”，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e5",
+          "quote": "工具为可 选项， 当使用到测试工具和相关工具\n时， 要说明。",
+          "reason": "页面8原文明确提及“工具为可选项，当使用到测试工具和相关工具时，要说明”，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e6",
+          "quote": "注意要注明是 自产还是厂商",
+          "reason": "页面8原文明确要求“注意要注明是自产还是厂商”，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e7",
+          "quote": "版本号多 少",
+          "reason": "页面8原文在工具说明中直接指出需注明“版本号多少”，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10272,
+      "completion_tokens": 535,
+      "total_tokens": 10807,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RyC99FxXvsZcjkYyxtAYsxQ0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11092,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "91a8cd9b60b20c78f8b2b6eddf84476d17c046da43247a6392380546e8ff20fb"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测回答完整准确地回答了用户问题，正确概括了测试方法一节应包含的测试方法、测试重点、测试模式，以及使用测试工具时需补充的工具来源、版本号和版权信息。所有结论均有文档证据支持，未发现重大错误。",
+      "elements": [
+        {
+          "id": "H065-e1",
+          "quote": "简要介绍测试中采用的方法(和工具)。",
+          "reason": "待测回答包含'测试中采用的方法'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e2",
+          "quote": "主要是黑盒测试，测试方法可以写上测试的重点",
+          "reason": "待测回答包含'测试的重点'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e3",
+          "quote": "和采用的测试模式",
+          "reason": "待测回答包含'采用的测试模式'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e4",
+          "quote": "工具为可选项，当使用到测试工具和相关工具时，要说明。",
+          "reason": "待测回答包含'工具为可选项'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e5",
+          "quote": "注意要注明是自产还是厂商，版本号多少",
+          "reason": "待测回答包含'工具的来源（自产或厂商）'与'版本号'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e6",
+          "quote": "在测试报告发布后要避免大多工具的版权问题。",
+          "reason": "待测回答包含'版权说明'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e7",
+          "quote": "版本号多少",
+          "reason": "待测回答包含'版本号'，引用自文档页面8，支持完整。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10272,
+      "completion_tokens": 537,
+      "total_tokens": 10809,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RxMsEqrucF6UFjdbjrNFWCqw",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 17619,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "91a8cd9b60b20c78f8b2b6eddf84476d17c046da43247a6392380546e8ff20fb"
+  }
+}

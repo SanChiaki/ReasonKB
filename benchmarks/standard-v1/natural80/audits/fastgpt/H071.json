@@ -1,0 +1,122 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答包含了参考答案的所有关键信息（指出档案管理岗位的绩效标准使用占位符，无法确定具体允许次数），并额外补充了其他岗位的相关信息。但回答末尾提及'总经理秘书'岗位给出了具体丢失份数分级，并称其为'唯一给出具体数字的例外情况'，这与参考答案中的限制条件'文档未提供'资料保管'KPI的达标判定逻辑'不相矛盾，但可能误导读者认为存在具体数字。然而，这并不构成重大错误，因为回答核心结论正确。但考虑到回答中包含了大量无关信息且未明确指向原始文档第13页的确切位置，整体上仍算正确回答了问题，但存在冗余和潜在混淆，因此判定为不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料在'档案管理岗位（页面13）'部分明确指出'漏归、错归的次数不超过[ ]次'，与参考要素1完全一致，且实体、属性、数量（占位符）和条件正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料在'档案管理岗位（页面13）'部分明确指出'发生文件资料丢失的次数不超过[ ]次'，与参考要素2完全一致，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2881,
+      "completion_tokens": 347,
+      "total_tokens": 3228,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RbYd9HSK9FYybJfOGzFVhXzR",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13372,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2"
+    ],
+    "materialSha256": "3d00730d0498a278a600c0eda5480271cf52d3b8b9f0d99bf9e4e79e248845a1"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确回答了问题，明确指出无法确定具体次数，并提供了多岗位的详细证据，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料页面13的表格中，在'公司文件、资料档案管理的及时性、稳妥性'一行的绩效标准中包含了'漏归、错归的次数不超过[ ]次'，实体、属性和占位符均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料页面13的表格中，在'公司文件、资料档案管理的及时性、稳妥性'一行的绩效标准中包含了'发生文件资料丢失的次数不超过[ ]次'，实体、属性和占位符均匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11106,
+      "completion_tokens": 232,
+      "total_tokens": 11338,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rf6sr03YWrz9cWNM5RRL3lJJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7773,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f5057799099a24f5e263cad461427f634db2451f3380cf6c4d59e0d65bfeba92"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答基于文档证据，明确指出文档中多数相关KPI的绩效标准以占位符[ ]表示，未提供具体数值，因此无法确定资料保管KPI的达标次数、资料丢失或归档错误的具体允许次数。回答同时提到了唯一给出具体数值的例外（总经理秘书岗位），并指出部分岗位的资料丢失为否决性指标。该回答完整准确地回答了问题，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料中'公司文件、资料档案管理的及时性、稳妥性'一行的绩效标准包含'漏归、错归的次数不超过[ ]次'，与参考要素1的表述完全一致，且KPI名称'公司文件、资料档案管理的及时性、稳妥性'与参考中的描述一致。占位符[ ]的存在与参考中的说法也一致，因此该要素得到完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料中'公司文件、资料档案管理的及时性、稳妥性'一行的绩效标准包含'发生文件资料丢失的次数不超过[ ]次'，与参考要素2的表述完全一致。因此该要素得到完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11106,
+      "completion_tokens": 330,
+      "total_tokens": 11436,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rfg77mVngFweirfnIiaQIgU4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11324,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f5057799099a24f5e263cad461427f634db2451f3380cf6c4d59e0d65bfeba92"
+  }
+}

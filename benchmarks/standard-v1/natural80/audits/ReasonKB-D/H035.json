@@ -1,0 +1,236 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，没有回答用户问题，且无任何内容可评判。",
+      "elements": [
+        {
+          "id": "H035-E1",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "引用中明确匹配部门待办事情1开始时间4/11/2019，实体和数值正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E2",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "引用中明确匹配部门待办事情1结束时间4/18/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E3",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "引用中明确匹配部门待办事情1计划天数7。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E4",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "引用中明确匹配部门待办事情2开始时间4/5/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E5",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "引用中明确匹配部门待办事情2结束时间4/25/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E6",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "引用中明确匹配部门待办事情2计划天数20。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E7",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "引用中明确匹配部门待办事情3开始时间4/19/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E8",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "引用中明确匹配部门待办事情3结束时间4/30/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E9",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "引用中明确匹配部门待办事情3计划天数11。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E10",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情4开始时间4/13/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E11",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情4结束时间4/21/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E12",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情4计划天数8。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E13",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情5开始时间4/20/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E14",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情5结束时间4/28/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E15",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "引用中明确匹配部门待办事情5计划天数8。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3361,
+      "completion_tokens": 1292,
+      "total_tokens": 4653,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RFBbuHNWbXIki28qFPykHPGK",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 18350,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a3fad7ee0892ed6f1eafe374784bb7960efc0e3d4b054b5abeecc36b7de10eaf"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H035-E1",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情1的开始时间为4/11/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E2",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情1的结束时间为4/18/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E3",
+          "quote": "<tr><th>部门待办事情1</th><td>4/11/2019</td><td>4/18/2019</td><td>7</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情1的计划天数为7。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E4",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情2的开始时间为4/5/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E5",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情2的结束时间为4/25/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E6",
+          "quote": "<tr><th>部门待办事情2</th><td>4/5/2019</td><td>4/25/2019</td><td>20</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情2的计划天数为20。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E7",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情3的开始时间为4/19/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E8",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情3的结束时间为4/30/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E9",
+          "quote": "<tr><th>部门待办事情3</th><td>4/19/2019</td><td>4/30/2019</td><td>11</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情3的计划天数为11。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E10",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情4的开始时间为4/13/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E11",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情4的结束时间为4/21/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E12",
+          "quote": "<tr><th>部门待办事情4</th><td>4/13/2019</td><td>4/21/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情4的计划天数为8。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E13",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情5的开始时间为4/20/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E14",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情5的结束时间为4/28/2019。",
+          "support": "complete"
+        },
+        {
+          "id": "H035-E15",
+          "quote": "<tr><th>部门待办事情5</th><td>4/20/2019</td><td>4/28/2019</td><td>8</td></tr>",
+          "reason": "待测材料中的表格明确列出部门待办事情5的计划天数为8。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3361,
+      "completion_tokens": 1353,
+      "total_tokens": 4714,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RTHArUCVll4DSNdcjrUISMJs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 28289,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a3fad7ee0892ed6f1eafe374784bb7960efc0e3d4b054b5abeecc36b7de10eaf"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整复述了材料内容，准确指出不同部门的KPI标准不同，所有具体数值均为占位符，无法确定允许次数，并正确提及否决性指标选项，未包含重大错误，且直接回答了问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "材料中明确列出该绩效标准，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "材料中明确列出该绩效标准，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2383,
+      "completion_tokens": 184,
+      "total_tokens": 2567,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rxj9lzwIKUWLpx5oOSYq7jnQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8525,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2"
+    ],
+    "materialSha256": "8493332c0829a15c9491c0b016ad0c102564737956a5fe5b0daf7ba93b9be97e"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答虽承认具体数值为空白，但引入了多个部门（开发部、材料设备部、工程管理部）的资料管理指标，并错误声称‘没有统一的资料保管KPI’，这与参考答案明确指向原始文档第13页‘档案管理关键绩效考核指标’中‘公司文件、资料档案管理的及时性、稳妥性’一行不符。此外，回答未明确否定性指标仅限关键保密档案泄密，反而将丢失资料也列为否决性候选，且未明确说明占位符导致无法确定具体次数，因此包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料第13页原文为‘漏归、错归的次数不超过[ ]次’，完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料第13页原文为‘发生文 件资料丢失的次数不超过[ ]次’，完全支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 29663,
+      "completion_tokens": 276,
+      "total_tokens": 29939,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RpKi7e2T2ZsPrMtUr9RNaoPm",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7796,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "b85003cab9851e504454f792adb38add9b7d21dc956e33915c51410bd82c78f2"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确指出文档中多个部门有不同资料管理KPI，且所有具体数值均为占位符，无法确定允许次数，并分别列出了各部门相关指标内容和否决项，正确回答了问题且无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料中原文完全支持该要素，包括KPI名称、绩效标准及占位符均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料中原文完全支持该要素，包括KPI名称、绩效标准及占位符均匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 157330,
+      "completion_tokens": 200,
+      "total_tokens": 157530,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RvJW01sOGnfkwHHZJMp5utz0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15433,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "126fe878465e713da84c69a60307cbfaa51c67ba5c444b04714c1722f87d4818"
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "E1",
+          "support": "complete",
+          "quote": "多产品钻石：业绩门槛为 **12000**。",
+          "reason": "待测材料明确指出多产品钻石的业绩门槛为12000，与参考要素一致，属性、数量完全匹配。"
+        },
+        {
+          "id": "E2",
+          "support": "complete",
+          "quote": "数通：**3000**",
+          "reason": "待测材料明确列出数通的单产品业绩门槛为3000万元，与参考要素一致。"
+        },
+        {
+          "id": "E3",
+          "support": "complete",
+          "quote": "存储：**3000**",
+          "reason": "待测材料明确列出存储的单产品业绩门槛为3000万元，与参考要素一致。"
+        },
+        {
+          "id": "E4",
+          "support": "complete",
+          "quote": "光传送：**3000**",
+          "reason": "待测材料明确列出光传送的单产品业绩门槛为3000万元，与参考要素一致。"
+        },
+        {
+          "id": "E5",
+          "support": "complete",
+          "quote": "华为云Stack：**3000**",
+          "reason": "待测材料明确列出华为云Stack的单产品业绩门槛为3000万元，与参考要素一致。"
+        },
+        {
+          "id": "E6",
+          "support": "complete",
+          "quote": "计算：**3000**",
+          "reason": "待测材料明确列出计算的单产品业绩门槛为3000万元，与参考要素一致。"
+        },
+        {
+          "id": "E7",
+          "support": "complete",
+          "quote": "视频会议（含协作平板）：**1500**",
+          "reason": "待测材料明确列出视频会议（含协作平板）的单产品业绩门槛为1500万元，与参考要素一致。"
+        },
+        {
+          "id": "E8",
+          "support": "complete",
+          "quote": "数通网络安全：**1500**",
+          "reason": "待测材料明确列出数通网络安全的单产品业绩门槛为1500万元，与参考要素一致。"
+        },
+        {
+          "id": "E9",
+          "support": "complete",
+          "quote": "光接入：**1500**",
+          "reason": "待测材料明确列出光接入的单产品业绩门槛为1500万元，与参考要素一致。"
+        },
+        {
+          "id": "E10",
+          "support": "complete",
+          "quote": "企业服务与软件：**1500**",
+          "reason": "待测材料明确列出企业服务与软件的单产品业绩门槛为1500万元，与参考要素一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答准确回答了问题，给出了多产品和各单产品子类的具体业绩门槛数值，且与材料内容一致，未包含重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 3461,
+      "completion_tokens": 498,
+      "total_tokens": 3959,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-kqmtegjgxg",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3048,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "550f276e7e68319fbc149a619b24218394c620da5b5a721d6055f67c8857757b"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "E1",
+          "support": "complete",
+          "quote": "<td rowspan=\"9\">12000</td>",
+          "reason": "待测材料中表格明确显示钻石经销商多产品业绩门槛为12000万元，与参考答案完全一致。"
+        },
+        {
+          "id": "E2",
+          "support": "complete",
+          "quote": "<td>3000</td>",
+          "reason": "待测材料表格中数通对应的单产品业绩门槛为3000万元，与参考答案一致。"
+        },
+        {
+          "id": "E3",
+          "support": "complete",
+          "quote": "<td>3000</td>",
+          "reason": "待测材料表格中存储对应的单产品业绩门槛为3000万元，与参考答案一致。"
+        },
+        {
+          "id": "E4",
+          "support": "complete",
+          "quote": "<td>3000</td>",
+          "reason": "待测材料表格中光传送对应的单产品业绩门槛为3000万元，与参考答案一致。"
+        },
+        {
+          "id": "E5",
+          "support": "complete",
+          "quote": "<td>3000</td>",
+          "reason": "待测材料表格中华为云Stack对应的单产品业绩门槛为3000万元，与参考答案一致。"
+        },
+        {
+          "id": "E6",
+          "support": "complete",
+          "quote": "<td>3000</td>",
+          "reason": "待测材料表格中计算对应的单产品业绩门槛为3000万元，与参考答案一致。"
+        },
+        {
+          "id": "E7",
+          "support": "complete",
+          "quote": "<td>1500</td>",
+          "reason": "待测材料表格中视频会议（含协作平板）对应的单产品业绩门槛为1500万元，与参考答案一致。"
+        },
+        {
+          "id": "E8",
+          "support": "complete",
+          "quote": "<td>1500</td>",
+          "reason": "待测材料表格中数通网络安全对应的单产品业绩门槛为1500万元，与参考答案一致。"
+        },
+        {
+          "id": "E9",
+          "support": "complete",
+          "quote": "<td>1500</td>",
+          "reason": "待测材料表格中光接入对应的单产品业绩门槛为1500万元，与参考答案一致。"
+        },
+        {
+          "id": "E10",
+          "support": "complete",
+          "quote": "<td>1500</td>",
+          "reason": "待测材料表格中企业服务与软件对应的单产品业绩门槛为1500万元，与参考答案一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整且准确地回答了钻石经销商的业绩门槛问题，包含了多产品12000万元、各单产品3000万或1500万元的详细信息，并补充了相关条件、例外和证据充分性说明，内容正确无误。"
+    },
+    "usage": {
+      "prompt_tokens": 11691,
+      "completion_tokens": 520,
+      "total_tokens": 12211,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-mc2t333g8v",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3711,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "862654585a27b9148f56b6bffcc500486847390e5f9777c63f24d793032e1f37"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "E1",
+          "support": "complete",
+          "quote": "12000",
+          "reason": "待测材料页面3的表格中明确列出多产品钻石经销商业绩门槛为12000万元，且表格结构清晰对应，没有矛盾。"
+        },
+        {
+          "id": "E2",
+          "support": "complete",
+          "quote": "3000",
+          "reason": "待测材料页面3的表格中明确列出数通对应单产品钻石经销商业绩门槛为3000万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E3",
+          "support": "complete",
+          "quote": "3000",
+          "reason": "待测材料页面3的表格中明确列出存储对应单产品钻石经销商业绩门槛为3000万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E4",
+          "support": "complete",
+          "quote": "3000",
+          "reason": "待测材料页面3的表格中明确列出光传送对应单产品钻石经销商业绩门槛为3000万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E5",
+          "support": "complete",
+          "quote": "3000",
+          "reason": "待测材料页面3的表格中明确列出华为云Stack对应单产品钻石经销商业绩门槛为3000万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E6",
+          "support": "complete",
+          "quote": "3000",
+          "reason": "待测材料页面3的表格中明确列出计算对应单产品钻石经销商业绩门槛为3000万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E7",
+          "support": "complete",
+          "quote": "1500",
+          "reason": "待测材料页面3的表格中明确列出视频会议（含协作平板）对应单产品钻石经销商业绩门槛为1500万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E8",
+          "support": "complete",
+          "quote": "1500",
+          "reason": "待测材料页面3的表格中明确列出数通网络安全对应单产品钻石经销商业绩门槛为1500万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E9",
+          "support": "complete",
+          "quote": "1500",
+          "reason": "待测材料页面3的表格中明确列出光接入对应单产品钻石经销商业绩门槛为1500万元，实体和数值正确匹配。"
+        },
+        {
+          "id": "E10",
+          "support": "complete",
+          "quote": "1500",
+          "reason": "待测材料页面3的表格中明确列出企业服务与软件对应单产品钻石经销商业绩门槛为1500万元，实体和数值正确匹配。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题，完整列出了钻石经销商多产品和单产品各产品子类的业绩门槛，数值与文档一致，并补充了多产品认证条件及例外说明，未发现重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 11691,
+      "completion_tokens": 705,
+      "total_tokens": 12396,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-wfi6jw2av2",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4128,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "862654585a27b9148f56b6bffcc500486847390e5f9777c63f24d793032e1f37"
+  }
+}

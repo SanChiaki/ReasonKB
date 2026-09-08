@@ -1,0 +1,92 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "空的最终回答无法回答问题。",
+      "elements": [
+        {
+          "id": "H056-e1",
+          "quote": "在试题 产品库中 选择要考 察的知识点",
+          "reason": "待测材料中完全一致地包含了该表述，实体和动作均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e2",
+          "quote": "根据题型、 难度等条件 筛选\n知识点对应的试题",
+          "reason": "待测材料中完整包含了该条件筛选过程，无缺失。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e3",
+          "quote": "手动将试题 添加到试题 篮",
+          "reason": "待测材料中完整包含了手动添加至试题篮的表述。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 643,
+      "completion_tokens": 212,
+      "total_tokens": 855,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rr2nntYEuYJbndi86QZqGSXd",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6500,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "2ddd5f5510a25c385132a51c7e9fb92e454e8986b03fad8e192573bb9b1a379c"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空字符串，未回答用户问题，故不正确。",
+      "elements": [
+        {
+          "id": "H056-e1",
+          "quote": "在试题 产品库中 选择要考 察的知识点",
+          "reason": "待测材料原文明确说明在试题产品库中选择要考察的知识点，实体、动作和对象均与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e2",
+          "quote": "根据题型、 难度等条件 筛选知识点对应的试题",
+          "reason": "待测材料包含根据题型、难度等条件筛选知识点对应试题的完整表述，条件、动作和对象均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e3",
+          "quote": "手动将试题 添加到试题 篮",
+          "reason": "待测材料明确说明手动将试题添加到试题篮，方式、动作和位置均与参考一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 643,
+      "completion_tokens": 250,
+      "total_tokens": 893,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RLtUR74ZqHffpjLzEBf56i8l",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5969,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "2ddd5f5510a25c385132a51c7e9fb92e454e8986b03fad8e192573bb9b1a379c"
+  }
+}

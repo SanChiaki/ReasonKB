@@ -1,0 +1,86 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的finalAnswer为空，未对问题给出任何回答，因此不能视为正确回答了问题。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中生产经理助理的考核表明确列出'减少成本（10％）'，与要素H044-e01的'考核指标为减少成本，权重为10%'完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "平衡预算",
+          "reason": "待测材料中'减少成本（10％）'一行的考核标准列为'平衡预算'，与要素H044-e02完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料中'减少成本（10％）'一行的跟踪方式列为'每月预算报告'，与要素H044-e03完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 28591,
+      "completion_tokens": 262,
+      "total_tokens": 28853,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RLQufc4jTzbqDgFbI0rgC5pR",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7834,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e58e56cbf3fd6241f49fdb6cf4d35719cabb384c8429393301a9fcd7492a2582"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料在“生产经理助理”表格中明确列有“减少成本（10％）”，与要素内容完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "平衡预算",
+          "reason": "待测材料在“减少成本（10％）”行下明确列有考核标准“平衡预算”，与要素内容完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料在“减少成本（10％）”行下明确列有跟踪方式“每月预算报告”，与要素内容完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 31246,
+      "completion_tokens": 228,
+      "total_tokens": 31474,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R561NFTZLUt5IIHbqGVY3LFP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7415,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "278f3ff7579a9cdca7294a069ce8880b474314a5eb9fd4835ede9205f591c3ac"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "系统运行情况良好，功能性问题出现两次bug，操作性问题出现了 5 次。",
+          "reason": "待测材料第4页正文完全包含此表述，实体、数量、属性均匹配，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "2022.11.1 9",
+          "reason": "表格中试运行开始时间列明确写有“2022.11.1 9”，时间实体完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "2022．12． 10",
+          "reason": "表格中试运行终止时间列写有“2022．12． 10”，与参考表述一致（仅标点差异，不影响）。",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "共22 天",
+          "reason": "表格中同一行明确写有“共22 天”，数量完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "本次试运行出现2 个bug，共提供服务支撑4 次，优化4 个问题。",
+          "reason": "第6页结论中完全包含此句，实体和数量均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "bug 问题出现了一个，首页的待办工作加载没有成功",
+          "reason": "第6页结论中“bug 问题出现了一个”与后续“出现2个bug”的表述不一致，材料支持该矛盾。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2333,
+      "completion_tokens": 432,
+      "total_tokens": 2765,
+      "prompt_tokens_details": {
+        "cached_tokens": 2048
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RpAZPycZX6PsNhexLMyxpaQl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9583,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "0c41d8a490624fc3ac3e5447e13b2c4c74e777dec82e01822e76ebd7b3c99ce5"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "系统运行情况良好，功能性问题出现两次bug，操作性问题出现了 5 次。",
+          "reason": "待测材料第4页完全支持该要素，实体和数量匹配",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "2022.11.1 9",
+          "reason": "待测材料第3页表格中明确写出开始时间",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "2022．12． 10",
+          "reason": "待测材料第3页表格中明确写出终止时间",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "共22 天",
+          "reason": "待测材料第3页表格中明确注明",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "本次试运行出现2 个bug，共提供服务支撑4 次，优化4 个问题。",
+          "reason": "待测材料第6页结论部分完全支持",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "bug 问题出现了一个，首页的待办工作加载没有成功",
+          "reason": "待测材料第6页结论中先出现该表述，与后文'出现2个bug'不一致",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2333,
+      "completion_tokens": 374,
+      "total_tokens": 2707,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RnCi7BwL6vMA0aq9EcxCmQhs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11588,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "0c41d8a490624fc3ac3e5447e13b2c4c74e777dec82e01822e76ebd7b3c99ce5"
+  }
+}

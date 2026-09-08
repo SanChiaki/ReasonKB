@@ -1,0 +1,191 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽然包含了参考答案中的六个指标，但问题仅要求列出评估指标，最终回答提供了远超要求的详细评分细则、权重、维度等信息，属于过度回答。更重要的是，答案中存在多处与参考评估指标框架不一致或无法验证的具体数值和规则（如权重、评分标准、业绩规模分档等），且'业绩规模（权重分20分）'中提到'按照伙伴在26年形成的项目业绩规模评估得分'，与评估周期为半年度/年度的表述存在潜在不一致，可能构成重大错误。因此不能判定为正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "1.  **专业化能力（权重分10分）**",
+          "reason": "待测材料完整列出了'专业化能力'作为评估指标之一，与参考要素1一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "2.  **行业解决方案能力（权重分15分）**",
+          "reason": "待测材料完整列出了'行业解决方案能力'作为评估指标之一，与参考要素2一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "3.  **服务能力（权重分20分）**",
+          "reason": "待测材料完整列出了'服务能力'作为评估指标之一，与参考要素3一致。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "1.  **业绩结构（权重分15分）**",
+          "reason": "待测材料完整列出了'业绩结构'作为评估指标之一，与参考要素4一致。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "2.  **业绩增长（权重分20分）**",
+          "reason": "待测材料完整列出了'业绩增长'作为评估指标之一，与参考要素5一致。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "3.  **业绩规模（权重分20分）**",
+          "reason": "待测材料完整列出了'业绩规模'作为评估指标之一，与参考要素6一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3406,
+      "completion_tokens": 470,
+      "total_tokens": 3876,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R4Vq1bIOUyZNwUfRVbtI75WP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14201,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4d072d4f02e75ade90edc5a0b2760f43a44409ab6fc785cbe8c1e275909234e2"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整列出了参考答案中的6个评估指标（专业化能力、行业解决方案能力、服务能力、业绩结构、业绩增长、业绩规模），并提供了详细的权重和评分细则，且未包含错误信息，与参考要素一致。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测页面1的评估指标列中明确包含'专业化能力'，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测页面1的评估指标列中明确包含'行业解决方案能力'，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测页面1的评估指标列中明确包含'服务能力'，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "业绩结构",
+          "reason": "待测页面2的评估指标列中明确包含'业绩结构'，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "业绩增长",
+          "reason": "待测页面2的评估指标列中明确包含'业绩增长'，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "业绩规模",
+          "reason": "待测页面2的评估指标列中明确包含'业绩规模'，与参考要素一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 18799,
+      "completion_tokens": 397,
+      "total_tokens": 19196,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RwigYXK7NLQ4ndbHG3Q1e1Dh",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10841,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6da64eaa68211d5bb85d04bdf79870ac6f2ada52e95fd6f224bda65af12459c2"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整列出了金/银经销商PGI的6项评估指标，并详细说明了权重和计分规则，未包含重大错误，正确回答了问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料页面1的评估指标列明确包含“专业化能力”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料页面1的评估指标列明确包含“行业解决方案能力”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料页面1的评估指标列明确包含“服务能力”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "业绩结构",
+          "reason": "待测材料页面2的评估指标列明确包含“业绩结构”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "业绩增长",
+          "reason": "待测材料页面2的评估指标列明确包含“业绩增长”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "业绩规模",
+          "reason": "待测材料页面2的评估指标列明确包含“业绩规模”，且评估对象为金牌、银牌经销商，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 18799,
+      "completion_tokens": 423,
+      "total_tokens": 19222,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RecCejlE4ZAGm6M4ssVzZTHg",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9505,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6da64eaa68211d5bb85d04bdf79870ac6f2ada52e95fd6f224bda65af12459c2"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题，因此不正确。",
+      "elements": [
+        {
+          "id": "H099-1",
+          "quote": "Felix： 运行在 每一台 Host 的 agent 进程，主要负责网络 接口管理和 监听、 路由、ARP 管理、ACL 管理和同步、 状态上报等。",
+          "reason": "引用原文逐字取自待测材料第3页，实体、属性、条件完全匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-2",
+          "quote": "2.etcd：分布式键值存储，主要负责网络 元数据一 致性， 确保Calico网络 状态的准确性，可以与kubernetes共用 ；",
+          "reason": "引用原文逐字取自待测材料第4页，实体、属性、条件完全匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-3",
+          "quote": "3.BGP Client（BIRD）：Calico 为每一台 Host 部署一个 BGP Client，使用 BIRD 实现，BIRD 是一个单 独的持续发展的 项目， 实现了 众多动态路由 协议比如 BGP、OSPF、RIP 等。 在 Calico 的角色是监听 Host 上由 Felix 注入的路由信息， 然 后通过 BGP 协议广播告诉剩余 Host 节点，从而实现网络互通。",
+          "reason": "引用原文逐字取自待测材料第4页，实体（Host、BIRD、Felix、BGP）、属性（监听、广播、互通）完全匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-4",
+          "quote": "4.BGP Route Reflector ： 在大 型网络规模中， 如 果仅仅使用 BGP client 形成 mesh 全 网互 联的方案就会 导致规模限制， 因为所有 节点之间 俩俩互联， 需要 N^2 个连 接， 为 了解决这个规模问题，可以 采用 BGP 的 Router Reflector 的方法，使所有 BGP Client 仅与 特定 RR 节点互联并做路由同步， 从而大大减少连 接数。",
+          "reason": "引用原文逐字取自待测材料第4页，实体（BGP Route Reflector、BGP Client、RR）、属性（解决规模限制、减少连接数）完全匹配，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1683,
+      "completion_tokens": 587,
+      "total_tokens": 2270,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RW9pJWNeeCUyKyU07rgjv4DJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13887,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "cf466478fbbfeb51a9a7217010ac65012d4f05105574886c1e9c938089e7cced"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer 为空，未回答问题，不能视为正确。",
+      "elements": [
+        {
+          "id": "H099-1",
+          "quote": "Felix： 运行在 每一台 Host 的 agent 进程，主要负责网络 接口管理和 监听、 路由、ARP 管理、ACL 管理和同步、 状态上报等。",
+          "reason": "待测材料中完全包含该要素的所有实体、属性和功能，且条件（每一台 Host）与数量（agent 进程）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-2",
+          "quote": "etcd：分布式键值存储，主要负责网络 元数据一 致性， 确保Calico网络 状态的准确性，可以与kubernetes共用 ；",
+          "reason": "待测材料中原样包含该要素的完整定义，实体、属性（分布式键值存储）、功能（网络元数据一致性、确保准确性）和条件（可以与kubernetes共用）均正确匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-3",
+          "quote": "BGP Client（BIRD）：Calico 为每一台 Host 部署一个 BGP Client，使用 BIRD 实现，... 在 Calico 的角色是监听 Host 上由 Felix 注入的路由信息， 然 后通过 BGP 协议广播 告诉剩余 Host 节点，从而实现网络互通。",
+          "reason": "待测材料涵盖了部署位置（每一台 Host）、监听对象（Felix 注入的路由信息）、广播对象（剩余 Host 节点）和目的（网络互通），所有关键信息均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H099-4",
+          "quote": "BGP Route Reflector ： 在大 型网络规模中， 如 果仅仅使用 BGP client 形成 mesh 全 网互 联的方案就会 导致规模限制， 因为所有 节点之间 俩俩互联， 需要 N^2 个连 接， 为 了解决这个规模问题，可以 采用 BGP 的 Router Reflector 的方法，使所有 BGP Client 仅与 特定 RR 节点互联并做路由同步， 从而大大减少连 接数。",
+          "reason": "待测材料完整描述了该要素要解决的问题（大型网络规模，mesh 全网互联导致的规模限制）和解决方案（仅与特定 RR 节点互联并做路由同步，减少连接数），与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1683,
+      "completion_tokens": 589,
+      "total_tokens": 2272,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rvwzyg8rFD3FS7O8Hf6Fx6Jd",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14846,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H099-3"
+    ],
+    "materialSha256": "cf466478fbbfeb51a9a7217010ac65012d4f05105574886c1e9c938089e7cced"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答为空，未回答任何问题，也未包含参考答案中的任何内容。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "•延迟交货；",
+          "reason": "待测材料完整支持该要素，实体、属性、条件均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "•发错货问题严重；",
+          "reason": "待测材料完整支持该要素，语义和否定条件均一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "•初验测试问题层出不穷，客户开始质疑我司软件版本管理和质量控制能力；",
+          "reason": "待测材料完整支持该要素，且提到了客户质疑的原因。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1220,
+      "completion_tokens": 209,
+      "total_tokens": 1429,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R3JgF5SGmXyw7KvMuSfspuw3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9206,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4acca421c1885820cf0fb7a85aa6230f31780bdf10a50b827bd372616be324c9"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答提问，无具体内容。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "延迟交货；",
+          "reason": "待测材料文档1第30页明确列出“延迟交货；”，实体和条件正确。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发错货问题严重；",
+          "reason": "待测材料文档1第30页明确列出“发错货问题严重；”，实体和属性正确。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "初验测试问题层出不穷，客户开始质疑我司软件版本管理和质量控制能；",
+          "reason": "待测材料文档1第30页完整列出该问题及后果，与参考要素一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1220,
+      "completion_tokens": 217,
+      "total_tokens": 1437,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rl62rpJbr51J1v6YCuDjJJEU",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4846,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:3"
+    ],
+    "materialSha256": "4acca421c1885820cf0fb7a85aa6230f31780bdf10a50b827bd372616be324c9"
+  }
+}

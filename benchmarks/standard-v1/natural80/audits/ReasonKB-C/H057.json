@@ -1,0 +1,120 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，无法判断正确性",
+      "elements": [
+        {
+          "id": "H057-e1",
+          "quote": "材料费",
+          "reason": "待测材料中《华为内部资料》明确列出“材料费”作为直接费用下的类别，支持“非人力资源分为材料类别”。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e2",
+          "quote": "设备费",
+          "reason": "待测材料中《华为内部资料》明确列出“设备费”作为直接费用下的类别，支持“非人力资源分为设备类别”。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e3",
+          "quote": "差旅及通信费",
+          "reason": "待测材料中《项目成本管理.pdf》第7页提到“差旅及通信费”属于成本类别，支持“非人力资源分为差旅及通信费类别”。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e4",
+          "quote": "公司管理费",
+          "reason": "待测材料中《华为内部资料》列出“公司管理费”作为间接费用，与“管理费用”类别一致，支持“非人力资源分为管理费用类别”。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e5",
+          "quote": "其他",
+          "reason": "待测材料中《项目管理全套工具表格》的成本估算表中明确列出“其他”类别，支持“非人力资源分为其他类别”。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4789,
+      "completion_tokens": 372,
+      "total_tokens": 5161,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RVGpnl1QKDbianfYQW2YLGG9",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12871,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H057-e3"
+    ],
+    "materialSha256": "ae2e31bf88c13c7d40e5c7daa63189ad9fc0f94c381bc0e6f22fb2b9655d7870"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，没有对问题进行回答。",
+      "elements": [
+        {
+          "id": "H057-e1",
+          "quote": "材料",
+          "reason": "待测材料中多处提到材料，如《项目管理全套工具表格.doc》的成本估算表中列出原材料，以及《项目成本管理.pdf》中提到的材料，数量等条件满足，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e2",
+          "quote": "设备",
+          "reason": "待测材料《华为内部资料》中提到设备费，《项目管理全套工具表格.doc》中列出设施设备，数量及条件匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e3",
+          "quote": "差旅及通信费",
+          "reason": "待测材料中未出现差旅及通信费相关表述，仅在参考中列出，无法找到支持，判断为缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H057-e4",
+          "quote": "管理费用",
+          "reason": "待测材料《华为内部资料》中提到公司管理费、施工管理费，属于管理费用类别，数量及条件匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e5",
+          "quote": "其他",
+          "reason": "待测材料《项目管理全套工具表格.doc》的成本估算表中明确有‘其他’类别，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4789,
+      "completion_tokens": 315,
+      "total_tokens": 5104,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RX1MGRIIZyTMJtmmm2dmzUXs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8720,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H057-e4"
+    ],
+    "materialSha256": "ae2e31bf88c13c7d40e5c7daa63189ad9fc0f94c381bc0e6f22fb2b9655d7870"
+  }
+}

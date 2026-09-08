@@ -1,0 +1,176 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，无法提供最终回答，因此不满足回答问题、正确性及无重大错误的要求。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "采购计划编制\n\n<table data-table-id=\"p298-t1\"><tr><th>.1 输入数据</th><th>.2 方法和技术</th><th>.3 输出结果</th></tr><tr><th>.1 范围说明</th>",
+          "reason": "表格中明确列出“范围说明”作为采购计划编制的输入数据，且该输入与“采购计划编制”正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "<tr><th>.2 产品概述</th>",
+          "reason": "表格中“产品概述”位于采购计划编制的输入数据列，与阶段正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "<tr><th>.3 采购来源</th>",
+          "reason": "表格中“采购来源”位于输入数据列，属于采购计划编制的输入之一。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "<tr><th>.4 市场条件</th>",
+          "reason": "表格中“市场条件”在输入数据列中，与采购计划编制绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "<tr><th>.5 其他计划编制的输出</th>",
+          "reason": "表格中“其他计划编制的输出”作为采购计划编制的输入，内容一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "<tr><th>.6 约束条件</th>",
+          "reason": "表格中“约束条件”位于输入数据列，正确匹配采购计划编制。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "<tr><th>.7 假定</th>",
+          "reason": "表格中“假定”属于采购计划编制的输入数据。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "询价计划编制\n\n<table data-table-id=\"p303-t1\"><tr><th>.1 输入数据</th><th>.2 方法和技术</th><th>.3 输出结果</th></tr><tr><th>.1 采购管理计划</th>",
+          "reason": "表格中“采购管理计划”作为询价计划编制的输入，正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "<tr><th>.2 工作说明</th>",
+          "reason": "表格中“工作说明”位于询价计划编制的输入列，匹配正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "<tr><th>.3 其他计划编制的输出</th>",
+          "reason": "表格中“其他计划编制的输出”在询价计划编制输入列，与陈述一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2417,
+      "completion_tokens": 771,
+      "total_tokens": 3188,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RZW3HJCs8xXoNOvRrcBjyH0b",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 22181,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4d4eafaaba3106e95dda5745158e2824c57187793c899fddce74d05d3ccc6fbc"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答为空，未回答问题，故不正确。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "采购计划编制",
+          "reason": "材料中仅列出的“采购计划编制”表中包含“.1 范围说明”等条目，但未提供上下文或明确与问题“选供应商时前面需要准备哪些输入材料”的关联；且材料另有一份“规划采购.输入”列出了其他9项输入（如项目管理计划、干系人登记册等），与参考要求冲突。无法确认完整支持，按部分支持处理。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "采购计划编制",
+          "reason": "材料中表内包含“.2 产品概述”条目，但存在与H081_E1相同的问题：无明确关联和矛盾信息；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "采购计划编制",
+          "reason": "表中存在“.3 采购来源”条目，但同样缺乏上下文和存在矛盾；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "采购计划编制",
+          "reason": "表中存在“.4 市场条件”条目，但类似理由，无法确认完整支持；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "采购计划编制",
+          "reason": "表中存在“.5 其他计划编制的输出”条目；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "采购计划编制",
+          "reason": "表中存在“.6 约束条件”条目；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "采购计划编制",
+          "reason": "表中存在“.7 假定”条目；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "询价计划编制",
+          "reason": "表中“询价计划编制”包含“.1 采购管理计划”条目，但同样缺乏上下文和矛盾；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "询价计划编制",
+          "reason": "表中“询价计划编制”包含“.2 工作说明”条目；部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "询价计划编制",
+          "reason": "表中“询价计划编制”包含“.3 其他计划编制的输出”条目；部分支持。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2417,
+      "completion_tokens": 584,
+      "total_tokens": 3001,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RhaM6C4fNYYN6PiNkrNUJWwc",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 22545,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4d4eafaaba3106e95dda5745158e2824c57187793c899fddce74d05d3ccc6fbc"
+  }
+}

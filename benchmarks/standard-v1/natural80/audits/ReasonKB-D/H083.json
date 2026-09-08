@@ -1,0 +1,65 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的finalAnswer为空，未回答问题，故不独立正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "<tr><th>18</th><td>小明</td><td></td><td>模块6</td><td>功能18</td><td>描述18</td><td></td><td></td><td></td><td>界面友好性</td><td></td><td></td><td></td><td></td><td>3</td><td>10</td><td></td><td>开发中</td><td></td><td></td><td></td><td></td><td></td></tr>",
+          "reason": "该行明确显示编号18对应的分类列为“界面友好性”，实体编号18和属性分类绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4229,
+      "completion_tokens": 213,
+      "total_tokens": 4442,
+      "prompt_tokens_details": {
+        "cached_tokens": 4096
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RZdnw21THfR1uor9sZ3LghC0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4537,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "54d2d68459444fd444c8d68c599282b0a091f464133f254d84140b94f0d4c572"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "<tr><th>18</th><td>小明</td><td></td><td>模块6</td><td>功能18</td><td>描述18</td><td></td><td></td><td></td><td>界面友好性</td><td></td><td></td><td></td><td></td><td>3</td><td>10</td><td></td><td>开发中</td><td></td><td></td><td></td><td></td><td></td></tr>",
+          "reason": "表格中编号为18的记录，其分类列（第10列）明确为“界面友好性”，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4229,
+      "completion_tokens": 196,
+      "total_tokens": 4425,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RokzoRDdchi5X49ptJ0dbbdl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10375,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "54d2d68459444fd444c8d68c599282b0a091f464133f254d84140b94f0d4c572"
+  }
+}

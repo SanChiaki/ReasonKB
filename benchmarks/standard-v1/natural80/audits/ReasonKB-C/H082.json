@@ -1,0 +1,119 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，故不正确。",
+      "elements": [
+        {
+          "id": "elem1",
+          "quote": "校园系统正式上线 9/16/2013",
+          "reason": "待测材料中‘校园系统正式上线’行的开始日期为9/16/2013，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "elem2",
+          "quote": "校园系统正式上线 9/16/2013",
+          "reason": "待测材料中‘校园系统正式上线’行的截止日期为9/16/2013，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "elem3",
+          "quote": "0 %",
+          "reason": "待测材料中‘校园系统正式上线’行的完成比例为0%，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "elem4",
+          "quote": "0",
+          "reason": "待测材料中‘校园系统正式上线’行的已完成数为0，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "elem5",
+          "quote": "1",
+          "reason": "待测材料中‘校园系统正式上线’行的剩余天数为1，支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9918,
+      "completion_tokens": 324,
+      "total_tokens": 10242,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RCkCom0GZenTfFQcqRQwwHRO",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6871,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:elem1",
+      "invalid_quote:elem2"
+    ],
+    "materialSha256": "ba5e9d7df007514be1350045bd53a3638c751ebd51ebcb7268d5caa0c8ce9004"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "elem1",
+          "quote": "校园系统正式上线",
+          "reason": "待测材料中确实存在任务明细“校园系统正式上线”，且其行中开始日期为“9/16/2013”，符合陈述。",
+          "support": "complete"
+        },
+        {
+          "id": "elem2",
+          "quote": "校园系统正式上线",
+          "reason": "待测材料中同一行的截止日期也为“9/16/2013”，符合陈述。",
+          "support": "complete"
+        },
+        {
+          "id": "elem3",
+          "quote": "0 %",
+          "reason": "待测材料中该行完成比例明确为“0 %”，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "elem4",
+          "quote": "0",
+          "reason": "待测材料中该行已完成数为“0”，支持陈述。",
+          "support": "complete"
+        },
+        {
+          "id": "elem5",
+          "quote": "1",
+          "reason": "待测材料中该行剩余天数为“1”，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9918,
+      "completion_tokens": 296,
+      "total_tokens": 10214,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rn7nSoY0RG0vC3OBTxVGCeBg",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 25863,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ba5e9d7df007514be1350045bd53a3638c751ebd51ebcb7268d5caa0c8ce9004"
+  }
+}

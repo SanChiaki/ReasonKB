@@ -1,0 +1,128 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "未提供最终回答，无法判断。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "缺陷名称",
+          "reason": "表格表头中包含“缺陷名称”。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "原因",
+          "reason": "表格表头中包含“原因”。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "修改人",
+          "reason": "表格表头中包含“修改人”。",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "修改时间",
+          "reason": "表格表头中包含“修改时间”。",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "是否进行了 回归测试",
+          "reason": "表格表头中包含“是否进行了 回归测试”。",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "如果采用了缺陷管理工具，能自动产生缺陷报表的话，则无需本表。",
+          "reason": "原文提示语句完整支持该条件。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2165,
+      "completion_tokens": 293,
+      "total_tokens": 2458,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RoLlW8rNBYdU2Cu6482qlx5p",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7790,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ac3b078e120a611f476e7900194febf883a81e3daff76cd459916cf770fd76e1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "缺陷名称",
+          "reason": "待测材料表格表头明确包含“缺陷名称”，支持E1。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "原因",
+          "reason": "待测材料表格表头明确包含“原因”，支持E2。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "修改人",
+          "reason": "待测材料表格表头明确包含“修改人”，支持E3。",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "修改时间",
+          "reason": "待测材料表格表头明确包含“修改时间”，支持E4。",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "是否进行了 回归测试",
+          "reason": "待测材料表格表头明确包含“是否进行了 回归测试”，支持E5。",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "如果采用了缺陷管理工具，能自动产生缺陷报表的话，则无 需本表。",
+          "reason": "待测材料提示部分明确说明在采用缺陷管理工具且能自动产生报表时无需本表，支持E6。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2165,
+      "completion_tokens": 363,
+      "total_tokens": 2528,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R534EXNtO7dJBTpnGPvW36bs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16714,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ac3b078e120a611f476e7900194febf883a81e3daff76cd459916cf770fd76e1"
+  }
+}

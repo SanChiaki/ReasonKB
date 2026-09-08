@@ -1,0 +1,164 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "H014-e1",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料明确指出无法从提供文档中判断牵头人，且未提及CCM负责牵头组织处理交付问题，与参考答案矛盾。"
+        },
+        {
+          "id": "H014-e2",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及CCM需要通知行销部，且明确指出无法回答。"
+        },
+        {
+          "id": "H014-e3",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及CCM需要组织RMT，且明确指出无法回答。"
+        },
+        {
+          "id": "H014-e4",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及CCM需要组织PDT，且明确指出无法回答。"
+        },
+        {
+          "id": "H014-e5",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及CCM需要组织行销产品经理，且明确指出无法回答。"
+        }
+      ],
+      "answerCorrect": false,
+      "answerReason": "待测最终回答声称无法回答该问题，但参考答案给出了明确答案（由CCM牵头，通知行销部，组织RMT、PDT、行销产品经理），因此回答不正确，未回答问题。"
+    },
+    "usage": {
+      "prompt_tokens": 2197,
+      "completion_tokens": 330,
+      "total_tokens": 2527,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-m0whcxhvhb",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3145,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a545ccf38750347dd0230bb12432606bdc4a959584de0928b1f37bd73f27b838"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "H014-e1",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及CCM（客户需求承诺经理）负责牵头组织处理交付问题，也未在任何文档中找到相关内容"
+        },
+        {
+          "id": "H014-e2",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及处理交付问题时CCM需要通知行销部"
+        },
+        {
+          "id": "H014-e3",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及处理交付问题时CCM需要组织RMT"
+        },
+        {
+          "id": "H014-e4",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及处理交付问题时CCM需要组织PDT"
+        },
+        {
+          "id": "H014-e5",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及处理交付问题时CCM需要组织行销产品经理"
+        }
+      ],
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答明确表示无法回答该问题，并指出所有文档均未提供关于交付问题牵头人和处理团队的直接描述。虽然待测材料指出了证据不足这一事实，但参考问题是可回答的且参考答案提供了明确答案，因此待测回答未正确回答问题，判定为不正确。"
+    },
+    "usage": {
+      "prompt_tokens": 11430,
+      "completion_tokens": 251,
+      "total_tokens": 11681,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-p4um7mvzyr",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3148,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "93dce925464d64329bd1b6fc6307223f07010036361a59af2b14dcdb89d2c3f8"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "H014-e1",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料中未提及CCM（客户需求承诺经理）负责牵头组织处理交付问题，也未出现CCM在交付问题处理中承担牵头角色的表述"
+        },
+        {
+          "id": "H014-e2",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料中未提及处理交付问题时需要通知行销部，未出现CCM通知行销部的相关内容"
+        },
+        {
+          "id": "H014-e3",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料中未提及处理交付问题时需要组织RMT团队，未出现CCM组织RMT的相关表述"
+        },
+        {
+          "id": "H014-e4",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料中未提及处理交付问题时需要组织PDT团队，未出现CCM组织PDT的相关表述"
+        },
+        {
+          "id": "H014-e5",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料中未提及处理交付问题时需要组织行销产品经理，未出现CCM组织行销产品经理的相关表述"
+        }
+      ],
+      "answerCorrect": false,
+      "answerReason": "待测最终回答明确表示证据不足，无法回答该问题，并逐一分析了各文档均未提供关于交付问题处理牵头人和所需团队的描述。该回答与参考答案中'由CCM牵头，需通知行销部，并组织RMT、PDT、行销产品经理'的核心内容完全不符，未给出正确回答，因此判定为不正确。"
+    },
+    "usage": {
+      "prompt_tokens": 11430,
+      "completion_tokens": 314,
+      "total_tokens": 11744,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-x2ya6e9kbb",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3630,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "93dce925464d64329bd1b6fc6307223f07010036361a59af2b14dcdb89d2c3f8"
+  }
+}

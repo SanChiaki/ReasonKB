@@ -1,0 +1,82 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，故不正确。",
+      "elements": [
+        {
+          "id": "H058-E1",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度。",
+          "reason": "待测材料中完全支持该要素，实体、属性、方法均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H058-E2",
+          "quote": "再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "待测材料完整支持该要素，条件（db_block和pctfree）和目的（判断是否可存储在一个数据块）均正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 864,
+      "completion_tokens": 203,
+      "total_tokens": 1067,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RvIe8X9vBz5xHVT7fBzgxBgW",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5466,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H058-E1"
+    ],
+    "materialSha256": "142aa5888bb389cfd6a6a689df42c76738ce5033cd5bbd9e472927da89260f38"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题。",
+      "elements": [
+        {
+          "id": "H058-E1",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度",
+          "reason": "待测材料原文完整支持该要素，实体、属性、功能一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H058-E2",
+          "quote": "再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "待测材料原文完整支持该要素，比较对象和目的明确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 864,
+      "completion_tokens": 180,
+      "total_tokens": 1044,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R4XkFrTEqNkT2QiPOaX1kNqj",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4470,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "142aa5888bb389cfd6a6a689df42c76738ce5033cd5bbd9e472927da89260f38"
+  }
+}

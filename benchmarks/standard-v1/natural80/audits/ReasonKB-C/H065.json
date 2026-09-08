@@ -1,0 +1,152 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "H065-e1",
+          "quote": "简要介绍测试中采用的方法(和工具)。",
+          "reason": "待测材料中模板规范明确提到“简要介绍测试中采用的方法(和工具)”，实体和方法、工具均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e2",
+          "quote": "功能测试基于黑盒测试的方法",
+          "reason": "联合验收模块测试报告中明确提及功能测试基于黑盒测试的方法，与“主要介绍黑盒测试”匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e3",
+          "quote": "功能测试主要从以下角度来进行考虑",
+          "reason": "材料中“功能测试主要从以下角度来进行考虑”后列举了测试的重点，实体和属性匹配，表示可写上测试的重点。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e4",
+          "quote": "和采用的测试模式",
+          "reason": "模板规范原文“和采用的测试模式”明确提到测试模式，实体匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e5",
+          "quote": "工具为可选项，当使用到测试工具和相关工具时，要说明。",
+          "reason": "模板规范原文逐字支持，完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e6",
+          "quote": "注意要注明是自产还是厂商",
+          "reason": "模板规范原文逐字支持，完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e7",
+          "quote": "版本号多少",
+          "reason": "模板规范原文提及“版本号多少”，实体匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4394,
+      "completion_tokens": 453,
+      "total_tokens": 4847,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R1y2TlAw6yPplsWRfgp94eIm",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9740,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H065-e1",
+      "invalid_quote:H065-e4",
+      "invalid_quote:H065-e5",
+      "invalid_quote:H065-e6",
+      "invalid_quote:H065-e7"
+    ],
+    "materialSha256": "f8653f682f26188c48f47b9d409ef00d73fcf54599ad2478b72b489256b8e2f9"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H065-e1",
+          "quote": "简述单元测试过程，测试采用的方法等。并填写下表",
+          "reason": "待测材料中的模板文档有多处类似'简述…测试采用的方法等'的表述，但未同时提及'工具'，且材料中另有单独的工具表格，该要素要求方法和工具在一节中简要介绍，材料未明确两者并列关系，故仅部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H065-e2",
+          "quote": "功能测试基于黑盒测试的方法",
+          "reason": "待测材料明确写出功能测试基于黑盒测试，支持'主要介绍黑盒测试'的含义。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e3",
+          "quote": "测试方法可以写上测试的重点",
+          "reason": "待测材料逐字包含此句，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e4",
+          "quote": "和采用的测试模式",
+          "reason": "待测材料中'测试方法可以写上测试的重点和采用的测试模式'完整表述，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e5",
+          "quote": "工具为可选项，当使用到测试工具和相关工具时，要说明。",
+          "reason": "待测材料逐字包含此句，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e6",
+          "quote": "注意要注明是自产还是厂商",
+          "reason": "待测材料逐字包含此句，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H065-e7",
+          "quote": "版本号多少",
+          "reason": "待测材料逐字包含'版本号多少'，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4394,
+      "completion_tokens": 476,
+      "total_tokens": 4870,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RSgz9xvv9civjx1EJUfFp3sV",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 20475,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H065-e3",
+      "invalid_quote:H065-e4",
+      "invalid_quote:H065-e5",
+      "invalid_quote:H065-e6",
+      "invalid_quote:H065-e7"
+    ],
+    "materialSha256": "f8653f682f26188c48f47b9d409ef00d73fcf54599ad2478b72b489256b8e2f9"
+  }
+}

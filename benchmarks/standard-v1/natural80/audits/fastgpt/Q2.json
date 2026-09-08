@@ -1,0 +1,173 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答虽无法完成佐证业绩维度，但客观基于证据来源提供了评估指标，并准确反映证据不足。回答结构完整、内容正确，未出现虚构或矛盾。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料专列指标“专业化能力”并给出其权重（10分）及得分规则，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料专列指标“行业解决方案能力”并给出权重（15分）及层级定义，要素完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料专列“服务能力”（权重20分）并包含项目交付能力、网络维护能力子项，要素完整。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "业绩结构",
+          "reason": "待测材料仅在“证据不足说明”中称“业绩结果”维度具体评估指标未列出；但“业绩结构”作为参考指标未出现，无法支持。",
+          "support": "missing"
+        },
+        {
+          "id": "5",
+          "quote": "业绩增长",
+          "reason": "待测材料未提及“业绩增长”指标，且明确业绩维度指标缺失，因此无支持。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "业绩规模",
+          "reason": "待测材料未提及“业绩规模”指标，且明确业绩维度指标缺失，因此无支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2586,
+      "completion_tokens": 419,
+      "total_tokens": 3005
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "48fdca2763ce416ea1f6b7d1e812df5b",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8012,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4079f8a6c8bf317e56d9756b985a08c29a858ce15fda65f6a73af337784c90a2"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答中虽然列出了专业化能力、行业解决方案能力、服务能力，但明确承认未列出业绩结构、业绩增长、业绩规模，且称证据不足，未能完整体现参考答案中的全部六个指标，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料中在评估指标列明确列出“专业化能力”，且评估对象为金牌、银牌经销商，实体绑定正确，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料中明确列出“行业解决方案能力”且评估对象为金牌、银牌经销商，实体绑定正确，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料中明确列出“服务能力”且评估对象为金牌、银牌经销商，实体绑定正确，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩结构”或类似对业绩结构的明确引用，因此不支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "5",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩增长”或类似对业绩增长的明确引用，因此不支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩规模”或类似对业绩规模的明确引用，因此不支持该要素。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10321,
+      "completion_tokens": 413,
+      "total_tokens": 10734
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "5b680a7879a545a1a96dd38e861b24aa",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2671,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "37497282791ebab8baf133049eb966ccb3b8c42cf313ec8086a884514e80cb5b"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer虽然列出了专业化能力、行业解决方案能力、服务能力，但未列出业绩结构、业绩增长、业绩规模，且指出证据不足，未完整回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料中的表格明确列出评估指标包括“专业化能力”，实体和属性正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料中的表格明确列出评估指标包括“行业解决方案能力”，实体和属性正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料中的表格明确列出评估指标包括“服务能力”，实体和属性正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "",
+          "reason": "待测材料中未提及“业绩结构”或任何业绩结果相关指标，属于缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "5",
+          "quote": "",
+          "reason": "待测材料中未提及“业绩增长”或任何业绩结果相关指标，属于缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "待测材料中未提及“业绩规模”或任何业绩结果相关指标，属于缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10321,
+      "completion_tokens": 366,
+      "total_tokens": 10687
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "1323d175c70044afab45d4dce785e6d3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11789,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "37497282791ebab8baf133049eb966ccb3b8c42cf313ec8086a884514e80cb5b"
+  }
+}

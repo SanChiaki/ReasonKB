@@ -1,0 +1,229 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了问题，包含所有五类参与人和模型不能直接做决定、仅支持高层级诊断、最终决策应由相关方做出并获支持，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对于大型项目，问卷小组应包含以下五类代表：发起人小组",
+          "reason": "待测材料明确列出发起人小组，实体绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "项目执行团队",
+          "reason": "待测材料明确列出项目执行团队，实体绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "受影响的业务组",
+          "reason": "待测材料明确列出受影响的业务组，实体绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "项目治理组",
+          "reason": "待测材料明确列出项目治理组，实体绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "客户社区的代表",
+          "reason": "待测材料明确列出客户社区的代表，实体绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "该模型不能直接替团队做决定",
+          "reason": "待测材料明确表述模型不能直接替团队（相关方）做决定，与参考要素一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "该工具仅支持高层级诊断",
+          "reason": "待测材料逐字引用“该工具仅支持高层级诊断”，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "最终决策应取决于相关方并应得到其支持",
+          "reason": "待测材料逐字引用“最终决策应取决于相关方并应得到其支持”，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2013,
+      "completion_tokens": 509,
+      "total_tokens": 2522,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rza4PNLcSk9EpIW7sga0ZvxA",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7715,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1"
+    ],
+    "materialSha256": "4dbfbe5f230dd143b68b1357f1a05b817ff68d19d522bfa14abdadb97c0e645f"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，准确引用了文档证据，且不包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "材料明确列出发起人小组作为大型项目问卷小组成员",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "材料明确列出项目执行团队作为成员",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "材料明确列出受影响的业务组作为成员",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "材料明确列出项目治理组作为成员",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "材料明确列出客户社区的代表作为成员",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持",
+          "reason": "材料明确表明工具不能直接替相关方做决定",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "该工具仅支持高层级诊断",
+          "reason": "材料原文直接支持该陈述",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "最终决策应取决于相关方并应得到其支持",
+          "reason": "材料原文直接支持该陈述",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 16172,
+      "completion_tokens": 517,
+      "total_tokens": 16689,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RfdLkCGHG9KVq2WOIafKaER8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10527,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "0639372449cdda7a6be4183723213b74f7a2ae14f835ad076cd5a46bd7577e23"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整覆盖了参考答案的全部要点，准确列出了问卷小组的五类人员，并明确回答模型不能直接替相关方做决定，同时补充了支持的引文和文档位置，无重大错误或遗漏，正确回答了用户问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出发起人小组作为问卷小组的成员，实体属性和条件完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出项目执行团队作为问卷小组成员，实体完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出受影响的业务组作为问卷小组成员，实体完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出项目治理组作为问卷小组成员，实体完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出客户社区的代表作为问卷小组成员，实体完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料明确说明工具不能直接替相关方做决定，最终决策由相关方决定并需获得支持，语义完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "该工具仅支持高层级诊断",
+          "reason": "待测材料直接引述该工具仅支持高层级诊断，语义完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料直接引述最终决策应取决于相关方并应得到其支持，语义完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 16172,
+      "completion_tokens": 652,
+      "total_tokens": 16824,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RcpkM1PMQSFfxCBERKFVe3l1",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11773,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "0639372449cdda7a6be4183723213b74f7a2ae14f835ad076cd5a46bd7577e23"
+  }
+}

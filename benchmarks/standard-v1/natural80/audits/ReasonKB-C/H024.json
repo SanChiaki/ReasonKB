@@ -1,0 +1,164 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，无法判断最终回答是否回答提问或包含重大错误，因此视为不正确。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "",
+          "reason": "待测材料无任何内容，无法支持引用。",
+          "support": "missing"
+        },
+        {
+          "id": "e2",
+          "quote": "",
+          "reason": "待测材料为空，无法验证权限判断。",
+          "support": "missing"
+        },
+        {
+          "id": "e3",
+          "quote": "",
+          "reason": "待测材料为空，无法验证查询删除账户。",
+          "support": "missing"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "待测材料为空，无法支持输入账户名。",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "待测材料为空，无法验证用户名存在校验。",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "待测材料为空，无法支持字符合法性校验。",
+          "support": "missing"
+        },
+        {
+          "id": "e7",
+          "quote": "",
+          "reason": "待测材料为空，无法支持长度合法性校验。",
+          "support": "missing"
+        },
+        {
+          "id": "e8",
+          "quote": "",
+          "reason": "待测材料为空，无法支持删除操作执行。",
+          "support": "missing"
+        },
+        {
+          "id": "e9",
+          "quote": "",
+          "reason": "待测材料为空，无法支持继续删除确认。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 976,
+      "completion_tokens": 337,
+      "total_tokens": 1313,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R3jxwXfbViotx30YJgQGnPwu",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12204,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空且最终回答为空，未能回答任何问题，也未包含参考答案中的任何要素。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e2",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e3",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e7",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e8",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "e9",
+          "quote": "",
+          "reason": "没有材料内容，无法支持任何陈述。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 976,
+      "completion_tokens": 321,
+      "total_tokens": 1297,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RHrIH9d2rR85THHsjpos5Ixa",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8266,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

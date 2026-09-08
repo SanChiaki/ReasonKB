@@ -1,0 +1,92 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "添加要监控的文件路径（如D:\\WinWebMail\\ADMINMSG）",
+          "reason": "待测材料中明确提到路径D:\\WinWebMail\\ADMINMSG，且该步骤属于用例1664，实体和数量正确。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "在监控文件类型中选择：所有文件",
+          "reason": "待测材料中该步骤明确指定“所有文件”，属于用例1664步骤1，实体和属性正确。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "在禁止操作类型中选择：禁止新建",
+          "reason": "待测材料中该步骤明确指定“禁止新建”，属于用例1664步骤1，实体和条件正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1783,
+      "completion_tokens": 240,
+      "total_tokens": 2023,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtEN91yIhuvczJSNZjQFWVw5",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14250,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c719baf3a1e28a9cbb3e5080b10627f933fae64bb4d7c6220f448854132a7b9a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，无法回答用户问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "添加要监控的文件路径（如D:\\WinWebMail\\ADMINMSG）",
+          "reason": "待测材料明确列出监控路径示例，且文档中测试用例1664的上下文为该路径，实体和数量绑定正确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "在监控文件类型中选择：所有文件",
+          "reason": "待测材料步骤1中明确选择“所有文件”，且属于用例1664的执行内容，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "在禁止操作类型中选择：禁止新建",
+          "reason": "待测材料步骤1中明确选择“禁止新建”，且属于用例1664的执行内容，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1783,
+      "completion_tokens": 237,
+      "total_tokens": 2020,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R3rPcljHzPDby2bw8THTcQIS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7095,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c719baf3a1e28a9cbb3e5080b10627f933fae64bb4d7c6220f448854132a7b9a"
+  }
+}

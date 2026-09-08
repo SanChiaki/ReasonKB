@@ -1,0 +1,104 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "H050-elem-1",
+          "quote": "外墙外保温点粘粘接面积国标要求不少于40%及设计要求。",
+          "reason": "材料中未提及点粘或40%，国标和设计要求均缺失",
+          "support": "missing"
+        },
+        {
+          "id": "H050-elem-2",
+          "quote": "外墙外保温点粘粘接面积国标要求不少于40%及设计要求。",
+          "reason": "材料中未提及点粘或设计要求",
+          "support": "missing"
+        },
+        {
+          "id": "H050-elem-3",
+          "quote": "结构偏差与设计结构不符责任划分：质检员 80%；工 长20%。",
+          "reason": "责任划分与参考答案一致，完全支持",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-4",
+          "quote": "结构偏差与设计结构不符责任划分：质检员 80%；工 长20%。",
+          "reason": "明确工长责任为20%，完全支持",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1055,
+      "completion_tokens": 284,
+      "total_tokens": 1339,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-ROg7erBmzBKJi2B6Zvko43vD",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5958,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "28ae1659566dc7ecf03d3484b40d40fa0e22ec70dc00f434a9a832829673f058"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，不能视为正确。",
+      "elements": [
+        {
+          "id": "H050-elem-1",
+          "quote": "外墙外保温点粘粘接面积国标要求不少于40%及设计要求。",
+          "reason": "待测材料未提及外墙外保温点粘粘接面积国标要求，只包含材料进场验收和结构偏差责任划分，缺少相关内容和属性，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H050-elem-2",
+          "quote": "外墙外保温点粘粘接面积国标要求不少于40%及设计要求。",
+          "reason": "待测材料未提及外墙外保温点粘粘接面积及设计要求，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H050-elem-3",
+          "quote": "结构偏差与设计结构不符责任划分：质检员 80%；工 长20%。",
+          "reason": "待测材料在'三、责任划分'第1条明确给出质检员80%，实体、属性、责任比例正确，故为complete。",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-4",
+          "quote": "结构偏差与设计结构不符责任划分：质检员 80%；工 长20%。",
+          "reason": "待测材料在'三、责任划分'第1条明确给出工长20%，实体、属性、责任比例正确，故为complete。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1055,
+      "completion_tokens": 370,
+      "total_tokens": 1425,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RHBF0mHdfLGeygGQsax4QMXf",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7137,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "28ae1659566dc7ecf03d3484b40d40fa0e22ec70dc00f434a9a832829673f058"
+  }
+}

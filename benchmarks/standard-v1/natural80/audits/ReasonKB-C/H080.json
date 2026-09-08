@@ -1,0 +1,104 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题内容，且不包含对问题要点的解答，因此判定为不正确。",
+      "elements": [
+        {
+          "id": "H080-1",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "待测材料中逐字包含该要素的完整句子，实体（开发进度、路标、功能、配置、市场定位）、条件（从开发阶段开始）、目的（TR5之后启动ESS计划控制和预测制定）均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-2",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "引文中明确包含“客户迁移计划”，且与“从开发阶段开始”和“TR5之后启动ESS”绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-3",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "引文中明确包含“技术竞争相关信息”，且与“从开发阶段开始”和“TR5之后启动ESS”绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-4",
+          "quote": "提供版本切换信息转给计委的同时 ，需要知会预测人员 ，提前期至少 3个月。",
+          "reason": "该句说明版本切换需知会预测人员，且提前期至少3个月，与要素的实体、数量和条件完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2119,
+      "completion_tokens": 484,
+      "total_tokens": 2603,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RXEZ7Si7tNO8pehGbo7qQHw1",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13151,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "927d2e4a44daa06fcf25a1517d0d119b3eda921575e856511a291b654c8147e0"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测材料的最终回答完整且准确地回答了问题，包含了参考答案中的全部要点，即从开发阶段开始需要提供的信息类型和版本切换提前通知的时间，无重大错误。",
+      "elements": [
+        {
+          "id": "H080-1",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "待测材料原文逐字包含该要素的所有关键信息，实体（新产品/部件）、属性（开发进度、路标、功能、配置、市场定位、客户迁移计划、技术竞争相关信息）、条件（从开发阶段开始，TR5之后）均正确绑定，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-2",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "待测材料明确包含客户迁移计划，作为提供的信息之一，实体和条件正确，无遗漏或矛盾，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-3",
+          "quote": "从开发阶段开始 ，提供新产品 /部件的开发进度 、路标、功能、配置、市场定位等信息 ，客户迁移计划 ，技术竞争相关信息 ，以便为在 TR5 之后启动ESS 计划控制和预测制定做准备 。",
+          "reason": "待测材料明确包含技术竞争相关信息，实体、条件（从开发阶段开始，TR5之后）正确绑定，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H080-4",
+          "quote": "提供版本切换信息转给计委的同时 ，需要知会预测人员 ，提前期至少 3个月。",
+          "reason": "待测材料明确提到版本切换信息需知会预测人员，并指定提前期至少3个月，数量和时间条件（至少3个月）正确绑定，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2119,
+      "completion_tokens": 512,
+      "total_tokens": 2631,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RkKKwQv6v5V9zj1opX1PsapI",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 19471,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "927d2e4a44daa06fcf25a1517d0d119b3eda921575e856511a291b654c8147e0"
+  }
+}

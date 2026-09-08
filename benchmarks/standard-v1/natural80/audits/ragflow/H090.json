@@ -1,0 +1,103 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答声称无法确定计算机应用知识在整体KPI中的权重，而参考答案明确给出其权重为20%（在专业知识类目下），且问题询问的是该知识项占多大权重，参考答案直接回答为20%。待测回答未给出明确数值，并引入不确定性，同时隐含矛盾（承认20%但认为不是最终权重），因此包含重大错误且未正确回答问题。",
+      "elements": [
+        {
+          "id": "H090-e1",
+          "quote": "在《员工绩效考核表（KPI考核用）》（doc_10aae8b6-a9c6-423b-b036-83fe575010f0）的“专业知识”考核项目中，确实列出了“4、计算机应用知识”这一项，并且其单项权重为 20%。",
+          "reason": "待测材料中明确说明“计算机应用知识”在“专业知识”类目下的单项权重为20%，实体（计算机应用知识）、属性（权重）、数值（20%）均正确绑定，且未附加条件或否定，因此完整支持参考答案的要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1179,
+      "completion_tokens": 263,
+      "total_tokens": 1442,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtVisjSDh8gwbUqtcrRNWq15",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11493,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H090-e1"
+    ],
+    "materialSha256": "ec28061276a0fe9196fedb39d3642894b3576a949023d2c415f04bc7eec14df3"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer没有直接回答权重是多少，而是试图说明无法确定整体权重，并引入了专业知识类别权重未明确说明的推论，这与参考回答相悖，且回答中存在推测性表述，因此不正确。",
+      "elements": [
+        {
+          "id": "H090-e1",
+          "quote": "4、计算机应用知识",
+          "reason": "待测材料页面1的表格中明确列出‘4、计算机应用知识’及其权重‘20%’，支持了在‘专业知识’类目中‘计算机应用知识’权重为20%的陈述。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 28946,
+      "completion_tokens": 150,
+      "total_tokens": 29096,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rl9iwiTvCoAZv7PR9l4QI3u6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14461,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "b63ddc0897164b21b28488402463f5eb9013f2d187c69a8bb0e8b99a3f90825e"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未能给出确定答案，而参考答案明确给出权重为20%，且材料中已明确列出该权重，故最终回答不完整且未正确回答问题。",
+      "elements": [
+        {
+          "id": "H090-e1",
+          "quote": "4、计算机应用知识",
+          "reason": "待测材料页面1中的‘专业知识’部分明确列出‘计算机应用知识’及其权重20%，支持参考答案中关于‘专业知识’类目下‘计算机应用知识’权重为20%的陈述。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 43568,
+      "completion_tokens": 139,
+      "total_tokens": 43707,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RLSxyL6wffsArecKtUeD0NEc",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7147,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "be1da91b9478a2f954da5b6ec64d513996a2a35ab673ed83326c5cb6e085a68a"
+  }
+}

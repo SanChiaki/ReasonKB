@@ -1,0 +1,218 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中的第35页总结包含了参考答案中的所有关键做法，且没有缺失或矛盾，因此完整支持参考答案。但待测材料的finalAnswer为空，未回答问题，故answerCorrect为false。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "逐字匹配，实体和条件完全正确。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "逐字匹配，否定条件正确。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "逐字匹配，实体和状态正确。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "逐字匹配，关系正确。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "逐字匹配，关系正确。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "逐字匹配，列举项完整。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "逐字匹配，条件正确。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "逐字匹配，否定和条件正确。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "待测材料中表述包含'管理者与被管理者的相互提升'，虽与参考略有不同，但语义一致，不矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "逐字匹配，所有结果项正确。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "逐字匹配，关系和过程完整。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "逐字匹配，要求正确。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "逐字匹配，条件正确。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "逐字匹配，过程和内容完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7758,
+      "completion_tokens": 846,
+      "total_tokens": 8604,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RXVdUhSDErchPc6Q0D3eNdyu",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16210,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "aca05351db42cfaacaacf3d09456af1f1368b6a90776c41f35371141c08bedb8"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "待测材料第35页总结部分有完全相同的句子，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "待测材料第35页总结部分有完全相同的句子。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7758,
+      "completion_tokens": 771,
+      "total_tokens": 8529,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R6OsvNa1sR6SfWxy7FCfIUTx",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15845,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "aca05351db42cfaacaacf3d09456af1f1368b6a90776c41f35371141c08bedb8"
+  }
+}

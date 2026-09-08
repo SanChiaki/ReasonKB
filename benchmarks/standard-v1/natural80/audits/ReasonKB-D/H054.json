@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，无法判断正确性。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "待测材料为空，无法支持任何内容。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料为空，无法支持任何内容。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 386,
+      "completion_tokens": 96,
+      "total_tokens": 482,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RckTinFUk9ilHpErTYgzegXI",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2951,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "material为空，无法获得任何证据支持",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "material为空，无法获得任何证据支持",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 386,
+      "completion_tokens": 110,
+      "total_tokens": 496,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RKoSALEoamAJv2YpJ80uLmJf",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3748,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中的最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对每一个性能应包含两个方面的内容 a.在最坏情况的执行结果",
+          "reason": "待测材料中明确写出该要素，与参考要素表述一致，且无矛盾或条件偏差，故完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b.本性能失效后，对系统产生的影响",
+          "reason": "待测材料中明确写出该要素，与参考要素完全一致，故完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1940,
+      "completion_tokens": 172,
+      "total_tokens": 2112,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rjkpuc8otIemy3IPqrjS6GRN",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6479,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d57f36a3e8565e2b44e13bf4ced959444f8658d2952744d902f7f2142869a2c7"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对每一个性能应包含两个方面的内容 a.在最坏情况的执行结果",
+          "reason": "待测材料在“性能”检查项中完整包含了该要素，且实体（性能指标）和属性（最坏情况执行结果）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b.本性能失效后，对系统产生的影响",
+          "reason": "待测材料完整包含了该要素，且实体和属性正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1940,
+      "completion_tokens": 169,
+      "total_tokens": 2109,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-REXtuP3om8wtPO9whghyg6ko",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5524,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d57f36a3e8565e2b44e13bf4ced959444f8658d2952744d902f7f2142869a2c7"
+  }
+}

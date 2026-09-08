@@ -1,0 +1,104 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户问题，且不含参考结论。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "\"售前交接单\"",
+          "reason": "材料仅出现单据名称和表格，未显示交付标准C或提及招投标方案、建设方案、合同电子版交接。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "材料中无项目经理任售前或先行实施项目的例外说明。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "材料未提及售前售后交接在过程裁剪表中为不可裁剪活动。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "材料未提及过程裁剪中的例外情况。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3305,
+      "completion_tokens": 232,
+      "total_tokens": 3537,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RopYlxRUnTQEjROZ7tL4nVDL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5752,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3aba3dda3dc4472c7454ae29270346ee1b003201328da5d5377b7bd48fef683a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "售前交接单",
+          "reason": "待测材料仅给出售前交接单模板，未提及C级标准或招投标方案、建设方案、合同电子版交接的具体要求，与参考要素E1无直接对应。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "是否属于维护工作",
+          "reason": "待测材料中未见项目经理任售前或先行实施项目等内容，与E2无对应。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料未提及过程裁剪表或不可裁剪活动，与E3无对应。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料中未涉及过程裁剪例外情况，与E4无对应。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3305,
+      "completion_tokens": 257,
+      "total_tokens": 3562,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RKuDxHJ4wPFlmyVK2LKS5IV4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 19271,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3aba3dda3dc4472c7454ae29270346ee1b003201328da5d5377b7bd48fef683a"
+  }
+}

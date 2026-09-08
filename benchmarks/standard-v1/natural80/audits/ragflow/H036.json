@@ -1,0 +1,328 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整准确地概括了参考答案中的关键做法，未引入错误信息，并注明了证据来源。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "待测材料第1句为'绩效考核要有预定的目标'，且后文'目标是考核的前提'部分支持预定性，但未完整复述'考核还没有开始，事先就制定好的目标'这一具体定义。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，考核就变成主观臆测。",
+          "reason": "待测材料直接表述'如果没有制定好的目标，考核就变成主观臆测'，与参考要点完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一",
+          "reason": "待测材料完整表述'目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一'。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "待测材料完整包含该句。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "待测材料仅提及个人目标服从，未提及部门和企业目标对个人目标的指导作用，故不完整。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "待测材料完全没有提及制定目标时需要考虑员工个人价值、部门效益和其他影响。",
+          "support": "missing"
+        },
+        {
+          "id": "7",
+          "quote": "目标是考核的前提",
+          "reason": "待测材料表述'目标是考核的前提'，未提及'制定可达到的目标'，故只支持部分。",
+          "support": "partial"
+        },
+        {
+          "id": "8",
+          "quote": "",
+          "reason": "待测材料未提及目标不可能实现或过低不利于考核。",
+          "support": "missing"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "待测材料完整包含该表达，与参考要点一致。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "",
+          "reason": "待测材料未提及管理者方法得当后员工获得的职位提升、薪酬增加、成就感及归属感等具体收益。",
+          "support": "missing"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，分析目标的达成程度，找出不一致的地方。",
+          "reason": "待测材料完整包含该句。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通",
+          "reason": "待测材料完整包含该句。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "要与员工反馈考核的情况，与员工沟通",
+          "reason": "待测材料未明确表述'员工应该知道考核的情况'，只是说沟通和反馈，故缺少该独立要点。",
+          "support": "missing"
+        },
+        {
+          "id": "14",
+          "quote": "让员工知道做得好的地方和做得不足的地方，并向员工提出改进意见。",
+          "reason": "待测材料完整包含该句。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2151,
+      "completion_tokens": 879,
+      "total_tokens": 3030,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RW5Q5iUhuecNgi2YZSLKRujM",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12722,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1"
+    ],
+    "materialSha256": "8ad5e6f941200403e53e2b880e406dbae114e4eed575523c1942ae2dd6655f34"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整准确地回答了问题，涵盖了参考答案中的核心关键做法，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "材料中页面35有完全一致的表述，实体和数量均匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "页面35直接包含此句，否定条件一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "页面35原文完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "页面35原文包含此句。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "页面35原文包含此句。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "页面35原文完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "页面35原文包含此句。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "页面35原文包含此句，条件完整。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "页面35中虽表述为'绩效管理看似由上往下推行的一种方式方法，其实真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。'，包含完整含义，引用核心句。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "页面35原文完全一致，实体和条件绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "页面35原文完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "页面35原文包含此句。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "页面35原文包含此句。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "页面35原文完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 21516,
+      "completion_tokens": 844,
+      "total_tokens": 22360,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RvqpaASfdYxNoyw4MTGQkwLd",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10321,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1b29265e3062af42654bf71e0f0f43b6e098cf2c6b6559310977a87036135251"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer正确回答了问题，总结了华为研发绩效考核方案的关键做法，内容与参考要素基本一致，未包含重大错误。尽管未列出全部14个要素，但已涵盖核心要点，且没有错误信息。根据评估标准，只要回答正确且无重大错误即可判定为独立正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "材料页面35中直接包含该语句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "材料页面35完整包含该句子，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "材料页面35原文包含此句，支持要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 21516,
+      "completion_tokens": 887,
+      "total_tokens": 22403,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R110xCOyxb5yd4ZmsCly8Unw",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14501,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1b29265e3062af42654bf71e0f0f43b6e098cf2c6b6559310977a87036135251"
+  }
+}

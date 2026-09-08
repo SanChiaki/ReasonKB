@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer直接引用了原文关于定时发送流程的描述，准确回答了查询条件（用户选择表及过滤条件）和生成文件格式（XML），没有重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "再根据过滤条件，查询出所有的数据",
+          "reason": "完整支持。待测材料引用了原文的同一句话，明确说明定时发送时根据过滤条件查询数据，且条件、动作均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "生成xml文件",
+          "reason": "完整支持。待测材料引用了原文的同一句话，明确说明定时发送时生成xml文件，且格式及场景对应正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1116,
+      "completion_tokens": 200,
+      "total_tokens": 1316,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R89WYvSAvW1ZeOWnyYJS2gNy",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5493,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a82f622e32bff170a2bf9989fa1a74779d0c0bb59f0cf4327864a80d61a99c4e"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，包含了按过滤条件查询数据和生成xml文件两个要点，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "再根据过滤条件， 查询出所有的数据",
+          "reason": "待测材料中的定时发送部分完整包含该描述，且entity（过滤条件）、action（查询数据）正确绑定",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "生成 xml文件",
+          "reason": "待测材料中定时发送部分完整包含该描述，且entity（xml文件）正确绑定",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 15181,
+      "completion_tokens": 175,
+      "total_tokens": 15356,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RNL9yel9WiJHb5G4m9izmG7d",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5259,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "35c273dfa81f2f3259f2803224f968d0dd2f53f0ce0e24c12820844a2846f7ee"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题：定时发送时根据过滤条件查询数据，最终生成xml文件；引用了文档证据，无重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "再根据过滤条件， 查询出所有的数据",
+          "reason": "待测材料3.2.2定时发送段落包含该引用，实体和数量匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "生成 xml文件",
+          "reason": "待测材料3.2.2定时发送段落包含该引用，实体和属性匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 15181,
+      "completion_tokens": 175,
+      "total_tokens": 15356,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RobG9yjVNl4yq1QwIxofaQDb",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5043,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "35c273dfa81f2f3259f2803224f968d0dd2f53f0ce0e24c12820844a2846f7ee"
+  }
+}

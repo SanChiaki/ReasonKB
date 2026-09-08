@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer 完整回答了问题，准确给出了每页字数200字以内、讲述时间5分钟以内的建议，并提供了文档来源信息，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "建议将每页幻灯片的字数控制在**200字以内**",
+          "reason": "待测材料明确引用了文档原文并给出具体数值，完全支持该要素",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "每页幻灯片的最好讲解时间控制在**5分钟之内**",
+          "reason": "待测材料明确引用了文档原文并给出具体数值，完全支持该要素",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1585,
+      "completion_tokens": 181,
+      "total_tokens": 1766,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RayF8ZgOzRepDJjxSHWC8Ksp",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5792,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "8e738b0e2a690b32e6ee2abd9ff7bb170351e30ed370b03288d59766c12b2102"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题，完整给出了字数上限200字和时长上限5分钟的建议，并额外说明了语言风格要求和证据限制，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "尽量将每页幻灯片的字数控制在200字以内",
+          "reason": "待测材料中多个文档第21页/第20页出现该表述，与参考答案要素1完全一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "据统计每页幻灯\n片的最好 控制在5分钟之内",
+          "reason": "待测材料中多个文档第21页/第20页出现该表述，与参考答案要素2完全一致，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9552,
+      "completion_tokens": 199,
+      "total_tokens": 9751,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RxJGNWTZpqzMGWXjrmJBOa25",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6248,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7bdbb25035af89c0fdadb5ea0374e29438184f407daecd9c23b14495927ca37c"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确直接回答了问题，给出了每页200字以内和5分钟以内的建议，并补充说明了来源和未提及的例外情况，没有重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "尽量将每页幻灯片的字数控制在200字以内",
+          "reason": "材料中多个文档（doc_5146a1fa...第21页、doc_d91c6706...第21页、doc_977714c0...第20页、doc_acb56cf0...第20页）出现完全相同的表述，与要素1一致，且实体、数量、条件均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "据统计每页幻灯片的最好控制在5分钟之内",
+          "reason": "材料中多个文档（doc_5146a1fa...第21页、doc_d91c6706...第21页、doc_977714c0...第20页、doc_acb56cf0...第20页）均有相同表述，支持“每页幻灯片最好控制在5分钟之内”，尽管原文语句略有省略，但上下文完整可理解，时间数量5分钟绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9552,
+      "completion_tokens": 292,
+      "total_tokens": 9844,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RJAlcrYg474THNIq6lTkvsYz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10081,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7bdbb25035af89c0fdadb5ea0374e29438184f407daecd9c23b14495927ca37c"
+  }
+}

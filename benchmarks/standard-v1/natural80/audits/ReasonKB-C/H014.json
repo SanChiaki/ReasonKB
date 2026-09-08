@@ -1,0 +1,116 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，不符合要求。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "材料为项目交付流程管理办法文档，内容关于技术支持部经理、项目交付负责人等，未提及CCM、RMT、PDT、行销部等关键词，也未涉及交付问题处理，矛盾或缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "材料中无行销部相关信息，亦无交付问题处理内容，缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "材料未提及RMT或类似团队，缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "材料未提及PDT，缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "材料未提及行销产品经理，缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1571,
+      "completion_tokens": 424,
+      "total_tokens": 1995,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rh5CC4ObaIipyDL4jNECuUlA",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12419,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "10e92e3929cdb2e35837ba821fa4e4c1f133ec1b09648a01ebfbb69e8ab0a696"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，且无实质内容",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "",
+          "reason": "待测材料描述的是正常项目交付流程，未提及交付问题处理，也无CCM、RMT、PDT、行销部的任何信息，完全缺失或矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "",
+          "reason": "材料中无CCM、行销部相关内容，未支持通知行销部",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "",
+          "reason": "材料中未出现RMT，无相关组织信息",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "",
+          "reason": "材料中未出现PDT，无相关组织信息",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "",
+          "reason": "材料中未出现行销产品经理，无相关组织信息",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1571,
+      "completion_tokens": 286,
+      "total_tokens": 1857,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RUJ92xW1BOSiif6lyNEEM5PJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9447,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "10e92e3929cdb2e35837ba821fa4e4c1f133ec1b09648a01ebfbb69e8ab0a696"
+  }
+}

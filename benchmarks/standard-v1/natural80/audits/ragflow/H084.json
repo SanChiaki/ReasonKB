@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer直接回答了问题，明确给出了两方面内容，与参考答案一致，且不包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "在最坏情况的执行结果",
+          "reason": "待测材料完整支持该要素：明确定义为第一方面，且引用了原文。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "本性能失效后，对系统产生的影响",
+          "reason": "待测材料完整支持该要素：明确定义为第二方面，且引用了原文。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 967,
+      "completion_tokens": 162,
+      "total_tokens": 1129,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RDnjOnHM49zHpsdRL2xFPFDK",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4171,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5300b2130063f0c5a7b650a56fd9f5174436f285950f246d40f52453204978bf"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确给出了两项性能指标的必要方面，并正确引用原文，未发现重大错误，且完整回答了问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "在最坏情况的执行结果",
+          "reason": "待测材料的页面1中明确写出'在最坏情况的执行结果'，与参考要素一一对应，实体和条件完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "本性能失效后，对系统产生的影响",
+          "reason": "待测材料中直接出现'本性能失效后，对系统产生的影响'，完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 20374,
+      "completion_tokens": 180,
+      "total_tokens": 20554,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RuCXGfcXioNCfxMK35vmqn5A",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5832,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "eed12b9f45d922509bc90c67323c87d76e25092f9116b446002c172cc57d83aa"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整准确地给出了两方面内容，并引用了正确文档和页码，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对每一个性能应包含两个方面的内容 a.在最坏情况的执行结果",
+          "reason": "待测材料中直接包含该语句，明确说明需描述最坏情况的执行结果，与参考要素完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b.本性能失效后，对系统产生的影响",
+          "reason": "待测材料中紧跟上一句，明确列出该要素，与参考要素完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 28573,
+      "completion_tokens": 175,
+      "total_tokens": 28748,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RlhZXkhf15OAQ0wsLVV1DiWJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5077,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "43d7292551f50ba36bf15099fc0ce445ac7e0e4734c1001125954ab0f614a159"
+  }
+}

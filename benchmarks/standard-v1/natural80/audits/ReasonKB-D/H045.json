@@ -1,0 +1,146 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，且不包含参考答案中的任何要素。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反政治纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反组织纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反廉洁纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反群众纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反工作纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反生活纪律绑定",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反中央八项规定绑定",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "待测材料完整列出该类型，且与违反其他法律法规绑定",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1408,
+      "completion_tokens": 691,
+      "total_tokens": 2099,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-REgB60pFwYCTJDowVNF9Uw4g",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10993,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9a095a88d67c675ff75a58692f0539c77f02d6e156de59a56f0c670ce10022b1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，没有回答用户的问题，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反政治纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反组织纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反廉洁纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反群众纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反工作纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反生活纪律，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反中央八项规定，实体和属性匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "涉嫌违纪类型：违反政治纪律，违反组织纪律，违反廉洁纪律，违反群众纪律，违反工作纪律，违反生活纪律，违反中央八项规定，违反其他法律法规；",
+          "reason": "引用中明确列出违反其他法律法规，实体和属性匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1408,
+      "completion_tokens": 682,
+      "total_tokens": 2090,
+      "prompt_tokens_details": {
+        "cached_tokens": 1280
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RYOUQ1UaoxKscF53t7LoMjiK",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14758,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9a095a88d67c675ff75a58692f0539c77f02d6e156de59a56f0c670ce10022b1"
+  }
+}

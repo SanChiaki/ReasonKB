@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未直接回答问题，且未包含任何分析，故不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料中明确包含此表述，且与KPI'公司文件、资料档案管理的及时性、稳妥性'对应，符合参考要素1的全部内容。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料中明确包含此表述，且与同一KPI对应，符合参考要素2的全部内容。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2554,
+      "completion_tokens": 183,
+      "total_tokens": 2737,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RL0fgkPQ0iiwWy7vvwl5U9EU",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5181,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "cb346fc15202760bcc30143f04f2af7da922e71f7a02efa4ad57b9b802d33660"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "未提供最终回答，无法判断是否回答问题；且待测材料中所有数值均为占位符[ ]，无法确定具体允许次数，若按此回答则不完整。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "quote与参考要素完全一致，且明确绑定在公司文件、资料档案管理的及时性、稳妥性的绩效标准中，但次数为占位符，未填写数值，属于部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "发生文 件资料丢失的次数不超过[ ]次",
+          "reason": "quote与参考要素完全一致，且明确绑定在公司文件、资料档案管理的及时性、稳妥性的绩效标准中，但次数为占位符，未填写数值，属于部分支持。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2554,
+      "completion_tokens": 226,
+      "total_tokens": 2780,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ro5nmpRtpbu38Fl1SOTCyAFS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11367,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "cb346fc15202760bcc30143f04f2af7da922e71f7a02efa4ad57b9b802d33660"
+  }
+}

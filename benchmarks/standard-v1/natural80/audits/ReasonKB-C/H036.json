@@ -1,0 +1,218 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。这是前提。",
+          "reason": "待测材料中逐字包含该句，实体、属性、限定条件（‘预定的目标’）均完全匹配，且与参考语句含义一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "待测材料包含完整句子，否定条件（‘如果没有制定好的目标’）、结论（‘不是考核，就是主观的臆测’）均匹配，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "待测材料逐字包含该句，三类目标（企业、部门、个人）以及要求（和谐统一）均正确匹配，无遗漏。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "待测材料逐字包含该句，主体（个人目标）、动作（服从）以及对象（部门目标和企业目标）均完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "待测材料逐字包含该句，主体、对象和关系（指导作用）完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "待测材料逐字包含该句，三个考虑因素（个人价值、部门效益、其他影响）均完整出现，无遗漏。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "待测材料逐字包含该句，且‘制定可达到的目标’与‘前提’的绑定关系一致，无偏差。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "待测材料逐字包含该句，两种否定情况（不可能实现、过低）以及结果（不利于考核）均完整，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "其实真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "参考语句省略了限定词‘真正能起到良好效果的’，但核心实体（管理者、被管理者）和关系（相互提升）均完整出现，且‘真正能起到良好效果的’进一步限定条件，不冲突，视为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "待测材料逐字包含该句，条件（方法得当、指引正确）、主体（被管理者）以及多个结果（职位提升、薪酬增加、成就感增加、归属感提升）均完整匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "待测材料逐字包含该句，方法（通过目标和效果的比较）、分析目标（达成程度、一致性）、找出不一致均完整匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "待测材料逐字包含该句，动作（反馈、沟通）和对象（员工）均完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "待测材料逐字包含该句，主体（员工）、义务（应该知道）和对象（考核情况）均完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "待测材料逐字包含该句，反馈方式（知道好的地方、不足的地方）、改进意见均完整匹配，无遗漏。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8082,
+      "completion_tokens": 1026,
+      "total_tokens": 9108,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RmHt9TcHt2DFyM4eurubkwgk",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 27116,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "543572248e539d5602aa7362b65f2048afa9c2aefa6cff1397b80cb03238082b"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答问题，且不包含任何关键做法。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "待测材料第35页总结部分逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "如果没有制定好的目标，就不是考核，就是主观的一种臆测。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "目标包括企业目标、部门目标和个人目标，三个目标要做到和谐统一。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "个人目标要服从于部门目标和企业目标。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "部门目标和企业目标又对个人目标有指导作用。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "制定目标要考虑到员工的个人价值的取得、部门效益的取得和可能受到的其他方面影响。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "制定可达到的目标，是考核的前提。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "目标不可能实现，或者目标过低，都不利于考核。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "真正能起到良好效果的绩效管理推动，是管理者与被管理者的相互提升。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "要发现差异，通过目标和效果的比较，要分析目标的达成程度，是否与预计的目标一致，找出不一致的地方。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "要与员工反馈考核的情况，与员工沟通。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "员工应该知道考核的情况。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "通过反馈，让员工知道做得好的地方，做得不足的地方，向员工提出改进的意见。",
+          "reason": "待测材料第35页逐字包含此句，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8082,
+      "completion_tokens": 900,
+      "total_tokens": 8982,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rmk3AEfTG31SeHZ96Nv92VEw",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 17185,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "543572248e539d5602aa7362b65f2048afa9c2aefa6cff1397b80cb03238082b"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，最终回答为空，无法支持任何要素且未回答问题。",
+      "elements": [
+        {
+          "id": "H070-E01",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持或矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E02",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持或矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E03",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持或矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E04",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持或矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E05",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持或矛盾",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 604,
+      "completion_tokens": 224,
+      "total_tokens": 828,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RAeD1qMc1KT0XOBVNeQPjxsq",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5620,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，未提供实例、监控、规则、告警和计量调度频率的相关信息，且无最终回答，无法判断正确性。",
+      "elements": [
+        {
+          "id": "H070-E01",
+          "quote": "",
+          "reason": "无材料支持",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E02",
+          "quote": "",
+          "reason": "无材料支持",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E03",
+          "quote": "",
+          "reason": "无材料支持",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E04",
+          "quote": "",
+          "reason": "无材料支持",
+          "support": "missing"
+        },
+        {
+          "id": "H070-E05",
+          "quote": "",
+          "reason": "无材料支持",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 604,
+      "completion_tokens": 187,
+      "total_tokens": 791,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RUCgZQhX0oLaYI4sD3jMZNK7",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9205,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

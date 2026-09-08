@@ -1,0 +1,416 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中没有提供最终回答，因此无法判断是否回答了问题并且不包含重大错误。",
+      "elements": [
+        {
+          "id": "Q4_E1",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘进货指导价’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E2",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘基础销售返点’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E3",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘PGI综合评价返点’列交叉处为√，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E4",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘服务销售返点’列交叉处为√，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E5",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘专项激励’列交叉处为“按具体发布的专项激励执行”，说明金牌有专项激励，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E6",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘样机支持’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E7",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘MDF’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E8",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘JMF’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E9",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘销售支持’列交叉处为√，且该列属于其他权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E10",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格中金牌与‘定制培训’列交叉处为√，且该列属于其他权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E11",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘进货指导价’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E12",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘基础销售返点’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E13",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘PGI综合评价返点’列交叉处为√，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E14",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘服务销售返点’列交叉处为√，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E15",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘专项激励’列交叉处为√（注意该列在表格中与金牌合并单元格，但银牌行对应位置有√），且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E16",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘样机支持’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E17",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘MDF’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E18",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘JMF’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E19",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘销售支持’列交叉处为√，且该列属于其他权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E20",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格中银牌与‘定制培训’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E21",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘进货指导价’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E22",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘基础销售返点’列交叉处为√，且该列属于基本权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E23",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘PGI综合评价返点’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E24",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘服务销售返点’列交叉处为√，且该列属于绩效权益，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E25",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘专项激励’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E26",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘样机支持’列交叉处为√，且该列属于营销支持，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E27",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘MDF’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E28",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘JMF’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E29",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘销售支持’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E30",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格中认证与‘定制培训’列交叉处为‘-’，明确表示不包括，直接支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 12233,
+      "completion_tokens": 3769,
+      "total_tokens": 16002,
+      "prompt_tokens_details": {
+        "cached_tokens": 12032
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RqcIaRWunE3zA5GwU3t5hoaT",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 92246,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9742e6e113d0b11fe60763800b94570e11e0dae9064e8749c38216c285264ea9"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，故不正确。",
+      "elements": [
+        {
+          "id": "Q4_E1",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第二列为√，对应表头‘进货指导价’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E2",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第三列为√，对应表头‘基础销售返点’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E3",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第四列为√，对应表头‘PGI综合评价返点’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E4",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第五列为√，对应表头‘服务销售返点’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E5",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第六列为‘按具体发布的专项激励执行’，对应表头‘专项激励’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E6",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第七列为√，对应表头‘样机支持’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E7",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第八列为√，对应表头‘MDF’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E8",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第九列为√，对应表头‘JMF’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E9",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第十列为√，对应表头‘销售支持’，且属于其他权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E10",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "表格金牌行第十一列为√，对应表头‘定制培训’，且属于其他权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E11",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第二列为√，对应表头‘进货指导价’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E12",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第三列为√，对应表头‘基础销售返点’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E13",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第四列为√，对应表头‘PGI综合评价返点’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E14",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第五列为√，对应表头‘服务销售返点’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E15",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第六列为√，对应表头‘专项激励’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E16",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第七列为√，对应表头‘样机支持’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E17",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第八列为√，对应表头‘MDF’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E18",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第九列为‘-’，对应表头‘JMF’，且属于营销支持列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E19",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第十列为√，对应表头‘销售支持’，且属于其他权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E20",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "表格银牌行第十一列为‘-’，对应表头‘定制培训’，且属于其他权益列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E21",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第二列为√，对应表头‘进货指导价’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E22",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第三列为√，对应表头‘基础销售返点’，且属于基本权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E23",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第四列为‘-’，对应表头‘PGI综合评价返点’，且属于绩效权益列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E24",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第五列为√，对应表头‘服务销售返点’，且属于绩效权益列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E25",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第六列为‘-’，对应表头‘专项激励’，且属于绩效权益列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E26",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第七列为√，对应表头‘样机支持’，且属于营销支持列。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E27",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第八列为‘-’，对应表头‘MDF’，且属于营销支持列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E28",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第九列为‘-’，对应表头‘JMF’，且属于营销支持列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E29",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第十列为‘-’，对应表头‘销售支持’，且属于其他权益列，表示不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E30",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "表格认证行第十一列为‘-’，对应表头‘定制培训’，且属于其他权益列，表示不包括。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 12233,
+      "completion_tokens": 3813,
+      "total_tokens": 16046,
+      "prompt_tokens_details": {
+        "cached_tokens": 12032
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RMnbFIo41aIzaWrBuZpJjIND",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 62889,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9742e6e113d0b11fe60763800b94570e11e0dae9064e8749c38216c285264ea9"
+  }
+}

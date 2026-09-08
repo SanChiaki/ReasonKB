@@ -1,0 +1,128 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "e1",
+          "support": "complete",
+          "quote": "若设备不再需要使用，行业应用调用此接口删除平台中指定设备，删除后的设备可以重新注册回平台。若设备是网关，则必须把网关下的终端装置都删除后，才能删除该设备",
+          "reason": "待测材料引用了文档中关于调用接口删除设备的规定，明确指出行业应用调用接口删除平台中指定设备，与参考要素完全一致"
+        },
+        {
+          "id": "e2",
+          "support": "complete",
+          "quote": "删除后的设备可以重新注册回平台。",
+          "reason": "待测材料明确引用并补充说明被删除的设备（包括网关）可以重新注册回平台，与参考要素完全一致"
+        },
+        {
+          "id": "e3",
+          "support": "complete",
+          "quote": "若设备是网关，则必须把网关下的终端装置都删除后，才能删除该设备",
+          "reason": "待测材料直接引用该规定，并在操作步骤中明确要求先删除子设备再删除网关，与参考要素完全一致"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题，明确指出删除网关前必须先将网关下所有终端装置删除，然后才能删除网关，并提供了正确的操作步骤和证据引用，无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 2027,
+      "completion_tokens": 258,
+      "total_tokens": 2285,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-7mayqjyh8y",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2667,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7a158708e5a7f3659ff39bcfe612389cc8ae860753dc78ce6d510894fa09f002"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "e1",
+          "support": "complete",
+          "quote": "设备不再需要使用，行业应用调用接口删除平台中指定设备",
+          "reason": "材料第12页和第6页均明确提及行业应用通过接口删除平台中指定设备，与要素内容完全一致"
+        },
+        {
+          "id": "e2",
+          "support": "complete",
+          "quote": "删除后的设备可以重新注册回平台",
+          "reason": "材料第12页和第6页均明确提及删除后的设备可以重新注册回平台，与要素内容完全一致"
+        },
+        {
+          "id": "e3",
+          "support": "complete",
+          "quote": "若设备是网关，则必须把网关下的终端装置都删除后，才能删除该设备",
+          "reason": "材料第12页和第6页均明确提及此条件，且在表1中对删除设备接口的功能描述中也有相同内容，与要素内容完全一致"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答准确回答了问题，明确指出删除网关设备前必须先删除其下所有终端装置，且正确引用了文档证据，包含了删除后的设备可重新注册的补充说明和接口参数等额外信息，未发现重大错误"
+    },
+    "usage": {
+      "prompt_tokens": 15426,
+      "completion_tokens": 231,
+      "total_tokens": 15657,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-3hkb9xbvd6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3321,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9cbbb212358e94eb92e7ef67d6c750ded26941228082f3239422811caec2f52c"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "e1",
+          "support": "complete",
+          "quote": "设备不再需要使用，行业应用调用接口删除平台中指定设备，删除后的设备可以重新注册回平台。",
+          "reason": "待测材料在页面12和5/6中均明确提到行业应用调用接口删除指定设备，完整支持e1。"
+        },
+        {
+          "id": "e2",
+          "support": "complete",
+          "quote": "删除后的设备可以重新注册回平台。",
+          "reason": "待测材料在页面12和5/6中均明确提到删除后的设备可以重新注册回平台，完整支持e2。"
+        },
+        {
+          "id": "e3",
+          "support": "complete",
+          "quote": "若设备是网关，则必须把网关下的终端装置都删除后，才能删除该设备。",
+          "reason": "待测材料在页面5和页面12中均明确提到若设备是网关，则必须把网关下的终端装置都删除后，才能删除该设备，完整支持e3。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确且完整地回答了问题，明确指出删除网关设备前必须先删除其下所有终端装置，没有重大错误，并引用了相关证据。"
+    },
+    "usage": {
+      "prompt_tokens": 15426,
+      "completion_tokens": 241,
+      "total_tokens": 15667,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-fbxn5e2c3p",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3020,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "9cbbb212358e94eb92e7ef67d6c750ded26941228082f3239422811caec2f52c"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整引用了文档中的关键内容，明确指出两项性能指标要求：最坏情况的执行结果和本性能失效后对系统产生的影响，并以结论形式准确回答了问题，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "a. 在最坏情况的执行结果",
+          "reason": "待测材料完整引用了原文中“a. 在最坏情况的执行结果”，实体和属性匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b. 本性能失效后，对系统产生的影响",
+          "reason": "待测材料完整引用了原文中“b. 本性能失效后，对系统产生的影响”，实体和属性匹配，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1033,
+      "completion_tokens": 206,
+      "total_tokens": 1239,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rh515B0DBRbJ8QcoAQAFlW65",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4998,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2"
+    ],
+    "materialSha256": "d548548b165fc8c597461943ca38c70394e811210815f15586e8eab6f32d2e69"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer正确识别并引用了支持参考要点的文档段落，准确回答了问题，且无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对每一个性能应包含两个方面的内容 a.在最坏情况的执行结果",
+          "reason": "待测材料中的finalAnswer直接引用了该段落，明确提到“最坏情况的执行结果”，实体和属性匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b.本性能失效后，对系统产生的影响",
+          "reason": "待测材料中的finalAnswer同样引用了该段落，明确提到“本性能失效后，对系统产生的影响”，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10983,
+      "completion_tokens": 192,
+      "total_tokens": 11175,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rk86iMIt26FJaRiwtAz2QhDw",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4602,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "8d312ff4863d78e9ab41b964b1e56da4810390f3bc30065f812fc5a18e09b68a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，并引用了正确文档中的具体内容，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "a.在最坏情况的执行结果",
+          "reason": "待测材料文档doc_6fb16793中明确包含该内容，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "b.本性能失效后，对系统产生的影响",
+          "reason": "待测材料文档doc_6fb16793中明确包含该内容，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10983,
+      "completion_tokens": 161,
+      "total_tokens": 11144,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RehWQQALshBgp8jF9MfcVnWA",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3855,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "8d312ff4863d78e9ab41b964b1e56da4810390f3bc30065f812fc5a18e09b68a"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发 布按钮；给出提示：请选择要上线的资源；",
+          "reason": "待测材料中MM-092用例明确描述了‘不选择任何数据，点击全部发布按钮’后的预期结果为‘给出提示：请选择要上线的资源’，与参考要素完全吻合。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2198,
+      "completion_tokens": 130,
+      "total_tokens": 2328,
+      "prompt_tokens_details": {
+        "cached_tokens": 2048
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R80jr984Ke44xojc2KQnyTCL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3178,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "7e0d8a43801c9e1270902e3902ccf4d0cac2ed2431d9ce0caa8cb2383a007f56"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发 布按钮；",
+          "reason": "待测材料包含不选择任何数据点击全部发布按钮的步骤，但未找到提示语“请选择要上线的资源”与此操作绑定；MM-092是共享网站目录发布，MM-099是全部发布却预期提示是否全部发布，矛盾。因此部分支持。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2198,
+      "completion_tokens": 127,
+      "total_tokens": 2325,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RuC3Atcg3yiSliuOx2hUxksP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4906,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7e0d8a43801c9e1270902e3902ccf4d0cac2ed2431d9ce0caa8cb2383a007f56"
+  }
+}

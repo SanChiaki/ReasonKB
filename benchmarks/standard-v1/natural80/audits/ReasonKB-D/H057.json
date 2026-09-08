@@ -1,0 +1,120 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中并未给出明确的最终回答，因此无法判断其是否正确且回答了问题。",
+      "elements": [
+        {
+          "id": "H057-e1",
+          "quote": "材料费",
+          "reason": "材料类别在待测材料的成本构成中明确列出，如‘材料费’，且属于非人力资源类别。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e2",
+          "quote": "设备费",
+          "reason": "设备类别在待测材料的成本构成中明确列出，如‘设备费’，属于非人力资源类别。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e3",
+          "quote": "差旅及通信费",
+          "reason": "待测材料中未出现‘差旅及通信费’或其同等含义的表述，如差旅费、通信费等，故不支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H057-e4",
+          "quote": "公司管理费",
+          "reason": "待测材料中出现‘公司管理费’和‘施工管理费’，均属于管理费用类别，且为非人力成本。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e5",
+          "quote": "预备费",
+          "reason": "待测材料中出现‘预备费’及‘基本预备费’、‘涨价预备费’，属于其他费用类别，且为非人力成本。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5559,
+      "completion_tokens": 358,
+      "total_tokens": 5917,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RggW9pcoBDJkpUEVc0SrgWJB",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10504,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1154995601083949695a737226dfcd6862119ba1323f4f97eb8b064ac70298e2"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料未提供finalAnswer，且材料内容不完整、乱码严重，无法得出正确回答。",
+      "elements": [
+        {
+          "id": "H057-e1",
+          "quote": "\"材料费\"",
+          "reason": "材料中第60页明确提及“材料费”，对应“材料”，支持分类。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e2",
+          "quote": "\"设备费\"",
+          "reason": "材料中第60页明确提及“设备费”，对应“设备”，支持分类。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e3",
+          "quote": "",
+          "reason": "材料中未找到“差旅及通信费”或等效表述（如差旅费、通信费），仅出现“间接费用”和“施工管理费”，不构成支持。",
+          "support": "missing"
+        },
+        {
+          "id": "H057-e4",
+          "quote": "\"公司管理费\"",
+          "reason": "材料中第60页提及“公司管理费”，可视为“管理费用”的等价表述，支持分类。",
+          "support": "complete"
+        },
+        {
+          "id": "H057-e5",
+          "quote": "",
+          "reason": "材料中未出现“其他”或“其他类别”等明确表述，第60页虽有“预备费”等，但未归入“其他”类别，因此不支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5559,
+      "completion_tokens": 360,
+      "total_tokens": 5919,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RdJOeHX2P7I0JdFhIx9bqNNm",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16967,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H057-e1",
+      "invalid_quote:H057-e2",
+      "invalid_quote:H057-e4"
+    ],
+    "materialSha256": "1154995601083949695a737226dfcd6862119ba1323f4f97eb8b064ac70298e2"
+  }
+}

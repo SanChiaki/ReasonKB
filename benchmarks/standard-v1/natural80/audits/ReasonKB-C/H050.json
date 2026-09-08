@@ -1,0 +1,104 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，包含重大缺失。",
+      "elements": [
+        {
+          "id": "H050-elem-1",
+          "quote": "外装饰阶段：外 墙外保 温点粘粘接面积国标 要求不少于40%及设 计要求。",
+          "reason": "待测材料明确包含国标不少于40%的要求。",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-2",
+          "quote": "外装饰阶段：外 墙外保 温点粘粘接面积国标 要求不少于40%及设 计要求。",
+          "reason": "待测材料明确包含满足设计要求。",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-3",
+          "quote": "结构 偏差与设计结构 不符责任划分：质检员 80%；工 长20%。",
+          "reason": "待测材料明确质检员承担80%，责任比例绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-4",
+          "quote": "结构 偏差与设计结构 不符责任划分：质检员 80%；工 长20%。",
+          "reason": "待测材料明确工长承担20%，责任比例绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1474,
+      "completion_tokens": 327,
+      "total_tokens": 1801,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RXQdMAVBr7Ge4ZUK2XW7bljG",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10385,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ef07dc4bd55b8b46e8035d4237ea3804b722f7f4055981d3ee60c29452bda993"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer 为空，未回答问题",
+      "elements": [
+        {
+          "id": "H050-elem-1",
+          "quote": "外墙外保温点粘粘接面积国标 要求不少于40%及设\n计要求。",
+          "reason": "材料中直接包含“外墙外保温点粘粘接面积国标要求不少于40%及设计要求”，与要素完全一致",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-2",
+          "quote": "外墙外保温点粘粘接面积国标 要求不少于40%及设\n计要求。",
+          "reason": "材料中明确提到“及设计要求”，满足要素要求",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-3",
+          "quote": "结构 偏差与设计结构 不符责任划分：质检员 80%；工 长20%。",
+          "reason": "材料明确说明质检员80%责任",
+          "support": "complete"
+        },
+        {
+          "id": "H050-elem-4",
+          "quote": "结构 偏差与设计结构 不符责任划分：质检员 80%；工 长20%。",
+          "reason": "材料明确说明工长20%责任",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1474,
+      "completion_tokens": 312,
+      "total_tokens": 1786,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RWEs3eVoA7yUHA8GZ5JXXrKU",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11482,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ef07dc4bd55b8b46e8035d4237ea3804b722f7f4055981d3ee60c29452bda993"
+  }
+}

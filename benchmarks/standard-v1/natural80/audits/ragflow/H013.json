@@ -1,0 +1,155 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未给出参考答案要求的'升级到PDT（课题组）'，而是给出'职能部门'或'IPMT'，且内容来自其他材料，与参考要素及问题核心不符，存在重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "当风险责任人不能迅速并令人满意地响应风险的时候，将风险升级就成为响应风险的渠道。",
+          "reason": "待测材料未出现该表述或等价信息，未提及风险升级作为渠道。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料未提及'PDT（课题组）'，也未说明项目组风险应升级至PDT。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料未提及'PDT'或'产品线的IPMT'的升级关系。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料未提及'PL-IPMT'或'IRB（投资委员会）'。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2043,
+      "completion_tokens": 296,
+      "total_tokens": 2339,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "51cbc51ec6384d7ca2d8d3666bd7f775",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4400,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "338c766300a0d10fcd8dfbba1211d6e3b1472f43c00d071a8e0eae32707ec4b4"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答基于材料112页的A/B类问题升级机制，但参考答案明确要求“项目组的风险应升级至PDT（课题组）”，而最终回答给出的升级去向是“职能部门或IPMT”，未提及PDT，因此不能正确回答问题，且与参考答案目标不符，存在重大偏差。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "当风险责任人不能迅速并令人满意地响应风险的时候，将风险升级就成为响应风险的渠道。",
+          "reason": "页面112描述问题升级机制，但未包含此明确引文；其他文档描述风险监控和风险应对计划，但未说明升级作为响应渠道，因此待测材料不提供与E1匹配的陈述，包括否定或条件。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料中无任何内容提到“PDT（课题组）”或类似风险升级去向，页面112虽提及项目组和升级，但流向是职能部门或IPMT，而非PDT，因此完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料无提及“产品线的IPMT”或PDT到IPMT的升级流程，页面112只提到IPMT决策，但未绑定PDT到IPMT，因此缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料未提及“PL-IPMT”或“IRB（投资委员会）”，也无相关风险升级链条，因此缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8181,
+      "completion_tokens": 400,
+      "total_tokens": 8581,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "4d1a367ffede4ad0a646fa4ce7ce803f",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16657,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fc88c31aa639a16f36c0f66fe4a188f087f748699dcf3ca8d79ac314cd7445ea"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答基于不同来源文档得出升级到职能部门或IPMT，与参考答案升级到PDT（课题组）的渠道不一致，且未引用参考答案对应的支持材料，因此不完整且不符合参考答案。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "待测材料中描述了问题升级机制，但未涉及风险责任人响应不令人满意时风险升级成为响应渠道的内容。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料未提及项目组风险升级到PDT（课题组）。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料未提及PDT风险升级到产品线IPMT。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料未提及PL-IPMT风险升级到IRB。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8181,
+      "completion_tokens": 259,
+      "total_tokens": 8440,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "c1cc6c75d7c840b4b12a26d1d9f65b4d",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6597,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fc88c31aa639a16f36c0f66fe4a188f087f748699dcf3ca8d79ac314cd7445ea"
+  }
+}

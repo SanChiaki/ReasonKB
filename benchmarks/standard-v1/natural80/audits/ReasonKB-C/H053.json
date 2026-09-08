@@ -1,0 +1,92 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题，且未包含参考答案中的任何信息。",
+      "elements": [
+        {
+          "id": "H053-e1",
+          "quote": "出现部分行业数据查询 等待时间较长",
+          "reason": "材料中明确包含该异常表现，且绑定2022年11月23日，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H053-e2",
+          "quote": "后台在导入行业属于出查询效 率降低",
+          "reason": "材料中备注栏明确包含该原因描述，文字虽略有断行但原样引用，且与异常记录在同一行。",
+          "support": "complete"
+        },
+        {
+          "id": "H053-e3",
+          "quote": "已调整导入策略",
+          "reason": "材料备注栏中明确包含该调整方式，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 964,
+      "completion_tokens": 203,
+      "total_tokens": 1167,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R6PCV5UJUwmfw9ZUwVAHieef",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6011,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d9b7acabb39cf2e0de09f795e0d3fbe2ce03b5d630642d712409c828fdb6042f"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的finalAnswer为空，未对问题给出任何回答，因此不满足完整回答且回答问题、无重大错误的要求。",
+      "elements": [
+        {
+          "id": "H053-e1",
+          "quote": "出现部分行业数据查询 等待时间较长",
+          "reason": "待测材料表格中明确包含该异常描述，且上下文为2022年11月23日系统试运行检查记录，日期一致，虽功能名称为空但已正确绑定到该记录，因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H053-e2",
+          "quote": "后台在导入行业属于出查询效 率降低",
+          "reason": "待测材料备注栏中逐字包含该原因描述，与异常记录对应，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H053-e3",
+          "quote": "已调整导入策略",
+          "reason": "待测材料备注栏中在同一单元格内逐字包含该调整方式，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 964,
+      "completion_tokens": 263,
+      "total_tokens": 1227,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rk2D0UOFGeLcwViHJE63nlsY",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 21398,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d9b7acabb39cf2e0de09f795e0d3fbe2ce03b5d630642d712409c828fdb6042f"
+  }
+}

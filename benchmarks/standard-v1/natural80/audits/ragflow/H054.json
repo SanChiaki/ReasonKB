@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了问题，准确引用了两个要素且未包含错误信息，因此判断为正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "2012年至2019年算力需求翻了30万倍",
+          "reason": "待测材料完整包含该句，实体（算力需求）、数量（30万倍）、年份范围均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "训练AI模型所需要的算力平均每100天就会翻番",
+          "reason": "待测材料完整包含该句，实体（AI模型算力）、数量（100天）、频率（平均）均正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 676,
+      "completion_tokens": 193,
+      "total_tokens": 869,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R1EV12mvRNWfmbrGFxgbZEdt",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4677,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4b29a610687c50ab4c0831fd374097779e10bce944d19dc190e8ac62a0fa317b"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer完整回答了问题，包含两个关键数据，且与参考回答一致，无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "2012年至2019年算力需求翻了 30万倍",
+          "reason": "待测材料中原文引用该句，数字和年份绑定正确，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "训练AI模型所需要的算力平均 每100天就会翻番",
+          "reason": "待测材料中原文引用该句，时间周期（每100天）和事件（翻番）绑定正确，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4422,
+      "completion_tokens": 183,
+      "total_tokens": 4605,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RZLfOGwXLs1w6CTCH0ce4lPQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4493,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a72b9f20e6b1a71f031133c21e38d9da6142046a3b5a625db529385daa6197bf"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer 准确回答了问题，引用了文档中的两个关键数据，且无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "2012年至2019年算力需求翻了 30万倍",
+          "reason": "待测材料中明确出现'2012年至2019年算力需求翻了 30万倍'，实体、时间、倍数均与参考一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "训练AI模型所需要的算力平均 每100天就会翻番",
+          "reason": "待测材料中明确出现'训练AI模型所需要的算力平均 每100天就会翻番'，实体、时间间隔、翻番概念均与参考一致，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4422,
+      "completion_tokens": 212,
+      "total_tokens": 4634,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R4Fl9FW0rQJGy38za978WakP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 27872,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a72b9f20e6b1a71f031133c21e38d9da6142046a3b5a625db529385daa6197bf"
+  }
+}

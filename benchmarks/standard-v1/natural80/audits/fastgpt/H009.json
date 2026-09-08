@@ -1,0 +1,115 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，明确指出了奖惩金额由审核验收组认定，项目资金由研发管理部部长（郝翔）请款，与参考答案一致，且未包含重大问题或矛盾。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "并根据考核及奖惩评价进行项目验收和奖惩认定，在《项目验收及奖金（费用）支付认定表》（附件7）上明确意见",
+          "reason": "材料在回答的奖惩认定方部分明确引用文档证据，指出审核验收组进行项目验收和奖惩认定，并列出综合办副主任和组长（总经理）的职责，实体制约（验收、奖惩认定）和条件（验收后）与参考要素一致。但材料额外增加了“总经理作为最终决策方”和“集体会签”等细节，可能被解读为引入新的责任方；然而这些内容主要是对审核验收组内部结构的支持描述，未与审核验收组的认定角色相矛盾。要素句“奖惩金额由审核验收组进行认定”在材料中被直接支持，且没有否定或例外的表述。因此判断为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "同时由研发管理部部长（郝翔）对项目资金进行请款",
+          "reason": "材料在回答第二部分明确引用第七条说明项目资金的请款责任人是研发管理部部长（郝翔），与参考要素的实体（研发管理部部长）、属性（请款责任）、数量（单一）一致，没有例外或否定。因此完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2454,
+      "completion_tokens": 368,
+      "total_tokens": 2822,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "fcfda2bb0b8b45cf8a77acf6fbdc702c",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 30011,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "0169c5a8e287d619eef3229dd040de84f276117dda617855e1c8c2c9d9683741"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确回答了问题，明确指出奖惩金额由审核验收组认定、项目资金由研发管理部部长（郝翔）请款，并附加了相关证据和说明，未包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "审核验收组通过实地查看项目、查阅报送资料、会议评审等形式进行项目验收，并根据考核及奖惩评价进行项目验收和奖惩认定，在项目验收及奖金（费用）支付认定表（附件7）上明确意见。",
+          "reason": "材料第十五条明确审核验收组进行奖惩认定，与E1完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "同时由研发管理部部长（郝翔）对项目资金进行请款。",
+          "reason": "材料第七条明确由研发管理部部长（郝翔）对项目资金进行请款，与E2完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 12410,
+      "completion_tokens": 236,
+      "total_tokens": 12646
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "981bf8c07c764195bee7d0b5af59d3cf",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 33247,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "828439decc3aaf483314267b279c429cf0182bd0c719b8a89a1694ae36e541ed"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题，明确指出奖惩金额由审核验收组认定（总经理作为组长进行整体评价），项目资金由研发管理部部长（郝翔）请款，内容与参考答案一致，未包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "审核验收组通过实地查看项目、查阅报送资料、会议评审等形式进行项目验收，并根据考核及奖惩评价进行项目验收和奖惩认定，在项目验收及奖金（费用）支付认定表（附件7）上明确意见。",
+          "reason": "材料原文直接描述审核验收组进行项目验收和奖惩认定，明确奖惩金额的认定主体为审核验收组，与E1完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "同时由研发管理部部长（郝翔）对项目资金进行请款。",
+          "reason": "材料原文明确说明研发管理部部长（郝翔）负责项目资金请款，与E2完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 12410,
+      "completion_tokens": 254,
+      "total_tokens": 12664,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "55bba618766d4505883051e8ede03f75",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4375,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "828439decc3aaf483314267b279c429cf0182bd0c719b8a89a1694ae36e541ed"
+  }
+}

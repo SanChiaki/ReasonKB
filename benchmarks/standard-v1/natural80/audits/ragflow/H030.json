@@ -1,0 +1,213 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整覆盖参考回答中的所有步骤和确认方法，包含正确的版本、工具包、操作流程（加载工具包、初始证书更换、添加存储设备、执行替换、查看有效期、告警消失），未包含重大错误，且回答了问题。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "通过最新版本的SmartKit软件更新存储的管理证书。",
+          "reason": "材料第2步明确支持“通过最新版本的SmartKit软件更新存储的管理证书”这一要素。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "下载`SmartKit_xx.x.x_Tool_ReplacingCertificates.zip`证书替换工具包",
+          "reason": "材料步骤中写明需要下载该工具包，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "在SmartKit中加载工具包（第2页）。",
+          "reason": "材料步骤2明确“在SmartKit中加载工具包”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "加载完成后，找到“初始证书更换”选项（第2页）。",
+          "reason": "材料步骤3支持“加载完找到初始证书更换”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "添加存储设备，选择存储设备后，点击“初始证书替换”进行证书替换（第3页）。",
+          "reason": "材料步骤4完全对应参考要素的操作描述。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "查看证书信息，选择证书策略，执行替换，替换完成后，需要查看证书的有效期，确认新证书已正确生效。",
+          "reason": "材料步骤5及确认恢复部分完整覆盖该要素，但材料中“查看证书有效期”增加了“确认新证书已正确生效”，不影响基本绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "e7",
+          "quote": "通过SmartKit更新完存储管理证书后，管理证书即将过期的告警会自动消失。",
+          "reason": "材料确认恢复部分完全一致，未添加额外条件或否定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2412,
+      "completion_tokens": 557,
+      "total_tokens": 2969,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rt71XmlD4Iz8olrTr6hjXSjL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 19127,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e3",
+      "invalid_quote:e6"
+    ],
+    "materialSha256": "3704f90a4184d3e206419220d1f292d8e6d53646d5a27b8b3cb846965d640fc1"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer正确回答了问题，包含了更换证书的步骤和确认恢复的方法，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "通过最新版本的SmartKit软件更新存储的管理证书，首先下载最新版本的 SmartKit软件",
+          "reason": "待测材料明确提到使用最新版本SmartKit软件更新存储管理证书，实体和属性正确。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "下载SmartKit_xx.x.x_Tool_Replaci ngCertificates.zip 证书替换工具包",
+          "reason": "待测材料明确提到该工具包名称，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "在SmartKit里面加载工具包",
+          "reason": "待测材料直接包含此步骤，内容一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "加载完找到初始证书更换",
+          "reason": "待测材料直接包含此步骤，内容一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "添加存储设备，选择存储设备，点击初始证书替换，进行证书替换。",
+          "reason": "待测材料完整包含此步骤，实体和操作绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "查看证书信息，选择证书策略，执行替换，替换完成后，查看证书有效期。",
+          "reason": "待测材料直接包含此步骤，内容一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e7",
+          "quote": "通过SmartKit更新完存储管理证书后，告警会自动消失。",
+          "reason": "待测材料直接包含此结论，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10145,
+      "completion_tokens": 465,
+      "total_tokens": 10610,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rdfz27OpwO6Fy6AgAGRhhBCQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13980,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e2"
+    ],
+    "materialSha256": "45653189b148c792a7be03e55f2359ea4cd6ab71b726b1bcc08412c0fecb271e"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "e1",
+          "support": "complete",
+          "quote": "通过最新版本的SmartKit软件更新存储的管理证书，",
+          "reason": "待测材料页面2明确表述了通过最新版本SmartKit软件更新管理证书，与参考要素完全一致。"
+        },
+        {
+          "id": "e2",
+          "support": "complete",
+          "quote": "下载SmartKit_xx.x.x_Tool_ReplacingCertificates.zip 证书替换工具包，",
+          "reason": "待测材料页面2提到下载该工具包，且名称与参考要素完全一致。"
+        },
+        {
+          "id": "e3",
+          "support": "complete",
+          "quote": "在SmartKit里面加载工具包",
+          "reason": "待测材料页面2完整包含此步骤，与参考要素一致。"
+        },
+        {
+          "id": "e4",
+          "support": "complete",
+          "quote": "加载完找到初始证书更换",
+          "reason": "待测材料页面2完整包含此步骤，与参考要素一致。"
+        },
+        {
+          "id": "e5",
+          "support": "complete",
+          "quote": "添加存储设备，选择存储设备，点击初始证书替换，进行证书替换。",
+          "reason": "待测材料页面3完整包含此步骤描述，与参考要素一致。"
+        },
+        {
+          "id": "e6",
+          "support": "complete",
+          "quote": "查看证书信息，选择证书策略，执行替换，替换完成后，查看证书有效期。",
+          "reason": "待测材料页面4完整包含此步骤，与参考要素一致。"
+        },
+        {
+          "id": "e7",
+          "support": "complete",
+          "quote": "通过SmartKit更新完存储管理证书后，告警会自动消失。",
+          "reason": "待测材料页面4在【结果】部分完整包含此描述，与参考要素一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "finalAnswer完整准确地回答了如何更换OceanStor管理证书以及如何确认恢复的问题，包含了所有必要步骤和确认方法，内容与待测材料一致，未发现重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 10406,
+      "completion_tokens": 498,
+      "total_tokens": 10904,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-xd1d5s0ymd",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4913,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e2"
+    ],
+    "materialSha256": "45653189b148c792a7be03e55f2359ea4cd6ab71b726b1bcc08412c0fecb271e"
+  }
+}

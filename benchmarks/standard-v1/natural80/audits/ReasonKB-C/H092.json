@@ -1,0 +1,74 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题且不包含任何信息，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "",
+          "reason": "待测材料为空，未提及标准名称，因此完全不支持。",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料为空，未提及行业归属，因此完全不支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 451,
+      "completion_tokens": 104,
+      "total_tokens": 555,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RI8oIXfrHTpX3UntTKMQKn16",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3212,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，且无法确认是否包含重大错误，因此判定为不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "",
+          "reason": "待测材料为空，未提供任何文本，无法支持标准名称，要素完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料为空，未提供任何文本，无法支持行业归属，要素完全缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 451,
+      "completion_tokens": 120,
+      "total_tokens": 571,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RVUF320FAzjfzpusLVW9K4EW",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3003,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

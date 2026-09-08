@@ -1,0 +1,672 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整覆盖了激励与权益的分类、各项具体内容、条件和例外，准确回答了问题，未发现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "钻石经销商的激励与权益包括四大类：**基本权益、绩效权益、营销支持和其他权益**",
+          "reason": "待测材料明确列出了四大类权益，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "钻石经销商可按华为发布的授权进货价格直接向华为购买设备和服务。",
+          "reason": "待测材料提及'华为发布的授权进货价格'，但未明确'华为中国政企'这一发布主体，属于部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "3",
+          "quote": "",
+          "reason": "待测材料中未提及SCT系统获取授权进货价。",
+          "support": "missing"
+        },
+        {
+          "id": "4",
+          "quote": "钻石经销商可按华为发布的授权进货价格直接向华为购买设备和服务。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "采购最终价格以实际签署的合同为准。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "以现金、电汇、银行承兑汇票方式在发货前100%付款可享受此优惠。",
+          "reason": "待测材料提及付款方式，但未明确'直接下单'条件，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "7",
+          "quote": "以现金、电汇、银行承兑汇票方式在发货前100%付款可享受此优惠。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "样机采购、自采自用、昇腾整机产品不享受此优惠。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "商务优惠从进货结算价中直接扣除。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "银行承兑汇票场景的优惠率按季度发布。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "需通过华为合作伙伴官网发布的物流自提资质评审。",
+          "reason": "待测材料提及资质评审，但未明确'钻石经销商需'这一主体和具体规范名称，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "12",
+          "quote": "符合物流自提资质评审后，运输方式为自提时可享受此优惠",
+          "reason": "待测材料提及自提条件和地点，但未明确提及'华为履行中心或其他双方约定地址'，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "13",
+          "quote": "从进货结算价中直接扣除",
+          "reason": "待测材料提及'从进货结算价中直接扣除'，但未明确物流自提优惠也适用此扣除，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "14",
+          "quote": "软件、软件订阅与保障年费(SnS)不发生物流费用，不享受此优惠。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "15",
+          "quote": "对应产品方向达到**专业化初级及以上**",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "16",
+          "quote": "且业绩达到设定门槛",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "17",
+          "quote": "",
+          "reason": "待测材料仅提及条件，未说明'参与该产品方向上的基础销售返点'，但隐含了参与资格。",
+          "support": "partial"
+        },
+        {
+          "id": "18",
+          "quote": "基于伙伴的半年度/年度PGI综合评价得分发放的激励。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "19",
+          "quote": "基于钻石经销商单签维保设置。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "20",
+          "quote": "",
+          "reason": "待测材料中未提及'鼓励伙伴加强服务销售、提高维保续约率'。",
+          "support": "missing"
+        },
+        {
+          "id": "21",
+          "quote": "",
+          "reason": "待测材料中未提及'提升面向最终客户的服务质量和体验'。",
+          "support": "missing"
+        },
+        {
+          "id": "22",
+          "quote": "为响应市场变化或特定业务诉求设置的及时激励计划。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "23",
+          "quote": "以华为中国政企发布为准。",
+          "reason": "待测材料在专项激励描述中未出现此句，但表格中标注'按具体发布的专项激励执行'，隐含此意，但未明确绑定。",
+          "support": "partial"
+        },
+        {
+          "id": "24",
+          "quote": "样机支持：详见《中国政企合作伙伴样机激励政策》。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "25",
+          "quote": "市场发展基金（MDF）：详见《中国政企合作伙伴市场发展基金（MDF）激励政策》。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "26",
+          "quote": "联合市场营销基金（JMF）：详见《中国政企合作伙伴联合市场营销基金（JMF）激励政策》。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "27",
+          "quote": "钻石经销商**优先进入NA销售伙伴地图**",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "28",
+          "quote": "NA项目优先支持钻石经销商合作。",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        },
+        {
+          "id": "29",
+          "quote": "销售管理、售前、商务、供应、售后等定制化赋能培训",
+          "reason": "待测材料完整支持此要素，但未明确'可向华为申请'，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "30",
+          "quote": "华为提供一对一专属服务",
+          "reason": "待测材料提及'华为提供一对一专属服务'，但未明确'明确华为责任人'，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "31",
+          "quote": "包括合作目标互锁、重点项目协同、伙伴能力发展等。",
+          "reason": "待测材料提及部分内容，但未包含'营销支持、合作问题处理'，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "32",
+          "quote": "表格中钻石经销商对应列均为√",
+          "reason": "待测材料表格中授权进货价、全额预付商务优惠等12项均为√，但未明确列出所有项目名称，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "33",
+          "quote": "专项激励 | 按具体发布的专项激励执行",
+          "reason": "待测材料完整支持此要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 6560,
+      "completion_tokens": 1703,
+      "total_tokens": 8263
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "ea10f1b8262543439d42bd79049cbed9",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6662,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:17",
+      "invalid_quote:23",
+      "invalid_quote:24",
+      "invalid_quote:25",
+      "invalid_quote:26",
+      "invalid_quote:32"
+    ],
+    "materialSha256": "f2af8c0942819c228555d5ae4a9c0214949c505775137df424e3e4cc9cf8a79a"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer完整回答了问题，覆盖了激励与权益的四大类及具体项目，说明了条件和例外，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "钻石经销商激励与权益包括基本权益、绩效权益、营销支持和其他权益",
+          "reason": "待测材料中直接引用该句，完全支持",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "钻石经销商授权进货价指华为中国政企发布给钻石经销商的授权进货价格",
+          "reason": "待测材料中完全一致表述",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "（从SCT系统上获取授权进货价）",
+          "reason": "待测材料中括号内内容一致，明确从SCT系统获取",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "伙伴可用此授权价格向华为购买设备和服务",
+          "reason": "待测材料中完全一致表述",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "钻石经销商采购华为产品的最终价格以其与华为实际签署的合同为准",
+          "reason": "待测材料中完全一致表述",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "钻石经销商直接下单",
+          "reason": "待测材料中明确提及直接下单，且为全额预付商务优惠的前提",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "以现金、电汇、银行承兑汇票方式在发货前100%付款",
+          "reason": "待测材料中完全一致表述",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "（样机采购、自采自用除外，昇腾整机产品除外）",
+          "reason": "待测材料中括号内内容一致，完全支持",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "商务优惠从进货结算价中直接扣除",
+          "reason": "待测材料中完全一致表述",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "针对使用银行承兑汇票付款的场景，全额预付商务优惠率季度发布",
+          "reason": "待测材料中完全一致表述，包括条件绑定",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "钻石经销商需按照华为合作伙伴官网发布的伙伴物流准入及退出管理规范要求（华为合作伙伴官网-帮助中心-经营与管理）通过物流自提资质评审",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "如运输方式为自提，自提地点为华为履行中心或其他双方约定的提货地址，设备部分可享受物流自提商务优惠",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "商务优惠从进货结算价中直接扣除",
+          "reason": "待测材料中关于物流自提商务优惠的上下文中明确提及此句，且为同一优惠，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "软件、软件订阅与保障年费(SnS)不发生物流费用，不享受物流自提商务优惠。",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "15",
+          "quote": "对应产品方向达到专业化初级及以上",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "16",
+          "quote": "且业绩达到设定门槛",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "17",
+          "quote": "钻石经销商可参与该产品方向上的基础销售返点",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "18",
+          "quote": "PGI综合评价返点是基于伙伴的半年度/年度PGI综合评价得分而发放的激励",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "19",
+          "quote": "基于钻石经销商单签维保设置服务销售返点",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "20",
+          "quote": "鼓励伙伴加强服务销售、提高维保续约率",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "21",
+          "quote": "提升面向最终客户的服务质量和体验",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "22",
+          "quote": "为响应市场变化或特定业务诉求而设置的及时激励计划",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "23",
+          "quote": "以华为中国政企发布为准。",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "24",
+          "quote": "样机支持：详见《中国政企合作伙伴样机激励政策》。",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "25",
+          "quote": "市场发展基金（MDF）：详见《中国政企合作伙伴市场发展基金（MDF）激励政策》。",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "26",
+          "quote": "联合市场营销基金（JMF）：详见《中国政企合作伙伴联合市场营销基金（JMF）激励政策》。",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "27",
+          "quote": "钻石经销商优先进入NA销售伙伴地图",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "28",
+          "quote": "NA项目优先支持钻石经销商合作",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "29",
+          "quote": "伙伴可向华为申请销售管理、售前、商务、供应、售后等定制化的赋能培训",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "30",
+          "quote": "针对钻石经销商业务合作，明确华为责任人，提供一对一专属服务",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "31",
+          "quote": "包括但不限于合作目标互锁、重点项目协同、伙伴能力发展、营销支持、合作问题处理等",
+          "reason": "待测材料中完全一致表述，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "32",
+          "quote": "<tr><th>钻\n石</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>按具体发布的专项激励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "待测材料中表格行完全一致，完整支持",
+          "support": "complete"
+        },
+        {
+          "id": "33",
+          "quote": "<tr><th>钻\n石</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>按具体发布的专项激励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "待测材料中表格行完全一致，完整支持",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13938,
+      "completion_tokens": 2037,
+      "total_tokens": 15975
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "c9bbee0c5d7046729685e2d7f31b724c",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 31561,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:3",
+      "invalid_quote:11"
+    ],
+    "materialSha256": "b0cbb89ecd62e3ab91bbc0908ac17298f644c52c00801e537be880a123da3215"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整覆盖了参考回答中的四大类权益及具体内容，准确呈现了各项权益的条件、例外和限制，未发现重大错误，且直接回答了问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "钻石经销商激励与权益包括基本权益、绩效权益、营销支持和其他权益，具体如下：",
+          "reason": "待测材料明确列出了四大类权益，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "钻石经销商授权进货价指华为中国政企发布给钻石经销商的授权进货价格",
+          "reason": "待测材料明确给出了定义。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "（从SCT系统上获取授权进货价）",
+          "reason": "待测材料提及从SCT系统获取。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "伙伴可用此授权价格向华为购买设备和服务",
+          "reason": "待测材料支持此描述。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "钻石经销商采购华为产品的最终价格以其与华为实际签署的合同为准",
+          "reason": "待测材料支持此描述。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "钻石经销商直接下单",
+          "reason": "待测材料明确要求直接下单。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "以现金、电汇、银行承兑汇票方式在发货前100%付款",
+          "reason": "待测材料支持此条件。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "（样机采购、自采自用除外，昇腾整机产品除外）",
+          "reason": "待测材料明确列出了例外。",
+          "support": "complete"
+        },
+        {
+          "id": "9",
+          "quote": "商务优惠从进货结算价中直接扣除",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "10",
+          "quote": "针对使用银行承兑汇票付款的场景，全额预付商务优惠率季度发布",
+          "reason": "待测材料明确说明。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "钻石经销商需按照华为合作伙伴官网发布的伙伴物流准入及退出管理规范要求（华为合作伙伴官网-帮助中心-经营与管理）通过物流自提资质评审",
+          "reason": "待测材料支持此条件。",
+          "support": "complete"
+        },
+        {
+          "id": "12",
+          "quote": "如运输方式为自提，自提地点为华为履行中心或其他双方约定的提货地址，设备部分可享受物流自提商务优惠",
+          "reason": "待测材料支持，包括地点和适用设备。",
+          "support": "complete"
+        },
+        {
+          "id": "13",
+          "quote": "商务优惠从进货结算价中直接扣除",
+          "reason": "待测材料明确。",
+          "support": "complete"
+        },
+        {
+          "id": "14",
+          "quote": "软件、软件订阅与保障年费(SnS)不发生物流费用，不享受物流自提商务优惠。",
+          "reason": "待测材料明确排除。",
+          "support": "complete"
+        },
+        {
+          "id": "15",
+          "quote": "对应产品方向达到专业化初级及以上",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "16",
+          "quote": "且业绩达到设定门槛",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "17",
+          "quote": "钻石经销商可参与该产品方向上的基础销售返点",
+          "reason": "待测材料支持参与。",
+          "support": "complete"
+        },
+        {
+          "id": "18",
+          "quote": "PGI综合评价返点是基于伙伴的半年度/年度PGI综合评价得分而发放的激励",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "19",
+          "quote": "基于钻石经销商单签维保设置服务销售返点",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "20",
+          "quote": "鼓励伙伴加强服务销售、提高维保续约率",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "21",
+          "quote": "提升面向最终客户的服务质量和体验",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "22",
+          "quote": "为响应市场变化或特定业务诉求而设置的及时激励计划",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "23",
+          "quote": "以华为中国政企发布为准。",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "24",
+          "quote": "样机支持：详见《中国政企合作伙伴样机激励政策》。",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "25",
+          "quote": "市场发展基金（MDF）：详见《中国政企合作伙伴市场发展基金（MDF）激励政策》。",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "26",
+          "quote": "联合市场营销基金（JMF）：详见《中国政企合作伙伴联合市场营销基金（JMF）激励政策》。",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "27",
+          "quote": "钻石经销商优先进入NA销售伙伴地图",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "28",
+          "quote": "NA项目优先支持钻石经销商合作",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "29",
+          "quote": "伙伴可向华为申请销售管理、售前、商务、供应、售后等定制化的赋能培训",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "30",
+          "quote": "针对钻石经销商业务合作，明确华为责任人，提供一对一专属服务",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "31",
+          "quote": "包括但不限于合作目标互锁、重点项目协同、伙伴能力发展、营销支持、合作问题处理等",
+          "reason": "待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "32",
+          "quote": "<tr><th>钻\n石</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>按具体发布的专项激励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td>",
+          "reason": "待测材料中的表格明确显示了钻石层级各项权益均为√，且专项激励为按具体发布执行。",
+          "support": "complete"
+        },
+        {
+          "id": "33",
+          "quote": "<tr><th>钻\n石</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>按具体发布的专项激励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td>",
+          "reason": "待测材料中的表格明确显示了钻石层级专项激励为“按具体发布的专项激励执行”。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13938,
+      "completion_tokens": 1937,
+      "total_tokens": 15875
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "2a599a9a653147d2a949c56624ac2798",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5922,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:3",
+      "invalid_quote:11"
+    ],
+    "materialSha256": "b0cbb89ecd62e3ab91bbc0908ac17298f644c52c00801e537be880a123da3215"
+  }
+}

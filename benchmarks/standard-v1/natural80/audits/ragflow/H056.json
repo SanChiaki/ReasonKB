@@ -1,0 +1,137 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整引用了参考答案步骤，准确说明第一步是在试题产品库选择知识点并据题型难度筛选，且指出选好的题手动加入试题篮，无重大错误也正面回答了问题。",
+      "elements": [
+        {
+          "id": "H056-e1",
+          "quote": "在试题产品库中选择要考察的知识点",
+          "reason": "待测材料原文直接照录该句，实体和动作与要素完全一致，因此为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e2",
+          "quote": "根据题型、难度等条件筛选知识点对应的试题",
+          "reason": "待测材料包含与要素完全相同的表述，条件（题型、难度）和动作（筛选）均正确绑定，无缺失或矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e3",
+          "quote": "手动将试题添加到试题篮",
+          "reason": "待测材料直接引用该句，手动添加和试题篮位置均准确，未缺少或改动任何要素，因此完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1109,
+      "completion_tokens": 245,
+      "total_tokens": 1354,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RUqjWX36DnsmzOD8r8uO9a3t",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7556,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f9b4439cf9b75e3ff12e218c1aa2350d5ebabef1fef6d6bbebd9cebcd3290edc"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整引用了答案原文，正确回答了问题和试题篮的位置，没有重大错误。",
+      "elements": [
+        {
+          "id": "H056-e1",
+          "quote": "在试题产品库中选择要考察的知识点",
+          "reason": "待测材料第34页包含此逐字句子，实体和地点绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e2",
+          "quote": "根据题型、难度等条件筛选知识点对应的试题",
+          "reason": "待测材料第34页包含此逐字句子，条件和实体绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e3",
+          "quote": "手动将试题添加到试题篮",
+          "reason": "待测材料第34页包含此逐字句子，动作和目标绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 27132,
+      "completion_tokens": 221,
+      "total_tokens": 27353,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R8oaeF0S8HIJbBmUgNPzBOvT",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5135,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "69ed446f85eb8c6968ab67944db5d6fdb7a59d36f40e7c8b1b7a811121072f91"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整引用了参考答案中的三个核心步骤，准确回答了问题（第一步筛题方式和试题篮位置），未包含重大错误。",
+      "elements": [
+        {
+          "id": "H056-e1",
+          "quote": "在试题 产品库中 选择要考 察的知识点",
+          "reason": "待测材料第34页直接包含“在试题 产品库中 选择要考 察的知识点”，实体（试题产品库）、动作（选择）、属性（知识点）均正确绑定，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e2",
+          "quote": "根据题型、 难度等条件 筛选知识点对应的试题",
+          "reason": "待测材料第34页直接包含“根据题型、 难度等条件 筛选知识点对应的试题”，实体（题型、难度）、动作（筛选）、对象（知识点对应的试题）均正确绑定，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H056-e3",
+          "quote": "手动将试题 添加到试题 篮",
+          "reason": "待测材料第34页直接包含“手动将试题 添加到试题 篮”，实体（试题篮）、动作（手动添加）、对象（试题）均正确绑定，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 35934,
+      "completion_tokens": 318,
+      "total_tokens": 36252,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtnOUC7dJhMYcOi2U3CIkbEl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6972,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "cd667e2e2d08dceffa67eac3659bce098eb949a3579e81ddf4dd0bc4eb26e3b9"
+  }
+}
