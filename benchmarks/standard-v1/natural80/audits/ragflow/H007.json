@@ -1,0 +1,121 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答未提及参考答案中关于可行性评估报告的结构性总结（七部分、由指定人员撰写、市场信息收集范围因项目类型而异），且未明确以‘可行性评估报告’为核心，而是泛泛列举立项报告内容，未完整回答问题，且包含部分不相关或超出材料范围的内容（如客户资信调查等），故不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "待测材料标题一提及‘项目基本情况与背景’、标题二提及‘项目必要性与市场分析’、标题三提及‘项目方案与可行性’、标题四提及‘项目预算与效益’、标题六提及‘风险评估’、标题七提及‘其他评估内容’，这些可部分对应参考要素中的项目背景及概况、市场分析、实施方案、风险分析、投资回报、实施建议等，但未明确提及‘可行性评估报告’及其七部分结构，也未包含‘项目优劣势分析’、‘项目风险分析及对应措施’的对应措施部分，且未完整列出所有七部分，因此属于部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "由项目发起人或指定的人员根据市场信息收集与分析的情况，撰写项目发起的可行性报告",
+          "reason": "待测材料完全未提及可行性评估报告由谁撰写，也未提及撰写依据，因此未支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "待测材料全文未提及市场信息收集与分析的范围因项目类型不同而不同，仅部分提到‘市场需求预测’、‘项目论证’，但未涉及收集范围因类型而异，因此未支持该要素。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3515,
+      "completion_tokens": 442,
+      "total_tokens": 3957
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "ef8128f8040040319a10ad200658e3a6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2931,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1"
+    ],
+    "materialSha256": "7c035bd7d448205af689016b0a54c832d5ace79127ee00a610526db784acd46c"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未明确提及参考答案中的'可行性评估报告'及七部分内容，也未说明可行性报告的撰写主体及市场信息收集范围因项目类型而异等关键要素；回答内容基于其他文档，无法根据已有文档证据得出题目要求的结论，且未覆盖参考答案核心要求。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "一、项目背景 4\n二、项目整体解决方案 4\n三、项目目标 4\n四、项目范围 4\n五、技术可行性分析 4\n六、项目预算 5\n七、项目效益分析（ROI分析） 6\n八、项目团队构成 6\n九、项目总体时间计划 7",
+          "reason": "待测材料中项目立项报告的目录包含项目背景、整体解决方案、目标、范围、技术可行性、预算、效益分析、团队构成、时间计划等，但未出现参考答案中'可行性评估报告'及其七部分内容的完整表述（如项目优劣势分析、项目风险分析及对应措施、项目实施建议等）。仅有部分要素（如项目背景、技术可行性、投资成本与回报分析）类似，但缺少关键要素且未明确对应，故视为部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "本立项报告为项目预定义文档，由IT 需求团队、架构团队、资源配置团队、项目经理和项目管理共同完成。",
+          "reason": "待测材料提到立项报告由多个团队完成，但未提及'可行性评估报告由项目发起人或指定的人员根据市场信息收集与分析的情况撰写'，故不符合实体和条件，视为缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "",
+          "reason": "待测材料未出现'市场信息收集与分析'及'根据项目类型不同'的信息，故完全缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7408,
+      "completion_tokens": 441,
+      "total_tokens": 7849
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "3e17aef459b0415ab48d78f10aa92a1b",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3087,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "11b5e2f9cab045053320e7c8a6dbf7b5a437c80a15e07889bc7af1f0737ff515"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答未提及参考答案的核心结论“可行性评估报告包含七部分内容”，也未完整覆盖市场信息收集与分析的范围因项目类型不同而不同，且部分内容与参考答案要素不一致，因此最终回答不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "项目评估主要包括以下内容。 (l)项目与个叫外既况评仆",
+          "reason": "待测材料未列出可行性评估报告的七部分内容（项目背景及概况；项目市场分析或内外部环境分析；项目优劣势分析；项目实施方案及计划；项目风险分析及对应措施；项目投资成本与回报分析；项目实施建议），未出现相应完整列表，仅部分内容如“项目与个叫外既况评仆”等模糊相关，且缺少多项，故为partial。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "本立项报告为项目预定义文档，由IT 需求团队、架构团队、资源配置团队、项目经理和项目管理共同完成。",
+          "reason": "待测材料提到立项报告由特定团队完成，但未提及“由项目发起人或指定的人员根据市场信息收集与分析的情况撰写”这一具体表述，不符合要素2，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "",
+          "reason": "待测材料中未出现“根据项目类型不同，需要收集的信息须至少包括如下范围”或类似句子，未提及市场信息收集范围因项目类型不同而不同，故为missing。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7408,
+      "completion_tokens": 378,
+      "total_tokens": 7786
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "1e89d73454c5444d9258f73562a01690",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5099,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "11b5e2f9cab045053320e7c8a6dbf7b5a437c80a15e07889bc7af1f0737ff515"
+  }
+}

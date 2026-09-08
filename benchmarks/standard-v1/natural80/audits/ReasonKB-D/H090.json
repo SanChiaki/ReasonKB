@@ -1,0 +1,68 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H090-e1",
+          "quote": "4、计算机应用知识",
+          "reason": "材料表格中“专业知识”类目下第4项为“计算机应用知识”，其对应权重列为“20%”，完整支持该要素的实体与数值绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1777,
+      "completion_tokens": 109,
+      "total_tokens": 1886,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R3QuB9QxwXXdXE7iXYoB07x3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4853,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4c152b406c7e82ab3a5cd9a9c8da4c9c764d68a4f1819c1a57baa1e23ce88bcf"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H090-e1",
+          "quote": "4、计算机应用知识",
+          "reason": "材料中表格显示'4、计算机应用知识'所在行对应权重列为'20%'，实体和数值均正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1777,
+      "completion_tokens": 102,
+      "total_tokens": 1879,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RhbT0BVsA5zQRTxavTbd2ySU",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4079,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "4c152b406c7e82ab3a5cd9a9c8da4c9c764d68a4f1819c1a57baa1e23ce88bcf"
+  }
+}

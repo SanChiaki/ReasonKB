@@ -1,0 +1,629 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "Q4_E1",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有进货指导价，且未否定该权益，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E2",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有基础销售返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E3",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有PGI综合评价返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E4",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有服务销售返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E5",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有专项激励，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E6",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有样机支持，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E7",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有MDF，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E8",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有JMF，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E9",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有销售支持，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E10",
+          "support": "complete",
+          "quote": "金牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、JMF、销售支持、定制培训",
+          "reason": "待测材料明确列出金牌经销商享有定制培训，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E11",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有进货指导价，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E12",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有基础销售返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E13",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有PGI综合评价返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E14",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有服务销售返点，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E15",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有专项激励，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E16",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有样机支持，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E17",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有MDF，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E18",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商不享有JMF，且未出现矛盾表述，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E19",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商享有销售支持，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E20",
+          "support": "complete",
+          "quote": "银牌经销商：享有进货指导价、基础销售返点、PGI综合评价返点、服务销售返点、专项激励、样机支持、MDF、销售支持。不享有的是JMF和定制培训",
+          "reason": "待测材料明确列出银牌经销商不享有定制培训，且未出现矛盾表述，完整支持参考要素"
+        },
+        {
+          "id": "Q4_E21",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的基本权益是否包括进货指导价，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E22",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的基本权益是否包括基础销售返点，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E23",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的绩效权益是否包括PGI综合评价返点，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E24",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的绩效权益是否包括服务销售返点，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E25",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的绩效权益是否包括专项激励，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E26",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的营销支持是否包括样机支持，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E27",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的营销支持是否包括MDF，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E28",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商的营销支持是否包括JMF，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E29",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商是否包括销售支持，缺乏支持证据"
+        },
+        {
+          "id": "Q4_E30",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及认证经销商是否包括定制培训，缺乏支持证据"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题，详细列出了金牌和银牌经销商的各项激励与权益，并准确说明了银牌经销商不享有的JMF和定制培训。虽然额外包含钻石经销商的信息，但不影响对金/银经销商问题的回答，且内容未发现重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 13324,
+      "completion_tokens": 2022,
+      "total_tokens": 15346
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-drjzt1kcj3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9906,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:Q4_E1",
+      "invalid_quote:Q4_E2",
+      "invalid_quote:Q4_E3",
+      "invalid_quote:Q4_E4",
+      "invalid_quote:Q4_E5",
+      "invalid_quote:Q4_E6",
+      "invalid_quote:Q4_E7",
+      "invalid_quote:Q4_E8",
+      "invalid_quote:Q4_E9",
+      "invalid_quote:Q4_E10",
+      "invalid_quote:Q4_E11",
+      "invalid_quote:Q4_E12",
+      "invalid_quote:Q4_E13",
+      "invalid_quote:Q4_E14",
+      "invalid_quote:Q4_E15",
+      "invalid_quote:Q4_E16",
+      "invalid_quote:Q4_E17",
+      "invalid_quote:Q4_E18",
+      "invalid_quote:Q4_E19",
+      "invalid_quote:Q4_E20"
+    ],
+    "materialSha256": "97bd1c5c9d692d909974fbd5b1fc511647c2f7be6d8f86bd78c6a30509dfe2c7"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答包含了金牌、银牌以及钻石经销商的权益，但问题只问金/银经销商，钻石部分多余；且回答分为金/银和钻石两大部分，结构上未将金牌和银牌分列，且金牌、银牌权益在表述上有重复，但未包含认证经销商，因此不构成重大错误，但未完全符合问题要求。",
+      "elements": [
+        {
+          "id": "Q4_E1",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "待测材料表格中金牌行对应基本权益列（进货指导价、基础销售返点）均为√，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E2",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行基本权益列全部为√，包括基础销售返点，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E3",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行绩效权益列包括PGI综合评价返点，均为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E4",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行绩效权益列包括服务销售返点，为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E5",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行绩效权益列专项激励为“按具体发布的专项激励执行”，虽然不直接写“√”，但文字表明有专项激励，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E6",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行营销支持列样机支持为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E7",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行营销支持列MDF为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E8",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行营销支持列JMF为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E9",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行其他权益列销售支持为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E10",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行其他权益列定制培训为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E11",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行基本权益列（进货指导价、基础销售返点）均为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E12",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行基本权益列基础销售返点为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E13",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行绩效权益列PGI综合评价返点为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E14",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行绩效权益列服务销售返点为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E15",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行绩效权益列专项激励为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E16",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行营销支持列样机支持为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E17",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行营销支持列MDF为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E18",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行营销支持列JMF为“-”，表示不包括，与“不包括JMF”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E19",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行其他权益列销售支持为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E20",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行其他权益列定制培训为“-”，表示不包括，与“不包括定制培训”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E21",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行基本权益列进货指导价为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E22",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行基本权益列基础销售返点为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E23",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行绩效权益列PGI综合评价返点为“-”，表示不包括，与“不包括PGI综合评价返点”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E24",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行绩效权益列服务销售返点为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E25",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行绩效权益列专项激励为“-”，表示不包括，与“不包括专项激励”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E26",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行营销支持列样机支持为√，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E27",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行营销支持列MDF为“-”，表示不包括，与“不包括MDF”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E28",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行营销支持列JMF为“-”，表示不包括，与“不包括JMF”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E29",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行其他权益列销售支持为“-”，表示不包括，与“不包括销售支持”一致，支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E30",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行其他权益列定制培训为“-”，表示不包括，与“不包括定制培训”一致，支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 19718,
+      "completion_tokens": 3744,
+      "total_tokens": 23462,
+      "prompt_tokens_details": {
+        "cached_tokens": 5376
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "fe2500650ec446d1a592091c9c12c47f",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 30922,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "15923ab5ffa915da6e3a34e3b27c97b42cc9425a087bd4e1d1b21d16b4913315"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整列出了金/银经销商和钻石经销商的激励与权益，并正确区分了金牌、银牌和认证经销商的差异，所有实体、属性、数量、条件和否定均与文档一致，没有重大错误。",
+      "elements": [
+        {
+          "id": "Q4_E1",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "待测材料中包含金牌行，且“进货指导价”列属性为“√”，表示金牌经销商基本权益包括进货指导价。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E2",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“基础销售返点”列为√，表明金牌经销商基本权益包括基础销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E3",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“PGI综合评价返点”列为√，且属于绩效权益部分，因此绩效权益包括PGI综合评价返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E4",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“服务销售返点”列为√，且属于绩效权益部分，因此绩效权益包括服务销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E5",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“专项激励”列显示“按具体发布的专项激励执行”，表示金牌经销商绩效权益包括专项激励。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E6",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“样机支持”列为√，且属于营销支持部分，因此营销支持包括样机支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E7",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“MDF”列为√，且属于营销支持部分，因此营销支持包括MDF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E8",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“JMF”列为√，且属于营销支持部分，因此营销支持包括JMF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E9",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“销售支持”列为√，且属于其他权益部分，因此其他权益包括销售支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E10",
+          "quote": "<tr><th>金 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td rowspan=\"3\">按具体 发布的 专项激 励执行</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>",
+          "reason": "金牌行中“定制培训”列为√，且属于其他权益部分，因此其他权益包括定制培训。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E11",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“进货指导价”列为√，属于基本权益，因此银牌经销商基本权益包括进货指导价。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E12",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“基础销售返点”列为√，属于基本权益，因此银牌经销商基本权益包括基础销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E13",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“PGI综合评价返点”列为√，且属于绩效权益，因此银牌经销商绩效权益包括PGI综合评价返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E14",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“服务销售返点”列为√，且属于绩效权益，因此银牌经销商绩效权益包括服务销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E15",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“专项激励”列显示“按具体发布的专项激励执行”，因此银牌经销商绩效权益包括专项激励。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E16",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“样机支持”列为√，且属于营销支持，因此银牌经销商营销支持包括样机支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E17",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“MDF”列为√，且属于营销支持，因此银牌经销商营销支持包括MDF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E18",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“JMF”列为“-”，表示不包括JMF，因此营销支持不包括JMF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E19",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“销售支持”列为√，且属于其他权益，因此银牌经销商其他权益包括销售支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E20",
+          "quote": "<tr><th>银 牌</th><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td></tr>",
+          "reason": "银牌行中“定制培训”列为“-”，表示不包括定制培训，因此其他权益不包括定制培训。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E21",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“进货指导价”列为√，且属于基本权益，因此认证经销商基本权益包括进货指导价。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E22",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“基础销售返点”列为√，且属于基本权益，因此认证经销商基本权益包括基础销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E23",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“PGI综合评价返点”列为“-”，表示不包括PGI综合评价返点，因此绩效权益不包括。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E24",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“服务销售返点”列为√，且属于绩效权益，因此认证经销商绩效权益包括服务销售返点。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E25",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“专项激励”列为“-”，表示不包括专项激励，因此绩效权益不包括专项激励。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E26",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“样机支持”列为√，且属于营销支持，因此认证经销商营销支持包括样机支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E27",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“MDF”列为“-”，表示不包括MDF，因此营销支持不包括MDF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E28",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“JMF”列为“-”，表示不包括JMF，因此营销支持不包括JMF。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E29",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“销售支持”列为“-”，表示不包括销售支持，因此其他权益不包括销售支持。",
+          "support": "complete"
+        },
+        {
+          "id": "Q4_E30",
+          "quote": "<tr><th>认 证</th><td>√</td><td>√</td><td>-</td><td>√</td><td>-</td><td>√</td><td>-</td><td>-</td><td>-</td></tr>",
+          "reason": "认证行中“定制培训”列为“-”，表示不包括定制培训，因此其他权益不包括定制培训。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 19718,
+      "completion_tokens": 3951,
+      "total_tokens": 23669
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "bbe017d9e0c24ec7a924ac08931a7d58",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 34151,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "15923ab5ffa915da6e3a34e3b27c97b42cc9425a087bd4e1d1b21d16b4913315"
+  }
+}

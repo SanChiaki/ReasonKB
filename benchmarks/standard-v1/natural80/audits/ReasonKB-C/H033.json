@@ -1,0 +1,161 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的finalAnswer为空，没有提供任何回答，因此无法正确回答问题，且包含重大错误（未作答）。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能 改进型的项目 总利润额20%作为激励额度， 其中项目研发人员占10%，项 目其他人员占2%，销售人员 占8%。",
+          "reason": "待测材料完整支持该要素，实体（当前产品性能改进型）、比例（20%、10%、2%、8%）均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的 项目 总利润额30%作为激励额度， 其中项目研发人员占17%，项 目其他人员占3%，销售人员 占10%。",
+          "reason": "待测材料完整支持该要素，实体（全新产品研发）、比例（30%、17%、3%、10%）均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术 /设备改进型项目 总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（当前工艺/技术/设备改进型）、比例（20%）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术 /设备项目 总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（全新的工艺/技术/设备）、比例（30%）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制 改进型项目 总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（当前管理机制改进型）、比例（20%）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项 目 总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（全新的管理型）、比例（30%）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程 或模式改进型项 目 总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（当前业务流程或模式改进型）、比例（20%）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项 目 总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，实体（全新的业务型）、比例（30%）正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3131,
+      "completion_tokens": 705,
+      "total_tokens": 3836,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RMVrGG506TVAzKqYGeUv6eRP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12692,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:new-product-improvement",
+      "invalid_quote:new-product-new",
+      "invalid_quote:process-tech-equipment-improvement",
+      "invalid_quote:process-tech-equipment-new",
+      "invalid_quote:management-improvement",
+      "invalid_quote:management-new",
+      "invalid_quote:business-improvement",
+      "invalid_quote:business-new"
+    ],
+    "materialSha256": "d4f4584ee76d43ab8b4b4e41d086ed92ae2eaca8c2bb7d7442aa7312507d4a3d"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能 改进型的项目",
+          "reason": "待测材料包含该要素的完整表述及比例分配。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的 项目",
+          "reason": "待测材料包含该要素的完整表述及比例分配。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术 /设备改进型项目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术 /设备项目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制 改进型项目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项 目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程 或模式改进型项 目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项 目",
+          "reason": "待测材料包含该要素的完整表述。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3131,
+      "completion_tokens": 441,
+      "total_tokens": 3572,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RGwURvVaJjyPfHzwLxb9OZdz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8729,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d4f4584ee76d43ab8b4b4e41d086ed92ae2eaca8c2bb7d7442aa7312507d4a3d"
+  }
+}

@@ -1,0 +1,272 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H012-E1",
+          "quote": "定义各项效益和相关假设，决定如何达成各项效益",
+          "reason": "材料中原文完全覆盖，实体、属性、条件正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E2",
+          "quote": "定义各项效益和相关假设，决定如何达成各项效益",
+          "reason": "材料中原文完全覆盖，实体、属性正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E3",
+          "quote": "将各组件的输出与计划过的项目集成果联系起来",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E4",
+          "quote": "定义衡量效益的指标（包括关键绩效指标）和测量效益的程序",
+          "reason": "材料中原文包含，指标与程序均支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E5",
+          "quote": "定义衡量效益的指标（包括关键绩效指标）和测量效益的程序",
+          "reason": "材料中原文包含测量效益的程序。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E6",
+          "quote": "定义管理效益所需的角色和职责",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E7",
+          "quote": "定义如何将结果效益和能力将如何移交进入运营状态，以实现效益",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E8",
+          "quote": "定义如何将结果能力移交个人、团体或组织，由他们负责维持效益",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E9",
+          "quote": "提供整体效益管理工作所需的流程",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E10",
+          "quote": "它识别效益如何及何时有望向组织交付效益",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E11",
+          "quote": "还规定了确保随着时间的推移效益完全实现所需到位的机制",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E12",
+          "quote": "效益管理计划还识别效益实现所推动的变更的相关活动、流程和系统",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E13",
+          "quote": "对现有流程和系统的必要变更",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E14",
+          "quote": "以及如何及何时移交进入运营状态",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E15",
+          "quote": "效益管理计划是一个基准文件，它为项目集执行期间交付效益提供了指导",
+          "reason": "材料中原文直接支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E16",
+          "quote": "",
+          "reason": "材料中未提及效益交付阶段验证，缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E17",
+          "quote": "",
+          "reason": "材料中未提及测量点和审查点，缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E18",
+          "quote": "",
+          "reason": "材料中未提及效益与项目集目标、财务支出、测量标准的联系，缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2561,
+      "completion_tokens": 954,
+      "total_tokens": 3515,
+      "prompt_tokens_details": {
+        "cached_tokens": 2304
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RY2YQX6oRaHEsIOHYwr3igTx",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 18401,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "76b22b45dca8587f634a653aa2e27765cff88fe601ef11328bed33d698b38187"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中未提供最终回答，无法判断其是否正确回答问题。",
+      "elements": [
+        {
+          "id": "H012-E1",
+          "quote": "定义各项效益和相关假设，决定如何达成各项效益",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E2",
+          "quote": "定义各项效益和相关假设，决定如何达成各项效益",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E3",
+          "quote": "将各组件的输出与计划过的项目集成果联系起来",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E4",
+          "quote": "定义衡量效益的指标（包括关键绩效指标）和测量效益的程序",
+          "reason": "待测材料原文完整包含该要素提及的指标定义。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E5",
+          "quote": "定义衡量效益的指标（包括关键绩效指标）和测量效益的程序",
+          "reason": "待测材料原文完整包含该要素提及的测量程序。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E6",
+          "quote": "定义管理效益所需的角色和职责",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E7",
+          "quote": "定义如何将结果效益和能力将如何移交进入运营状态，以实现效益",
+          "reason": "待测材料原文虽多出“将如何”文字，但内容完全覆盖该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E8",
+          "quote": "定义如何将结果能力移交个人、团体或组织，由他们负责维持效益",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E9",
+          "quote": "提供整体效益管理工作所需的流程",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E10",
+          "quote": "它识别效益如何及何时有望向组织交付效益",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E11",
+          "quote": "还规定了确保随着时间的推移效益完全实现所需到位的机制",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E12",
+          "quote": "效益管理计划还识别效益实现所推动的变更的相关活动、流程和系统；对现有流程和系统的必要变更",
+          "reason": "待测材料原文完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E13",
+          "quote": "效益管理计划还识别效益实现所推动的变更的相关活动、流程和系统；对现有流程和系统的必要变更",
+          "reason": "待测材料原文完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E14",
+          "quote": "以及如何及何时移交进入运营状态",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E15",
+          "quote": "效益管理计划是一个基准文件，它为项目集执行期间交付效益提供了指导",
+          "reason": "待测材料原文完全支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H012-E16",
+          "quote": "",
+          "reason": "待测材料未含该要素内容（效益交付阶段利用效益管理计划验证效益），因此缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E17",
+          "quote": "",
+          "reason": "待测材料未含该要素内容（定义测量点和审查点），因此缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E18",
+          "quote": "",
+          "reason": "待测材料未含该要素内容（定义效益与项目集目标、财务支出、测量标准的联系），因此缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2561,
+      "completion_tokens": 1055,
+      "total_tokens": 3616,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R9h7wblO60ZFGkMeHGdUPt8M",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 21111,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "76b22b45dca8587f634a653aa2e27765cff88fe601ef11328bed33d698b38187"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为生成上下文，不包括最终回答（finalAnswer为空），且无法验证回答是否正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料中表格的评估指标一列明确包含“专业化能力”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料中表格的评估指标一列明确包含“行业解决方案能力”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料中表格的评估指标一列明确包含“服务能力”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "业绩结构",
+          "reason": "待测材料中表格的评估指标一列明确包含“业绩结构”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "业绩增长",
+          "reason": "待测材料中表格的评估指标一列明确包含“业绩增长”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "业绩规模",
+          "reason": "待测材料中表格的评估指标一列明确包含“业绩规模”，且上下文为PGI评估标准，支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4954,
+      "completion_tokens": 410,
+      "total_tokens": 5364,
+      "prompt_tokens_details": {
+        "cached_tokens": 4864
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RBiCWCzL12GFMWARxw9BiZ8O",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10168,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "bf95437a9431cbc1d6ef272649069f1d16fd71e06146bcd13a348ddd73b06631"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，无法正确回答问题",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "专业化能力",
+          "reason": "待测材料表格中评估指标列明确列出【专业化能力】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "行业解决方案能力",
+          "reason": "待测材料表格中评估指标列明确列出【行业解决方案能力】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "服务能力",
+          "reason": "待测材料表格中评估指标列明确列出【服务能力】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "业绩结构",
+          "reason": "待测材料表格中评估指标列明确列出【业绩结构】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "业绩增长",
+          "reason": "待测材料表格中评估指标列明确列出【业绩增长】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "业绩规模",
+          "reason": "待测材料表格中评估指标列明确列出【业绩规模】，且评估对象为金牌、银牌经销商，支持完整",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4954,
+      "completion_tokens": 383,
+      "total_tokens": 5337,
+      "prompt_tokens_details": {
+        "cached_tokens": 4864
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RNMgYtMfbkCoFDTA3DIeHWV2",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9474,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "bf95437a9431cbc1d6ef272649069f1d16fd71e06146bcd13a348ddd73b06631"
+  }
+}

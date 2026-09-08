@@ -1,0 +1,247 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答正确回答了激励比例问题，列出了所有类型的比例及分配，未包含与参考答案冲突的重大错误；但包含参考答案明确排除的7.3条计提时间调整等额外信息，以及项目经理分配下限等内容，虽不构成对核心问题的错误，但超出了问题所需，且未声明为额外信息。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能改进型的项目：总利润额的 **20%** 作为激励额度。其中，项目研发人员占 **10%**，项目其他人员占 **2%**，销售人员占 **8%**",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、20%总额度以及研发10%、其他2%、销售8%的分配比例，所有数值与实体匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的项目：总利润额的 **30%** 作为激励额度。其中，项目研发人员占 **17%**，项目其他人员占 **3%**，销售人员占 **10%**",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、30%总额度以及研发17%、其他3%、销售10%的分配比例，所有数值与实体匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术/设备改进型项目：总利润额的 **20%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、20%总额度，并明确为项目组成员激励，无内部细化要求，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术/设备项目：总利润额的 **30%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、30%总额度，并明确为项目组成员激励，无内部细化要求，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制改进型项目：总利润额的 **20%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、20%总额度，并明确为项目组成员激励，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项目：总利润额的 **30%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、30%总额度，并明确为项目组成员激励，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程或模式改进型项目：总利润额的 **20%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、20%总额度，并明确为项目组成员激励，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项目：总利润额的 **30%** 作为项目组成员激励额度",
+          "reason": "待测材料完整且正确绑定了项目类型、条件、30%总额度，并明确为项目组成员激励，与参考一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3649,
+      "completion_tokens": 822,
+      "total_tokens": 4471,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RMMezDLJ21LUfZh63VygtGqM",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 17701,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:new-product-improvement",
+      "invalid_quote:new-product-new",
+      "invalid_quote:process-tech-equipment-improvement",
+      "invalid_quote:process-tech-equipment-new",
+      "invalid_quote:management-improvement",
+      "invalid_quote:management-new",
+      "invalid_quote:business-improvement",
+      "invalid_quote:business-new"
+    ],
+    "materialSha256": "cd8823fc55e093fb72a5116fb797db1ab9b53d6a2dd3f2c635528907968bf311"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整、准确地列出了所有项目类型的激励比例及分配，未包含重大错误。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能改进型的项目：总利润额的20%作为激励额度。其中，项目研发人员占10%，项目其他人员占2%，销售人员占8%。",
+          "reason": "回答中明确给出了项目类型、总激励比例、研发、其他、销售人员的分配比例，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的项目：总利润额的30%作为激励额度。其中，项目研发人员占17%，项目其他人员占3%，销售人员占10%。",
+          "reason": "回答中明确给出了全新产品研发的总激励比例及三类人员分配，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术/设备改进型项目：总利润额的20%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术/设备项目：总利润额的30%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制改进型项目：总利润额的20%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项目：总利润额的30%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程或模式改进型项目：总利润额的20%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项目：总利润额的30%作为项目组成员激励额度。",
+          "reason": "回答中给出了项目类型和总激励比例，与参考要素一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 15142,
+      "completion_tokens": 619,
+      "total_tokens": 15761,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rkp5zpVGmrvkV6BqCEfGWkRk",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12294,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:new-product-improvement",
+      "invalid_quote:new-product-new",
+      "invalid_quote:process-tech-equipment-improvement",
+      "invalid_quote:process-tech-equipment-new",
+      "invalid_quote:management-improvement",
+      "invalid_quote:management-new",
+      "invalid_quote:business-improvement",
+      "invalid_quote:business-new"
+    ],
+    "materialSha256": "19adc767eea8013f4465688a395864bfbc9e61f9ea166ab35eb73a9e68eca1cb"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer包含所有八个最小要素，且正确回答了问题，未发现重大错误。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "总利润额20%作为激励额度， 其中项目研发人员占10%，项 目其他人员占2%，销售人员 占8%。",
+          "reason": "待测材料中新品研发类改进型项目明确给出20%总利润额及研发10%、其他2%、销售8%的分配比例，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "总利润额30%作为激励额度， 其中项目研发人员占17%，项 目其他人员占3%，销售人员 占10%。",
+          "reason": "待测材料中全新产品研发项目明确给出30%总利润额及研发17%、其他3%、销售10%的分配比例，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料中工艺/技术/设备改进型项目明确给出20%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料中全新工艺/技术/设备项目明确给出30%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料中管理机制改进型项目明确给出20%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料中全新管理型项目明确给出30%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料中当前业务流程或模式改进型项目明确给出20%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料中全新业务型项目明确给出30%总利润额作为项目组成员激励额度，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 15142,
+      "completion_tokens": 676,
+      "total_tokens": 15818,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ry1295oX0koBMgSGFE6wW8Jk",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13835,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:new-product-improvement"
+    ],
+    "materialSha256": "19adc767eea8013f4465688a395864bfbc9e61f9ea166ab35eb73a9e68eca1cb"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "SVT SVT SVT SVT",
+          "reason": "材料中多次出现SVT，但未明确写出“系统验证测试”的完整表述，也未将SVT与IPD验证阶段进行直接绑定，仅出现在活动列表中，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "SE 继续管理更改和进行设计检查",
+          "reason": "材料中提及SE继续管理更改和进行设计检查，但未明确说明SE负责“监控和管理需求、规格和配置”，且未出现“需求、规格和配置”的完整表述，支持不充分。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1442,
+      "completion_tokens": 197,
+      "total_tokens": 1639,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RJjF6C261ycCiTLtXgnxUTcC",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7381,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "aafdc6de4003b830c8295255f1f46153808dbe2c2f8ba1a5d9b52922e9cbb198"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "SVT SVT SVT SVT",
+          "reason": "表述与参考答案相关，但仅有缩写出现，未与“IPD验证阶段系统验证测试”明确绑定",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "SE 继续管理更改和进行设计检查",
+          "reason": "提到SE但未说明负责监控和管理需求、规格和配置，缺关键属性",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1442,
+      "completion_tokens": 149,
+      "total_tokens": 1591,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RHfduRHmbRqDKjJ3THglq6X6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6906,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "aafdc6de4003b830c8295255f1f46153808dbe2c2f8ba1a5d9b52922e9cbb198"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽从伙伴能力维度列出了专业化能力(10分)、行业解决方案能力(15分)、服务能力(20分)，但明确表示无法从提供的文档中获得业绩结果维度的具体指标（业绩结构、业绩增长、业绩规模及其权重），因此未完整回答题干所问的PGI评估指标，且未给出缺失部分的权重分值，包含重大遗漏。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "专业化能力 | 10",
+          "reason": "待测材料中明确列出“专业化能力”且权重分为10分，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "行业解决方案能力 | 15",
+          "reason": "待测材料中明确列出“行业解决方案能力”且权重分为15分，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "服务能力 | 20",
+          "reason": "待测材料中明确列出“服务能力”且权重分为20分，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "待测材料中仅在评估原则中提及“业绩结果”维度，但未出现“业绩结构”指标及其权重分15分，且明确指出“业绩结果”维度的具体指标和权重分在文档中未出现，构成缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩增长”指标及其权重分20分，且明确指出“业绩结果”维度的具体指标和权重分在文档中未出现，构成缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩规模”指标及其权重分20分，且明确指出“业绩结果”维度的具体指标和权重分在文档中未出现，构成缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2720,
+      "completion_tokens": 493,
+      "total_tokens": 3213,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RGB1JNhTDhtHZvEZE44ons9d",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9311,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "80468f6a79fb1ad8bea48334927e5dfe5f39ac481ea48f5b709c6a5cba2a17c2"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答声称无法完整回答，遗漏了“业绩结果”维度及全部六个指标，且未提及“业绩规模”等已存在事实，不满足问题要求，存在重大信息缺失。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "<td>专业化能力</td><td>10</td>",
+          "reason": "待测材料明确列出“专业化能力”权重分10，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "<td>行业解决方案能力</td><td>15</td>",
+          "reason": "待测材料明确列出“行业解决方案能力”权重分15，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "<td>服务能力</td><td>20</td>",
+          "reason": "待测材料明确列出“服务能力”权重分20，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "<th>业绩结构</th><th>15</th>",
+          "reason": "待测材料在“业绩结果”维度明确列出“业绩结构”权重分15，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e5",
+          "quote": "<th>业绩增长</th><th>20</th>",
+          "reason": "待测材料在“业绩结果”维度明确列出“业绩增长”权重分20，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "e6",
+          "quote": "<th>业绩规模</th><th>20</th>",
+          "reason": "待测材料在“业绩结果”维度明确列出“业绩规模”权重分20，实体和数值正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10265,
+      "completion_tokens": 485,
+      "total_tokens": 10750,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RD8NsEaHeZlTNuhbQiIrxJGB",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9695,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e4",
+      "invalid_quote:e5",
+      "invalid_quote:e6"
+    ],
+    "materialSha256": "f6c1ba598c4b6f7f8d52d440a87aa933b1d2fb9b374271b4ade3e9c4eeca1ac5"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答声称无法完整回答，且未给出业绩结果维度的三个指标及权重分，遗漏了参考答案中的e4、e5、e6，存在重大不完整，故不正确。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "<table data-table-id=\"p1-t1\"><tr><th colspan=\"5\">35cc9e8d a60a 42e1 974d c4c79fa263ef xlsx 文档密级 1、PGI评估原则…</th></tr><tr><th>序列</th><th>评估维度</th><th>评估指标</th><th>权重分</th><th>评估细则</th></tr><tr><th>1</th><td rowspan=\"3\">伙伴能力 （45分）</td><td>专业化能力</td><td>10</td>…",
+          "reason": "待测材料中明确指出伙伴能力维度下的评估指标为专业化能力，并且权重分为10分，实体和数值均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "e2",
+          "quote": "<tr><th>2</th><td>行业解决方案能力</td><td>15</td>…",
+          "reason": "待测材料中明确指出行业解决方案能力为评估指标，权重分为15分，实体和数值均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "e3",
+          "quote": "<tr><th>3</th><td>服务能力</td><td>20</td>…",
+          "reason": "待测材料中明确指出服务能力为评估指标，权重分为20分，实体和数值均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩结构”指标或其权重分15分，也未提到业绩结果维度下的任何具体指标。",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩增长”指标或其权重分20分，也未提到业绩结果维度下的任何具体指标。",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "待测材料中未出现“业绩规模”指标或其权重分20分，也未提到业绩结果维度下的任何具体指标。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10265,
+      "completion_tokens": 586,
+      "total_tokens": 10851,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RaThrbI3yMcv3rcQ0VOmdnCb",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16646,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:e1",
+      "invalid_quote:e2",
+      "invalid_quote:e3"
+    ],
+    "materialSha256": "f6c1ba598c4b6f7f8d52d440a87aa933b1d2fb9b374271b4ade3e9c4eeca1ac5"
+  }
+}

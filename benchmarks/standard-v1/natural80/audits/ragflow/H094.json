@@ -1,0 +1,103 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确完整地回答了问题（测试结果可记为通过、不通过、不适用三种），内容与材料一致，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "H094-elem-001",
+          "quote": "测试结果可以记录为**通过**、**不通过**和**不适用**三种。",
+          "reason": "待测材料明确陈述了检查软件系统是否有帮助文档时，测试结果可记为‘通过’、‘不通过’、‘不适用’三种，与参考要素的实体（三个结果）、属性（三种类型）和条件（检查核心功能帮助文档）完全一致，属于完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 944,
+      "completion_tokens": 163,
+      "total_tokens": 1107,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RvnOs1hD8qJJSrqGU5FAZ399",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3461,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "360351f69eb9cabf13561244188dfac0ba88bffaf9025ece890334126281d62f"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整准确地回答了问题，明确列出了三种测试结果（通过、不通过、不适用），且依据了材料中的原文，没有重大错误。",
+      "elements": [
+        {
+          "id": "H094-elem-001",
+          "quote": "软件系统提供帮助文档",
+          "reason": "材料第34页包含“软件系统是否有帮助文档”测试项的表格，其中测试结果为“软件系统提供帮助文档”，结论列明确列出“通过 不通过 不适用”。该引用完整支持参考元素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 28825,
+      "completion_tokens": 144,
+      "total_tokens": 28969,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RfV75esF1wQCr9eoiCFo6jE8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5609,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5a247fee9b8c5a5e83b64b0ca0b9d4fdf65e683552fbe079b29c42de1344d1a9"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确识别了测试结果的三种类型（通过、不通过、不适用），并提供了引用来源，回答了问题且无重大错误。",
+      "elements": [
+        {
+          "id": "H094-elem-001",
+          "quote": "检查软件系统是否有核心功能帮助文档时，测试结果可以记为：通过、不通过、N/A。",
+          "reason": "引用逐字摘自材料，且材料内容明确表述了对应的测试结果。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 128999,
+      "completion_tokens": 133,
+      "total_tokens": 129132,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RWQXVp2SxNTCYkgvU5zHTiOQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12743,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H094-elem-001"
+    ],
+    "materialSha256": "fb7efd0290d6905e253e714bd76726b2b3a9d713b72a75b11627a9091b063a6e"
+  }
+}

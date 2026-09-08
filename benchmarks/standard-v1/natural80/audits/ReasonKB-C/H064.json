@@ -1,0 +1,72 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发 布按钮；给出提示：请选择要上线的资源；",
+          "reason": "待测材料中测试用例MM-092明确描述了不选择数据点击全部发布按钮的操作及系统提示，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2198,
+      "completion_tokens": 119,
+      "total_tokens": 2317,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RIIXJkD7T9kl6GKD11qmMEQu",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13711,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "7e0d8a43801c9e1270902e3902ccf4d0cac2ed2431d9ce0caa8cb2383a007f56"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终的待测回答为空，未直接回答问题，因此判定为不完整。但由于未提供具体回答内容，无法评估其正确性，基于空回答，判定为不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发布按钮；\n给出提示：请选择要上线的资源；",
+          "reason": "待测材料中的测试用例MM-092明确包含与参考答案完全相同的步骤和预期结果：'不选择任何数据，点击全部发布按钮；'以及'给出提示：请选择要上线的资源；'，实体、条件和结果均正确绑定，因此完整支持E1。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2198,
+      "completion_tokens": 179,
+      "total_tokens": 2377,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RE67J4RngJowxVpAEqLQhhtT",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12930,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "7e0d8a43801c9e1270902e3902ccf4d0cac2ed2431d9ce0caa8cb2383a007f56"
+  }
+}

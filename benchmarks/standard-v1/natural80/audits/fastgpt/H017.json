@@ -1,0 +1,218 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "support": "complete",
+          "quote": "系统测试的结束准则在文档 **doc_45f072f5-c357-470f-8d49-1d09da91a7a6__CMM3标准文档第13章 系统测试.doc.md.txt** 的 **第7页 (13.2.7 结束准则)** 中有明确规定。",
+          "reason": "待测材料明确引用了13.2.7结束准则，说明系统测试在该准则满足时结束，与参考要素一致。"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "support": "complete",
+          "quote": "功能性测试用例通过率达到 **100%**。",
+          "reason": "待测材料明确指出非严格系统功能性测试用例通过率达到100%，与参考要素完全一致。"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "support": "complete",
+          "quote": "非功能性测试用例通过率达到 **80%**。",
+          "reason": "待测材料明确指出非严格系统非功能性测试用例通过率达到80%，与参考要素完全一致。"
+        },
+        {
+          "id": "strict_additional_rule",
+          "support": "complete",
+          "quote": "还需补充基于缺陷密度的规则",
+          "reason": "待测材料明确说明严格系统在非严格系统条件基础上补充基于缺陷密度的规则，与参考要素一致。"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "support": "complete",
+          "quote": "相邻 **n** 个CPU小时内“测试期缺陷密度”全部低于某个值 **m**。",
+          "reason": "待测材料完整描述了严格系统缺陷密度规则，要求相邻n个CPU小时内全部低于m，与参考要素一致。"
+        },
+        {
+          "id": "strict_example_values",
+          "support": "complete",
+          "quote": "文档给出了示例数值：**n大于10，m小于等于1**。",
+          "reason": "待测材料明确给出n大于10、m小于等于1的示例值，与参考要素完全一致。"
+        },
+        {
+          "id": "all_documents_completed",
+          "support": "complete",
+          "quote": "本规程所有文档已经完成",
+          "reason": "待测材料明确提到所有系统测试结束须满足本规程所有文档已经完成，与参考要素一致。"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "support": "complete",
+          "quote": "严格系统的结束门槛更高，除了要达到普通系统的用例通过率，还必须额外满足缺陷密度指标",
+          "reason": "待测材料明确对比说明严格系统需额外满足缺陷密度规则，与参考要素一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整、准确地回答了问题，正确阐述了系统测试结束准则、普通系统与严格系统的门槛差异，无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 2574,
+      "completion_tokens": 681,
+      "total_tokens": 3255,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-tau1nh4w47",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4578,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "57fa494583a76fb3fd61690def3e7a90f17b95ab8ed43f5162bb39e985cc66f7"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "support": "complete",
+          "quote": "13.2.7 结束准则",
+          "reason": "材料中明确包含13.2.7结束准则的标题，完整支持系统测试在满足13.2.7结束准则时结束。"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "support": "complete",
+          "quote": "功能性测试用例 通过率 达到100％",
+          "reason": "材料明确说明非严格系统功能性测试用例通过率须达到100%。"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "support": "complete",
+          "quote": "非功能性测试用例 通过率 达到80％时",
+          "reason": "材料明确说明非严格系统非功能性测试用例通过率达到80%。"
+        },
+        {
+          "id": "strict_additional_rule",
+          "support": "complete",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "材料明确说明严格系统需补充基于缺陷密度的规则。"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "support": "complete",
+          "quote": "相邻n个CPU小时内“测试 期缺陷 密度”全部 低于某 个值m",
+          "reason": "材料明确说明严格系统要求相邻n个CPU小时内缺陷密度全部低于m。"
+        },
+        {
+          "id": "strict_example_values",
+          "support": "complete",
+          "quote": "例如n大于10，m小于等于1",
+          "reason": "材料明确给出示例n大于10、m小于等于1。"
+        },
+        {
+          "id": "all_documents_completed",
+          "support": "complete",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "材料明确说明系统测试结束要求本规程所有文档已经完成。"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "support": "complete",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "材料明确说明严格系统在非严格系统基础上需额外补充缺陷密度规则。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，指出系统测试在满足13.2.7结束准则时结束，并准确区分严格系统与普通系统的门槛差异：普通系统需功能性通过率100%和非功能性通过率80%，严格系统还需补充缺陷密度规则（相邻n个CPU小时内缺陷密度低于m，示例n大于10、m小于等于1），且所有文档需完成。回答完整、无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 10584,
+      "completion_tokens": 625,
+      "total_tokens": 11209,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-u4xkxpgcbs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5027,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "02a627cb67b6c707cbba800c891fc22cf1a80d80c1480f605337fcf9396f3126"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "support": "complete",
+          "quote": "13.2.7 结束准则",
+          "reason": "待测材料中第7页明确列出13.2.7 结束准则，与参考要素'系统测试在满足13.2.7结束准则时结束'一致。"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "support": "complete",
+          "quote": "功能性测试用例 通过率 达到100％；",
+          "reason": "待测材料第7页明确写明非严格系统功能性测试用例通过率需达到100%，与参考要素完全一致。"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "support": "complete",
+          "quote": "非功能性测试用例 通过率 达到80％时。",
+          "reason": "待测材料第7页明确写明非严格系统非功能性测试用例通过率需达到80%，与参考要素完全一致。"
+        },
+        {
+          "id": "strict_additional_rule",
+          "support": "complete",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "待测材料第7页明确说明严格系统需补充基于缺陷密度的规则，与参考要素完全一致。"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "support": "complete",
+          "quote": "相邻n个CPU小时内“测试 期缺陷 密度”全部 低于某 个值m。",
+          "reason": "待测材料第7页明确说明严格系统需满足相邻n个CPU小时内缺陷密度低于m的要求，与参考要素完全一致。"
+        },
+        {
+          "id": "strict_example_values",
+          "support": "complete",
+          "quote": "例如n大于10，m小于等于1。",
+          "reason": "待测材料第7页明确给出n大于10、m小于等于1的示例值，与参考要素完全一致。"
+        },
+        {
+          "id": "all_documents_completed",
+          "support": "complete",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "待测材料第7页明确说明系统测试结束需所有文档完成，与参考要素完全一致。"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "support": "complete",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "待测材料第7页明确说明严格系统在非严格系统的测试用例准则基础上需额外补充缺陷密度规则，与参考要素'严格系统需额外满足缺陷密度规则'一致。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题：明确了系统测试在满足13.2.7结束准则时结束，并详细列出了非严格系统（功能性通过率100%、非功能性通过率80%）和严格系统（额外补充基于缺陷密度的规则，n大于10、m小于等于1）的门槛，同时指出所有文档必须完成。回答内容与参考答案一致，没有重大错误，且包含了对差异的明确总结。"
+    },
+    "usage": {
+      "prompt_tokens": 10584,
+      "completion_tokens": 732,
+      "total_tokens": 11316,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-bxsmwh5hk7",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5870,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "02a627cb67b6c707cbba800c891fc22cf1a80d80c1480f605337fcf9396f3126"
+  }
+}

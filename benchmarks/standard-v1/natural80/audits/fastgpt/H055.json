@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题：SVT是系统验证测试缩写，SE负责监控和管理需求、规格和配置，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "系统验证测试的缩写是 **SVT**。",
+          "reason": "材料明确写出“系统验证测试的缩写是SVT”，与参考要素1完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "在验证阶段，负责监控和管理需求、规格和配置的角色是 **SE**（系统工程师）。",
+          "reason": "材料明确写出“负责监控和管理需求、规格和配置的角色是SE”，实体（SE）、职责（监控和管理）、对象（需求、规格和配置）均正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 913,
+      "completion_tokens": 211,
+      "total_tokens": 1124,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RqS7AeU5VMXlPpN7ryI2furQ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5253,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "bfa31b98014485e1dcc1140e89e0c26042d106ce59cabd18bf2f3223ba3a99d8"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整给出了SVT和SE，且与参考答案一致，没有错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "系统验证测试\n（SV T）及内部认证",
+          "reason": "待测材料中出现“系统验证测试（SV T）”，其缩写SVT与参考一致，且位于验证阶段页面（74页），实体、属性绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "监控和管理需求、规格和配置验证阶段 角色",
+          "reason": "待测材料74页在SE角色下明确列出“监控和管理需求、规格和配置”，与参考中SE负责此项一致，实体（SE）和职责绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10206,
+      "completion_tokens": 199,
+      "total_tokens": 10405,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RorqaQZN8bqksiXmzBSYFbk4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7048,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c2774d8e0a042315f087183c2d55332d5a6c0d5954eefc88c6a9165426a6e927"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，准确给出了SVT和SE，且引用了正确的证据来源，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "系统验证测试\n（SV T）及内部认证",
+          "reason": "待测材料页面74包含“系统验证测试（SV T）”的表述，其中“SV T”中空格分隔了缩写，但“SVT”的实质信息完整，与参考答案缩写SVT一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "监控和管理需求、规格和配置",
+          "reason": "待测材料页面74的验证阶段角色中，SE角色明确包含“监控和管理需求、规格和配置”，与参考答案的SE职责完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10206,
+      "completion_tokens": 206,
+      "total_tokens": 10412,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RyRQgpDZNqu4Z3OSUDETlZja",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6051,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c2774d8e0a042315f087183c2d55332d5a6c0d5954eefc88c6a9165426a6e927"
+  }
+}

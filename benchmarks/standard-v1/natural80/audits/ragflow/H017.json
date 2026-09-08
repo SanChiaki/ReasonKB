@@ -1,0 +1,237 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答引入了材料未提供的不一致信息（模板文档中95%的通过率），构成重大错误；且对问题给出了完整的回答，但因错误信息不能判定为完全正确。",
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "quote": "系统测试的结束需要满足文档中定义的“结束准则”。",
+          "reason": "待测材料完整支持该要素，明确提及满足13.2.7结束准则。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "quote": "功能性测试用例通过率达到100%；",
+          "reason": "待测材料明确给出非严格系统功能性测试用例通过率100%，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "quote": "非功能性测试用例通过率达到80%时。",
+          "reason": "待测材料明确给出非严格系统非功能性测试用例通过率80%，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_additional_rule",
+          "quote": "应当补充“基于缺陷密度”的规则。",
+          "reason": "待测材料明确说明严格系统须补充基于缺陷密度的规则，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "quote": "每相邻的“大于10”个CPU小时内，“测试期缺陷密度”全部低于某个值m",
+          "reason": "待测材料完整复述了严格系统缺陷密度条件（n个CPU小时内全部低于m），与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_example_values",
+          "quote": "并举例“m小于等于1”",
+          "reason": "待测材料给出了m≤1的示例，但未明确提及n大于10为示例值；不过结合上下文，n>10和m≤1均被提及，且作为示例条件，故判断为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "all_documents_completed",
+          "quote": "本规程所有文档已经完成",
+          "reason": "待测材料明确包含此要求，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "quote": "严格系统的结束门槛比非严格系统更严格，增加了对缺陷密度的量化控制要求。",
+          "reason": "待测材料明确说明了严格系统需额外满足缺陷密度规则，与参考要素一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2453,
+      "completion_tokens": 625,
+      "total_tokens": 3078,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "f5a26895d3aa492abba9bf46b0cff744",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 18677,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:non_strict_functional_pass_rate",
+      "invalid_quote:non_strict_nonfunctional_pass_rate",
+      "invalid_quote:strict_defect_density_condition",
+      "invalid_quote:strict_system_extra_requirement"
+    ],
+    "materialSha256": "d8b20073ea8e4eae38464ea5e04f2b1d40cf24927b911399e9b663e2a137fa72"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer 存在重大错误：引用了与标准文档相矛盾的模板文档（将非功能性通过率说成95%而非80%），且对 n 的语义表述为“每相邻的‘大于10’个CPU小时内”，将参数示例与值混淆；关键要素虽然大部分覆盖，但解答不够准确、含糊，并引入无关信息。",
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "quote": "13.2.7 结束准则",
+          "reason": "待测材料中明确列有 13.2.7 结束准则，且 finalAnswer 也以该准则作为结束条件，实体与编号一致。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "quote": "功能性测试用例 通过率 达到100％；",
+          "reason": "待测材料中非严格系统基于测试用例准则，功能性通过率为 100%，finalAnswer 也准确写出 100%，实体、数量、条件均正确。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "quote": "非功能性测试用例 通过率 达到80％时。",
+          "reason": "待测材料中非严格系统非功能性通过率为 80%；finalAnswer 也给出了 80%。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_additional_rule",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "待测材料明确说明严格系统要补充基于缺陷密度的规则，finalAnswer 也指出严格系统需补充“基于缺陷密度”的规则。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "quote": "相邻n个CPU小时内“测试 期缺陷 密度”全部 低于某 个值m。",
+          "reason": "待测材料说明严格系统的缺陷密度规则要求相邻 n 个 CPU 小时内缺陷密度全部低于 m；finalAnswer 也覆盖了这一条件和数量关系。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_example_values",
+          "quote": "例如 大于10，m小于等于1。",
+          "reason": "待测材料明确给出示例 n 大于10，m 小于等于1；finalAnswer 也给出 n 大于10、m 小于等于1。",
+          "support": "complete"
+        },
+        {
+          "id": "all_documents_completed",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "待测材料明确列出本规程所有文档已经完成作为结束条件；finalAnswer 中也提到本规程所有文档需要完成。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "待测材料表明严格系统需额外补充缺陷密度规则，而普通系统仅用测试用例准则；finalAnswer 也指出了严格系统在普通系统门槛之上增加基于缺陷密度的要求。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9503,
+      "completion_tokens": 742,
+      "total_tokens": 10245,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "aee1c311d0474f488f074581366bcd49",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 34608,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:strict_defect_density_condition"
+    ],
+    "materialSha256": "321f8fbe946d6225dbd18f4aa79aaca47d1ace3c29e1ea69c05b077d8cc688b2"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答不正确：它错误地表述了严格系统的缺陷密度规则，将其描述为“每相邻的‘大于10’个CPU小时内”，而原始文档的含义是“n个CPU小时”，其中“n大于10”是示例值（n>10），并非数量为“大于10”。它错误地将“n大于10”嵌入为“大于10个CPU小时”，改变了原意，构成重大错误。此外，它不恰当地指出了模板文档中非功能性测试通过率的95%与13.2.7节中80%的差异，但问题答案是针对13.2.7结束准则的，该差异在上下文中并非有效的不一致（模板是模板，而非关于测试结束的权威、可用的来源）。",
+      "elements": [
+        {
+          "id": "system_test_end_criteria",
+          "quote": "13.2.7 结束准则",
+          "reason": "待测材料包含“13.2.7 结束准则”，支持系统测试在符合该条款时结束。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_functional_pass_rate",
+          "quote": "功能性测试用例 通过率 达到100％；",
+          "reason": "材料明确说明非严格系统功能测试用例通过率须达到100%，数值正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "non_strict_nonfunctional_pass_rate",
+          "quote": "非功能性测试用例 通过率 达到80％时。",
+          "reason": "材料明确说明非严格系统非功能测试用例通过率须达到80%，数值正确。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_additional_rule",
+          "quote": "对于 严格系统，应当 补充“基于缺陷 密度”的规则：",
+          "reason": "材料明确指出严格系统须补充基于缺陷密度的规则，概念完全对应。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_defect_density_condition",
+          "quote": "相邻\n个CPU小时内“测试 期缺陷 密度”全部 低于某 个值m。例如\n大于10，\nm小于等于1。",
+          "reason": "材料记录了严格系统的“基于缺陷密度的规则”，包括“相邻n个CPU小时内‘测试期缺陷密度’全部低于某个值m”，与陈述完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_example_values",
+          "quote": "例如\n大于10，\nm小于等于1。",
+          "reason": "材料明确给出示例值“n大于10”和“m小于等于1”。",
+          "support": "complete"
+        },
+        {
+          "id": "all_documents_completed",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "材料明确列出“本规程所有文档已经完成”作为结束准则之一。",
+          "support": "complete"
+        },
+        {
+          "id": "strict_system_extra_requirement",
+          "quote": "对于 严格系统，应当补充“基于缺陷 密度”的规则；对于非 严格系统可以 采用“ 基于测试用例”的准则：",
+          "reason": "材料区分了严格系统与普通系统：普通系统可采用基于测试用例的准则，严格系统需补充基于缺陷密度的规则，完整支持该差异。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9503,
+      "completion_tokens": 775,
+      "total_tokens": 10278,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "46f1e4eaa33d45c79a84223208f175dd",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 26929,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:strict_defect_density_condition",
+      "invalid_quote:strict_system_extra_requirement"
+    ],
+    "materialSha256": "321f8fbe946d6225dbd18f4aa79aaca47d1ace3c29e1ea69c05b077d8cc688b2"
+  }
+}

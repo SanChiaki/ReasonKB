@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确回答了问题（给出了50个字段阈值及例外，以及USER_TAB_COLUMNS.DATA_LENGTH），引用来源清晰，未包含重大错误。",
+      "elements": [
+        {
+          "id": "H058-E1",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度，再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "引文准确来自材料，明确指出了查询字典表USER_TAB_COLUMNS中的DATA_LENGTH字段可得到所有字段总长度，实体、属性均正确绑定，完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H058-E2",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度，再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "引文明确说明依据db_block和pctfree参数判断数据行是否可存储在一个数据块中，与要素表述一致，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1191,
+      "completion_tokens": 299,
+      "total_tokens": 1490,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtHzkyKs5if5ikb0fZ9HXoVl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8721,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3ae4f5bc10bfae42c8085bc8306d141d284748be64189736ebee0b7e2e795b2"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，区分了普通表和大对象表两种情况，并正确引用了文档页码和内容，无重大错误。",
+      "elements": [
+        {
+          "id": "H058-E1",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度",
+          "reason": "待测材料中该句完整支持H058-E1，正确绑定字典表名和字段名。",
+          "support": "complete"
+        },
+        {
+          "id": "H058-E2",
+          "quote": "再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "待测材料中该句完整支持H058-E2，提及比较对象和目的。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9169,
+      "completion_tokens": 210,
+      "total_tokens": 9379,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RSif5TkJGzk41myZSF500QSL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6062,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f7205fa08b87586f641bf8fd7c3c333f66034097ac9ff0500823169cd5e89ad4"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题：说明了字段数超过50个需DBA参与，并给出了例外情况（大对象字段）；也正确指出来查询USER_TAB_COLUMNS表的DATA_LENGTH字段获取总长度，均与文档内容一致，无重大错误。",
+      "elements": [
+        {
+          "id": "H058-E1",
+          "quote": "查询字典表USER_TAB_COLUMNS 中的字段DATA_LENGTH得到表中所有字段的总长度",
+          "reason": "待测材料原文直接提及查询USER_TAB_COLUMNS中的DATA_LENGTH字段可得到总长度，实体、属性、功能均正确绑定，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H058-E2",
+          "quote": "再依据db_block和表的pctfree参数可以判断是否一个数据行可以存储在一个数据块(BLOCK)中。",
+          "reason": "待测材料原文明确说明需要使用db_block和pctfree参数判断数据行能否存储在一个数据块中，与参考表述一致，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9169,
+      "completion_tokens": 267,
+      "total_tokens": 9436,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RrcgGRL9b6Cy2WgbKNc1QZnG",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8069,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f7205fa08b87586f641bf8fd7c3c333f66034097ac9ff0500823169cd5e89ad4"
+  }
+}

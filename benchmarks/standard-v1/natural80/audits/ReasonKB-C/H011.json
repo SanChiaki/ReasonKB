@@ -1,0 +1,86 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料未提供完整的最终回答，无法判断其是否正确回答问题和包含重大错误。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "面向可交付成果的对项目工作的 层次化分解",
+          "reason": "材料中的'面向可交付成果的对项目工作的层次化分解'支持了WBS以交付结果为导向的表述，但未提及'书面文件'，因此部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "有机的组 织和定义项目 整个范围",
+          "reason": "材料中'有机的组织和定义项目整个范围'支持WBS定义整个项目工作范围的表述，但未明确提及'工作范围'，因此部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "项目范围说明书是从这个们度去描述的",
+          "reason": "材料中仅提及'项目范围说明书'和'交付结果'，但未完整描述其作为'描述项目交付结果和工作范围的书面文件'，因此部分支持。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8239,
+      "completion_tokens": 282,
+      "total_tokens": 8521,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RalpzTb5kTqaQBnbM4GwizvI",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6991,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6984ca9aa958effebc46a130e96d45aaf7a8bbe1aae902f768aa4e507235a5f5"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中的finalAnswer为空，没有提供任何回答，因此无法完整回答问题，也不包含对参考要点的支持。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "面向可交付成果的对项目工作的 层次化分解",
+          "reason": "材料中多处出现\"面向可交付成果\"（如doc_项目管理培训-项目范围管理.ppt页面30），且\"有机的组织和定义项目整个范围\"等表述，但未出现\"书面文件\"这一属性，故支持了大部分内容但缺少关键限定。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "有机的组 织和定义项目 整个范围",
+          "reason": "材料中明确提到\"有机的组织和定义项目整个范围\"，与参考要点\"WBS定义了整个项目的工作范围\"一致，且上下文是关于WBS的定义，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "项目范围说明书是描述项目交付结果和工作范围的书面文件",
+          "reason": "待测材料中未见\"项目范围说明书\"的具体定义，也未出现\"书面文件\"描述，因此没有支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8239,
+      "completion_tokens": 305,
+      "total_tokens": 8544,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RK5QBteAPtEkOxBIdOl4qW1m",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11776,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "6984ca9aa958effebc46a130e96d45aaf7a8bbe1aae902f768aa4e507235a5f5"
+  }
+}

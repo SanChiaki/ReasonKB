@@ -1,0 +1,130 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，包含第三方开店周期缩短至1-2周（从3-6个月）、全球部署规模15+Region、响应时间≤3秒，未发现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开店周期从 3-6个月缩短到 1-2周",
+          "reason": "待测材料明确引用了该表述，与参考要素完全一致，且材料中另一处‘从过去3个月缩短到 1-2周’与参考不矛盾，但核心量化信息完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料直接引用该表述，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方打开页面或操作响应时间 ≤3S",
+          "reason": "待测材料直接引用该表述，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1395,
+      "completion_tokens": 267,
+      "total_tokens": 1662,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RAtKK8tKAoE5GzkqRQxkjdRb",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3753,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1"
+    ],
+    "materialSha256": "f48d8b5240763a65b0529c7d830aa8909553e98176fdfadd2f2189c6865f7cc2"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，准确复述了第三方开店周期缩短至1-2周、全球部署15+Region、响应时间≤3秒，并补充了文档中提到的12+标准化IT装备，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从 3-6个月缩短到 1-2周",
+          "reason": "待测材料第14页直接包含该关键信息，实体、数量、条件均正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料第14页直接包含该关键信息，实体、数量、条件均正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操 作响应时间 ≤3S",
+          "reason": "待测材料第14页直接包含该关键信息，实体、数量、条件均正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10944,
+      "completion_tokens": 277,
+      "total_tokens": 11221,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rt7pwpEDwcsETCOPFFNLyOqj",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4027,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "90d4f4775f67701c814282a175af66e21e3f27b5d8699b510083a4f9ad822640"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整覆盖了问题所需的三项关键数据，引用文档位置准确，表述与证据一致，并诚实指出证据不足之处，没有重大错误或误导。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从 3-6个月缩短到 1-2周",
+          "reason": "待测材料第14页原文逐字包含“第三方开庖周期从 3-6个月缩短到 1-2周”，实体“第三方开店周期”、数量“3-6个月到1-2周”均与参考一致，且无矛盾或例外。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料第14页原文逐字包含“应用全球部署 15+Region”，实体“应用”、数量“15+Region”与参考一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操 作响应时间 ≤3S",
+          "reason": "待测材料第14页原文逐字包含“用户在仸何地方 打开页面或操 作响应时间 ≤3S”，其中“仸何地方”为“任何地方”的异体字，含义一致；条件“任何地方”、数量“≤3S”均正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10944,
+      "completion_tokens": 355,
+      "total_tokens": 11299,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RK7uqIMz0WulSjWmEKo0VMx2",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5200,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "90d4f4775f67701c814282a175af66e21e3f27b5d8699b510083a4f9ad822640"
+  }
+}

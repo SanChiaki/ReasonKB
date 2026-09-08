@@ -1,0 +1,158 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，最终回答为空，未回答问题，且不包含任何参考答案中的要素。",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e2",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e3",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e7",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e8",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "e9",
+          "quote": "",
+          "reason": "待测材料为空，无任何内容支持该要素。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 976,
+      "completion_tokens": 346,
+      "total_tokens": 1322,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RmZIPyaCJ0cYsyZDpmsO3Tzc",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6963,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空",
+      "elements": [
+        {
+          "id": "e1",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e2",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e3",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e4",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e5",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e6",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e7",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e8",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        },
+        {
+          "id": "e9",
+          "quote": "",
+          "reason": "材料为空",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 976,
+      "completion_tokens": 254,
+      "total_tokens": 1230,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RKxwVtklTuQqtK8Y0WPqkZ6y",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9409,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

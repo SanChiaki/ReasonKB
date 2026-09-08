@@ -1,0 +1,92 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题，且存在事实性错误（将试运行日期误写为12月18日，但原文为23月18日，且部署月份为23月，与参考一致疑似12月，但finalAnswer未提供，故不正确）",
+      "elements": [
+        {
+          "id": "H047-E1",
+          "quote": "XX市政务信息资源共享交换平台 于2020年 23月完成了部署实施工作",
+          "reason": "材料直接引用了该句，明确部署完成时间为2020年23月，与参考一致（且参考推测为12月），支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "H047-E2",
+          "quote": "目 前系统部署于XX市政务 云计算中心。",
+          "reason": "材料明确指明部署地点为XX市政务云计算中心，与参考一致，支持完整",
+          "support": "complete"
+        },
+        {
+          "id": "H047-E3",
+          "quote": "XX市政务信息资源共享交换平台于 2020年 23月18日进 入试运行 阶段。",
+          "reason": "材料直接引用了试运行开始时间2020年23月18日（参考推测为12月），与参考一致，支持完整",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 956,
+      "completion_tokens": 317,
+      "total_tokens": 1273,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rt4XGXtkLQGOdhEHG2x1ZBgr",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14419,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f155cfe8a579043d74ba7a3541b37345a49a630f829613d74169e4498d26a3d1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "H047-E1",
+          "quote": "XX市政务信息资源共享交换平台 于2020年 23月完成了部署实施工作",
+          "reason": "待测材料引用了原文，明确提及平台于2020年23月完成部署实施，与参考要素在实体、属性（部署完成时间）和数量（2020年）上匹配。虽然月份写作'23月'，但参考要素已标注为疑似OCR错误，且待测材料直接引用原文，故支持关键信息。",
+          "support": "complete"
+        },
+        {
+          "id": "H047-E2",
+          "quote": "目 前系统部署于XX市政务 云计算中心。",
+          "reason": "待测材料原文明确指出系统部署于XX市政务云计算中心，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H047-E3",
+          "quote": "XX市政务信息资源共享交换平台于 2020年 23月18日进 入试运行 阶段。",
+          "reason": "待测材料原文明确提到平台于2020年23月18日进入试运行阶段，与参考要素在实体、时间（23月18日）和事件（进入试运行）上匹配，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 956,
+      "completion_tokens": 332,
+      "total_tokens": 1288,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RwOWfq7nH0BuvyEckN6tCIvr",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13092,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f155cfe8a579043d74ba7a3541b37345a49a630f829613d74169e4498d26a3d1"
+  }
+}

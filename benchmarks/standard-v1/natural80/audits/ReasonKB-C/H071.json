@@ -1,0 +1,80 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，无法判断正确性。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料中第13页表格'公司文件、资料档案管理的及时性、稳妥性'一行的绩效标准包含该句，与参考要素完全一致，且实体和数量绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料中第13页表格同一行绩效标准包含该句，与参考要素完全一致，且实体和数量绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2447,
+      "completion_tokens": 187,
+      "total_tokens": 2634,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RyNtF7Qu3PZNtcr9k3dlx7nc",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14732,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e5b4e92312708fcaab31c4473ca9415a4efa1cf7fcc5c55b66fd9985560a3595"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "漏归、错归的次数不超过[ ]次",
+          "reason": "待测材料中该行绩效标准明确包含此文字，实体、属性、条件均匹配",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "发生文 件资料丢失的次数不超过[ ]次",
+          "reason": "待测材料中该行绩效标准明确包含此文字，实体、属性、条件均匹配",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2447,
+      "completion_tokens": 129,
+      "total_tokens": 2576,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RM7MWwwbeQ0SG9j1BMPgoiNM",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3996,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e5b4e92312708fcaab31c4473ca9415a4efa1cf7fcc5c55b66fd9985560a3595"
+  }
+}

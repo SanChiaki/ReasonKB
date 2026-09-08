@@ -1,0 +1,101 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题（填两位小数），引用了准确证据，未引入矛盾或外部知识，且明确说明基于文档证据。",
+      "elements": [
+        {
+          "id": "ele1",
+          "quote": "所有纯数字输入框为【人/天】为单位的，允许输入两位小数",
+          "reason": "待测材料完整引用了支持该要素的原文，并明确将‘按人天填工作量’对应到‘纯数字输入框为【人/天】为单位的’，且明确回答‘小数最多能填两位’，实体、数量、条件均正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 841,
+      "completion_tokens": 160,
+      "total_tokens": 1001,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RJQvF6iRbrfzfEknSeiEPqmP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7941,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "8b0ea3e96d8691000c6885b7301ac1a535de48f5431cd38e175a9457fded923e"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，明确给出“按人天填工作量时小数最多能填两位”，并引用正确文档证据，无重大错误或矛盾。",
+      "elements": [
+        {
+          "id": "ele1",
+          "quote": "所有纯数字输入框为【人/天】为单位的，允许输入两位小数",
+          "reason": "待测材料中明确包含相同表述，且支持“小数最多能填2位”的结论，实体（人/天）、数量（两位）均正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8782,
+      "completion_tokens": 144,
+      "total_tokens": 8926,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RiVyX4nsZB1ApVHZd18lHrD0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4072,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3d33902aa3fa2606ccd86593433285af7f95bd5649395bc7e1c7344529dd684e"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，指出按人天填工作量时小数最多能填两位，并引用了正确的证据，未包含重大错误。",
+      "elements": [
+        {
+          "id": "ele1",
+          "quote": "所有纯数字输入框为【人/天】为单位的，允许输入两位小数",
+          "reason": "待测材料中完整包含该引用，且实体、数量、条件均正确绑定，与参考要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8782,
+      "completion_tokens": 117,
+      "total_tokens": 8899,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RWtTBoqVstyTeNGneL65Y0h5",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4589,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3d33902aa3fa2606ccd86593433285af7f95bd5649395bc7e1c7344529dd684e"
+  }
+}

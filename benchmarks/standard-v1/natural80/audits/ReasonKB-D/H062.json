@@ -1,0 +1,110 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H062-E1",
+          "quote": "软件的代码已经完成，软件可以运行。",
+          "reason": "待测材料12.3.7结束准则中完整包含该语句。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E2",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "待测材料12.3.7结束准则中完整包含该语句。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E3",
+          "quote": "",
+          "reason": "待测材料未提供缺陷消除后回归测试的语句，仅在步骤中提及缺陷管理与改错，未涉及回归测试。",
+          "support": "missing"
+        },
+        {
+          "id": "H062-E4",
+          "quote": "开发组长统计编程、代码审查、测试、改错等的工作量",
+          "reason": "待测材料12.3.8度量中包含完整表述。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E5",
+          "quote": "开发组长统计编程、代码审查、测试、改错等的工作量，以及程序和文档的规模",
+          "reason": "待测材料12.3.8度量中完整包含了程序和文档的规模统计。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1916,
+      "completion_tokens": 339,
+      "total_tokens": 2255,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RX8rIQbXpmJBPOgVe8wZiw0w",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6657,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fb4f77a49328ef75e40fc5260c90b27f4dc27a7b90c0f3a2f9d6ce6fd9fe2352"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答任何问题，因此无法判定为正确。",
+      "elements": [
+        {
+          "id": "H062-E1",
+          "quote": "软件的代码已经完成，软件可以运行。",
+          "reason": "待测材料12.3.7结束准则中明确指出该条件，实体和属性匹配，因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E2",
+          "quote": "本规程所有文档已经完成。",
+          "reason": "待测材料12.3.7结束准则中明确指出该条件，实体和属性匹配，因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E3",
+          "quote": "",
+          "reason": "待测材料中并未出现关于回归测试的任何内容，因此缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H062-E4",
+          "quote": "开发组长统计编程、代码审查、测试、改错等的工作量",
+          "reason": "待测材料12.3.8度量中明确列出了这些工作量项目，内容匹配，因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H062-E5",
+          "quote": "以及程序和文档的规模",
+          "reason": "待测材料12.3.8中明确指出统计程序和文档的规模，实体和属性匹配，因此完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1916,
+      "completion_tokens": 307,
+      "total_tokens": 2223,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RCK84abWUbdNlKRO0F9G3Q5N",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7530,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fb4f77a49328ef75e40fc5260c90b27f4dc27a7b90c0f3a2f9d6ce6fd9fe2352"
+  }
+}

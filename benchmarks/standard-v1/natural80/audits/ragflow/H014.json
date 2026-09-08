@@ -1,0 +1,173 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答将牵头人错误地认定为项目经理（PD），而参考答案明确为CCM，且未提及参考答案中的关键团队（RMT、PDT、行销产品经理），并引入了与参考答案不符的团队（研发、供应链、客户等），因此未正确回答问题，存在重大错误。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "根据文档，项目交付问题的解决由**项目经理（PD）**牵头。",
+          "reason": "待测材料主张由项目经理（PD）牵头，与参考答案要求‘由CCM负责牵头’相矛盾，属于缺失或矛盾。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "文档中没有直接列举一个标准的“交付问题处理团队”清单。",
+          "reason": "待测材料未提及CCM通知行销部，也未提及行销部作为被通知对象，完全没有涉及该信息。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "文档中没有直接列举一个标准的“交付问题处理团队”清单。",
+          "reason": "待测材料未提及RMT，也未暗示任何类似角色，该组织要求完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "文档中没有直接列举一个标准的“交付问题处理团队”清单。",
+          "reason": "待测材料未提及PDT，也未提及类似团队（项目管理中的PDT含义不同），该信息缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "文档中没有直接列举一个标准的“交付问题处理团队”清单。",
+          "reason": "待测材料未提及行销产品经理，也未提及与行销相关的角色，该信息缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1884,
+      "completion_tokens": 453,
+      "total_tokens": 2337,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "1ff96ae8fbc440d39570f11523fd84c3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8297,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ad205f3ad44f3f5ea629b22566d19be18c1cc434f683cc9a8ad124e366ff8986"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答将牵头人错误地认定为项目经理（PD），而参考答案明确要求由CCM牵头；同时所列的协作团队与参考答案要求的RMT、PDT、行销产品经理不一致，未依据证据充分回答，存在重大错误。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "存在交付问题时，CCM负责通知行销部，并组织RMT、PDT、行销产品经理讨论解决",
+          "reason": "待测材料未包含该引用语句，也没有任何语境表明CCM是交付问题处理负责人；相反，待测材料将责任指向PD、主管等角色，与参考答案矛盾。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "存在交付问题时，CCM负责通知行销部",
+          "reason": "待测材料未提及CCM，也未提及交付问题处理中需通知行销部，元素完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "并组织RMT",
+          "reason": "待测材料未出现RMT或类似组织角色与交付问题处理的关联，没有任何部分支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "并组织PDT",
+          "reason": "待测材料有PDT相关描述，但仅作为IPD流程中的产品开发团队，与交付问题处理中CCM组织PDT无关，只出现关键词，实体关系绑定不当，不构成支持。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "行销产品经理讨论解决",
+          "reason": "待测材料未提及行销产品经理及交付问题处理，元素没有出现，属于缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9640,
+      "completion_tokens": 443,
+      "total_tokens": 10083,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "52fa2d0ee7db4ba7bd84f1a46abdd503",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16551,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "315529143a766d71126f1193a422ec9de9eaed9931974a6c5ac1b58db77e1ad0"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答声称由项目经理（PD）及主管牵头，未提及CCM；且未包含行销部、RMT、PDT、行销产品经理等关键团队，与参考答案核心结论矛盾，属于重大错误，不能正确回答问题。",
+      "elements": [
+        {
+          "id": "H014-e1",
+          "quote": "",
+          "reason": "待测材料未提及CCM（客户需求承诺经理）或任何关于CCM的叙述，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e2",
+          "quote": "",
+          "reason": "材料未涉及CCM通知行销部的内容，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e3",
+          "quote": "",
+          "reason": "材料中未提及RMT，未支持该要素，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e4",
+          "quote": "",
+          "reason": "材料中虽在个别页面有PDT相关描述（如PDT经理、计划、扩展组等），但未涉及交付问题由CCM组织PDT讨论解决，且该文档非证据来源，无明确定义或绑定，故完整缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H014-e5",
+          "quote": "",
+          "reason": "材料中未提及行销产品经理或类似角色，缺乏关键关系的绑定，故为missing。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9640,
+      "completion_tokens": 369,
+      "total_tokens": 10009,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "bed08551e5bb4892b707695ad645c4d6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 17625,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "315529143a766d71126f1193a422ec9de9eaed9931974a6c5ac1b58db77e1ad0"
+  }
+}

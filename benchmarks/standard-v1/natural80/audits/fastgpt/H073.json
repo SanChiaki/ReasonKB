@@ -1,0 +1,101 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答明确指出在“设置形状格式”菜单下的“文本选项”中调整，并补充了必要条件、数值缺失和例外情况，且未与参考答案冲突。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "演示文稿的标题文本样式应在**“设置形状格式”菜单下的“文本选项”**中调整。",
+          "reason": "待测材料中多次出现与参考文献一致的指引，实体（设置形状格式、文本选项）和动作（调整）正确绑定，完全支持参考答案的最小要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1116,
+      "completion_tokens": 149,
+      "total_tokens": 1265,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RIlzXeMbQk0T5B9JnJxTPlhf",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4049,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "94bf8d10c126d88e461e75b41d5ef76bd6f23b07cb18727de1842661b674044b"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，内容与材料证据一致，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "如需更改请在（设置形状格式）菜单下（文本选项）中调整标题文本预设",
+          "reason": "待测材料多个文档页面（如doc_f386b3f7页面14、doc_7951a2b0页面17、doc_7d9bb329页面9等）均明确包含该描述，完整匹配参考要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9098,
+      "completion_tokens": 143,
+      "total_tokens": 9241,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RZlq5Qi9CZnHgTQE4JMmxZQ6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3210,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ee6604087491898904116bc7789b374b0d6cef15e6064fa7a50f7d8097054231"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答明确指出标题文本样式应在“设置形状格式”菜单下的“文本选项”中调整，并给出了证据引用，与参考答案一致，未出现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "如需更改请在（设置形状格式）菜单下（文本选项）中调整标题文本预设",
+          "reason": "待测材料在多个文档（如doc_f386b3f7页面14，doc_7951a2b0页面17，doc_7d9bb329页面9等）中重复出现此句，完整支持了参考答案中“标题文本样式需在设置形状格式菜单下的文本选项中调整”的要素，实体和数量均正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9098,
+      "completion_tokens": 188,
+      "total_tokens": 9286,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RNGZmI3WEFd7Clemyraw9wEk",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4766,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ee6604087491898904116bc7789b374b0d6cef15e6064fa7a50f7d8097054231"
+  }
+}

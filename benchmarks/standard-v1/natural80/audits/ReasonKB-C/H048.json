@@ -1,0 +1,152 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题，未包含任何要素。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出发起人小组，且属于大型项目问卷调查小组的组成部分，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出项目执行团队，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出受影响的业务组，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出项目治理组，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表。",
+          "reason": "待测材料明确列出客户社区的代表，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料明确说明工具仅支持高层级诊断，最终决策取决于相关方并得到支持，直接包含不能直接替相关方做决定的意思，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料原句包含“该工具仅支持高层级诊断”，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料明确说明最终决策取决于相关方并应得到其支持，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1223,
+      "completion_tokens": 617,
+      "total_tokens": 1840,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RfZHDof6srNTvsN3eChF40MR",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 29889,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "564c4c706a385242e0ede928ea1af60369fc10910b85238d32ead22a0ddd0f4f"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "待测材料明确列出大型项目问卷小组包含发起人小组",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "待测材料明确列出项目执行团队",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "待测材料明确列出受影响的业务组",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "待测材料明确列出项目治理组",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "对于大型项目，这可能包含发起人小组、项目执行团队、受影响的业务组、项目治理组和客户社区的代表",
+          "reason": "待测材料明确列出客户社区的代表",
+          "support": "complete"
+        },
+        {
+          "id": "6",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料明确指出该工具不能替代决策，最终由相关方决定",
+          "support": "complete"
+        },
+        {
+          "id": "7",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料原文明确说明仅支持高层级诊断",
+          "support": "complete"
+        },
+        {
+          "id": "8",
+          "quote": "该工具仅支持高层级诊断，最终决策应取决于相关方并应得到其支持。",
+          "reason": "待测材料原文明确说明最终决策取决于相关方并获其支持",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1223,
+      "completion_tokens": 549,
+      "total_tokens": 1772,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-ROdzBNeMZtnRpmKuYRodW5K0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13205,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "564c4c706a385242e0ede928ea1af60369fc10910b85238d32ead22a0ddd0f4f"
+  }
+}

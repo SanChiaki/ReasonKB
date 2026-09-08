@@ -1,0 +1,121 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer完整回答了问题，明确给出项目成员权限因角色而异，并明确指出项目经理以外的人没有删除权限，且无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "公司参与项目的所有人员（除项目经理外）对文档服务器上的文档只具有存放和查看的权限",
+          "reason": "待测材料在《项目管理流程及制度》部分直接引用了该句，且未改变实体（公司参与项目的所有人员，除项目经理外）、属性（只具有存放和查看）和条件（对文档服务器上的文档），因此完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "不具备修改、删除等任何操作权限",
+          "reason": "待测材料在《项目管理流程及制度》部分紧接E1的引用后，直接引用了该句，且未改变实体（公司参与项目的所有人员，除项目经理外）、否定（不具备）和例外（修改、删除等），因此完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1823,
+      "completion_tokens": 256,
+      "total_tokens": 2079,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RAH3fk1tdL46ZvRZTF6iWXRS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7250,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "b001b840a18718d8af35fe97cd5c2a888c43332bb0e602191b5fa18377a41872"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer正确回答了问题，明确指出项目经理以外的人没有删除权限，并给出了基于文档的详细权限说明，未包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "公司参与项目的所有人员（除项目经理外）对文档服务器上的文档只具有存放和查看的权限",
+          "reason": "待测材料中doc_8f438dcd页面13包含完全一致的句子，实体、属性、条件均匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "不具备修改、删除等任何操作权限。",
+          "reason": "待测材料中doc_8f438dcd页面13在相同句子中完整包含该表述，否定和例外正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10426,
+      "completion_tokens": 207,
+      "total_tokens": 10633,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RfuQHk1nJUQ6Fx24tu36omUL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7114,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ee15b6258ae0f06ef3372547a23221f00495269c6ebf895065f96c1082523c1d"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，明确指出项目经理以外人员无删除权限，且引用了相关文档；对项目成员权限的说明细致且区分了不同文档/角色，无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "公司参与项目的所有人员（除项目经理外）对文档服务器上的文档只具有存放和查看的权限",
+          "reason": "该quote逐字摘自待测材料（项目管理流程及制度）页面13，实体、条件、否定均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "不具备修改、删除等任何操作权限。",
+          "reason": "该quote逐字摘自待测材料（项目管理流程及制度）页面13，紧接E1的引用，否定和例外绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10426,
+      "completion_tokens": 214,
+      "total_tokens": 10640,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R0rKpGCAOSrpGu7OuXpNBlp8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8229,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ee15b6258ae0f06ef3372547a23221f00495269c6ebf895065f96c1082523c1d"
+  }
+}

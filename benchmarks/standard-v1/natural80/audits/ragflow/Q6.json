@@ -1,0 +1,503 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答中金牌单产品存储、光传送、华为云Stack、计算均错标为500万，银牌单产品视频会议等四项正确但多产品各产品数值错误，且未提供认证经销商50万门槛，未正确回答问题",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "\"多产品**：数通为3000；存储、光传送、华为云Stack、计算均为1500；视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为500。\"",
+          "reason": "待测材料中明确金牌多产品各产品数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "\"数通为1500\"",
+          "reason": "待测材料中金牌单产品数通数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "\"单产品**：数通为1500；存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料将金牌存储写为500，与参考1500矛盾，仅出现关键词，数值绑定错误",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "\"单产品**：数通为1500；存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料将金牌光传送写为500，与参考1500矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "E5",
+          "quote": "\"单产品**：数通为1500；存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料将金牌华为云Stack写为500，与参考1500矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "E6",
+          "quote": "\"单产品**：数通为1500；存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料将金牌计算写为500，与参考1500矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "E7",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为500\"",
+          "reason": "待测材料金牌视频会议数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E8",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为500\"",
+          "reason": "待测材料金牌数通网络安全数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E9",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为500\"",
+          "reason": "待测材料金牌光接入数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E10",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为500\"",
+          "reason": "待测材料金牌企业服务与软件数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E11",
+          "quote": "\"多产品**：数通为1200；存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料仅给出数通1200，其他产品数值错误，未提供完整多产品1200万门槛",
+          "support": "partial"
+        },
+        {
+          "id": "E12",
+          "quote": "\"单产品**：数通为500\"",
+          "reason": "待测材料银牌单产品数通数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E13",
+          "quote": "\"存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料银牌存储数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E14",
+          "quote": "\"存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料银牌光传送数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E15",
+          "quote": "\"存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料银牌华为云Stack数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E16",
+          "quote": "\"存储、光传送、华为云Stack、计算均为500\"",
+          "reason": "待测材料银牌计算数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E17",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为200\"",
+          "reason": "待测材料银牌视频会议数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E18",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为200\"",
+          "reason": "待测材料银牌数通网络安全数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E19",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为200\"",
+          "reason": "待测材料银牌光接入数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E20",
+          "quote": "\"视频会议（含协作平板）、数通网络安全、光接入、企业服务与软件均为200\"",
+          "reason": "待测材料银牌企业服务与软件数值正确",
+          "support": "complete"
+        },
+        {
+          "id": "E21",
+          "quote": "",
+          "reason": "待测材料明确声称认证经销商无业绩门槛或证据不足，未提供50万门槛，与参考矛盾",
+          "support": "missing"
+        },
+        {
+          "id": "E22",
+          "quote": "\"多产品认证要求**：需至少满足任意2个同层级单产品身份的认证要求，且总业绩达到同层级多产品身份的业绩要求\"",
+          "reason": "待测材料完整支持参考描述",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4337,
+      "completion_tokens": 1475,
+      "total_tokens": 5812,
+      "prompt_tokens_details": {
+        "cached_tokens": 2560
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R2oT06Kzrw0vUMVL1sP3WH1n",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 20747,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1",
+      "invalid_quote:E2",
+      "invalid_quote:E7",
+      "invalid_quote:E8",
+      "invalid_quote:E9",
+      "invalid_quote:E10",
+      "invalid_quote:E11",
+      "invalid_quote:E12",
+      "invalid_quote:E13",
+      "invalid_quote:E14",
+      "invalid_quote:E15",
+      "invalid_quote:E16",
+      "invalid_quote:E17",
+      "invalid_quote:E18",
+      "invalid_quote:E19",
+      "invalid_quote:E20",
+      "invalid_quote:E22"
+    ],
+    "materialSha256": "84a43cf6c7cbd26738c38cd70b4e0795655b32a5aba47f9ff213ba157d751b88"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答中关于金牌/银牌经销商业绩门槛的具体数值与参考答案不一致，且关键产品（如存储、光传送等）的数值分配错误，导致回答包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "业绩门槛 （单位：万）</th><td>数通</td><td>3000</td>",
+          "reason": "表格显示数通金牌多产品为3000，支持E1",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "数通</td><td>3000</td><td>1500</td>",
+          "reason": "表格行中数通对应金牌单产品1500，支持E2",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "<td>存储</td><td>1500</td><td>500</td>",
+          "reason": "表格中存储金牌单产品为1500，支持E3",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "<td>光传送</td><td>1500</td><td>500</td>",
+          "reason": "表格中光传送金牌单产品为1500，支持E4",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "<td>华为云Stack</td><td>1500</td><td>500</td>",
+          "reason": "表格中华为云Stack金牌单产品为1500，支持E5",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "<td>计算</td><td>1500</td><td>500</td>",
+          "reason": "表格中计算金牌单产品为1500，支持E6",
+          "support": "complete"
+        },
+        {
+          "id": "E7",
+          "quote": "<td>视频会议 （含协作平板）</td><td>500</td><td>200</td>",
+          "reason": "表格中视频会议金牌单产品为500，支持E7",
+          "support": "complete"
+        },
+        {
+          "id": "E8",
+          "quote": "<td>数通网络安全</td><td>500</td><td>200</td>",
+          "reason": "表格中数通网络安全金牌单产品为500，支持E8",
+          "support": "complete"
+        },
+        {
+          "id": "E9",
+          "quote": "<td>光接入</td><td>500</td><td>200</td>",
+          "reason": "表格中光接入金牌单产品为500，支持E9",
+          "support": "complete"
+        },
+        {
+          "id": "E10",
+          "quote": "<td>企业服务与软件</td><td>500</td><td>200</td>",
+          "reason": "表格中企业服务与软件金牌单产品为500，支持E10",
+          "support": "complete"
+        },
+        {
+          "id": "E11",
+          "quote": "数通</td><td>3000</td><td>1500</td><td>1200</td>",
+          "reason": "表格中银牌多产品为1200，支持E11",
+          "support": "complete"
+        },
+        {
+          "id": "E12",
+          "quote": "数通</td><td>3000</td><td>1500</td><td>1200</td><td>500</td>",
+          "reason": "表格中银牌单产品数通为500，支持E12",
+          "support": "complete"
+        },
+        {
+          "id": "E13",
+          "quote": "<td>存储</td><td>1500</td><td>500</td>",
+          "reason": "表格中存储银牌单产品为500，支持E13",
+          "support": "complete"
+        },
+        {
+          "id": "E14",
+          "quote": "<td>光传送</td><td>1500</td><td>500</td>",
+          "reason": "表格中光传送银牌单产品为500，支持E14",
+          "support": "complete"
+        },
+        {
+          "id": "E15",
+          "quote": "<td>华为云Stack</td><td>1500</td><td>500</td>",
+          "reason": "表格中华为云Stack银牌单产品为500，支持E15",
+          "support": "complete"
+        },
+        {
+          "id": "E16",
+          "quote": "<td>计算</td><td>1500</td><td>500</td>",
+          "reason": "表格中计算银牌单产品为500，支持E16",
+          "support": "complete"
+        },
+        {
+          "id": "E17",
+          "quote": "<td>视频会议 （含协作平板）</td><td>500</td><td>200</td>",
+          "reason": "表格中视频会议银牌单产品为200，支持E17",
+          "support": "complete"
+        },
+        {
+          "id": "E18",
+          "quote": "<td>数通网络安全</td><td>500</td><td>200</td>",
+          "reason": "表格中数通网络安全银牌单产品为200，支持E18",
+          "support": "complete"
+        },
+        {
+          "id": "E19",
+          "quote": "<td>光接入</td><td>500</td><td>200</td>",
+          "reason": "表格中光接入银牌单产品为200，支持E19",
+          "support": "complete"
+        },
+        {
+          "id": "E20",
+          "quote": "<td>企业服务与软件</td><td>500</td><td>200</td>",
+          "reason": "表格中企业服务与软件银牌单产品为200，支持E20",
+          "support": "complete"
+        },
+        {
+          "id": "E21",
+          "quote": "数通</td><td>3000</td><td>1500</td><td>1200</td><td>500</td><td>50</td>",
+          "reason": "表格最后一列认证经销商为50，支持E21",
+          "support": "complete"
+        },
+        {
+          "id": "E22",
+          "quote": "多产品认证：至少满足任意2 个同层级单产品身份的认证要求，且总业绩达到同层级多产品身份的业绩要求。",
+          "reason": "原文完整支持E22",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 24225,
+      "completion_tokens": 1538,
+      "total_tokens": 25763,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R92gCV4y2NKppNUXNMCyjxmP",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 26049,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c37750543b055b226ba2d7a42e25ad55b578cdd3b49ec0c77fa559841380b076"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答错误地将金牌单产品门槛归类为存储、光传送、华为云Stack、计算均为500（实际应为1500），且将金牌多产品各产品门槛也错误列出（如存储、光传送等应为1500，但回答中列在多产品下为1500？需仔细核对：实际金牌多产品整体为3000，并非分产品列示；回答混淆了表格结构，导致大量数值错配）。同时声称认证经销商无业绩门槛（与表格中50万矛盾），属于重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "<tr><th rowspan=\"9\">业绩门槛 （单位：万）</th><td>数通</td><td rowspan=\"9\">3000</td><td>1500</td><td rowspan=\"9\">1200</td><td>500</td><td rowspan=\"9\">50</td></tr>",
+          "reason": "表格中“3000”位于金牌多产品列，但“金牌经销商多产品业绩门槛为3000万”表述正确。待测材料中，该行明确“3000”是金牌多产品业绩门槛，且非针对单个产品，支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "E2",
+          "quote": "<tr><th rowspan=\"9\">业绩门槛 （单位：万）</th><td>数通</td><td rowspan=\"9\">3000</td><td>1500</td><td rowspan=\"9\">1200</td><td>500</td><td rowspan=\"9\">50</td></tr>",
+          "reason": "表格中“1500”位于金牌单产品列，且该行产品为“数通”，金牌单产品数通门槛为1500万。待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E3",
+          "quote": "<tr><td>存储</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“1500”和“500”分别对应金牌和银牌单产品存储门槛。待测材料明确存储行金牌单产品为1500万。",
+          "support": "complete"
+        },
+        {
+          "id": "E4",
+          "quote": "<tr><td>光传送</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“光传送”行，“1500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E5",
+          "quote": "<tr><td>华为云Stack</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“华为云Stack”行，“1500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E6",
+          "quote": "<tr><td>计算</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“计算”行，“1500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E7",
+          "quote": "<tr><td>视频会议 （含协作平板）</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“视频会议（含协作平板）”行，“500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E8",
+          "quote": "<tr><td>数通网络安全</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“数通网络安全”行，“500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E9",
+          "quote": "<tr><td>光接入</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“光接入”行，“500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E10",
+          "quote": "<tr><td>企业服务与软件</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“企业服务与软件”行，“500”对应金牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E11",
+          "quote": "<tr><th rowspan=\"9\">业绩门槛 （单位：万）</th><td>数通</td><td rowspan=\"9\">3000</td><td>1500</td><td rowspan=\"9\">1200</td><td>500</td><td rowspan=\"9\">50</td></tr>",
+          "reason": "表格中“1200”位于银牌多产品列，待测材料明确银牌多产品业绩门槛为1200万。",
+          "support": "complete"
+        },
+        {
+          "id": "E12",
+          "quote": "<tr><th rowspan=\"9\">业绩门槛 （单位：万）</th><td>数通</td><td rowspan=\"9\">3000</td><td>1500</td><td rowspan=\"9\">1200</td><td>500</td><td rowspan=\"9\">50</td></tr>",
+          "reason": "表格中“500”位于银牌单产品列，且该行产品为“数通”，银牌单产品数通门槛为500万。待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E13",
+          "quote": "<tr><td>存储</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“500”对应存储行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E14",
+          "quote": "<tr><td>光传送</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“500”对应光传送行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E15",
+          "quote": "<tr><td>华为云Stack</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“500”对应华为云Stack行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E16",
+          "quote": "<tr><td>计算</td><td>1500</td><td>500</td></tr>",
+          "reason": "表格中“500”对应计算行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E17",
+          "quote": "<tr><td>视频会议 （含协作平板）</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“200”对应视频会议（含协作平板）行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E18",
+          "quote": "<tr><td>数通网络安全</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“200”对应数通网络安全行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E19",
+          "quote": "<tr><td>光接入</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“200”对应光接入行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E20",
+          "quote": "<tr><td>企业服务与软件</td><td>500</td><td>200</td></tr>",
+          "reason": "表格中“200”对应企业服务与软件行银牌单产品门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E21",
+          "quote": "<tr><th rowspan=\"9\">业绩门槛 （单位：万）</th><td>数通</td><td rowspan=\"9\">3000</td><td>1500</td><td rowspan=\"9\">1200</td><td>500</td><td rowspan=\"9\">50</td></tr>",
+          "reason": "表格中“50”位于“认证经销商”列，且明确为业绩门槛，待测材料支持。",
+          "support": "complete"
+        },
+        {
+          "id": "E22",
+          "quote": "多产品认证：至少满足任意2 个同层级单产品身份的认证要求，且总业绩达到同层级多产品身份的业绩要求。",
+          "reason": "待测材料第2页明确“多产品认证：至少满足任意2个同层级单产品身份的认证要求，且总业绩达到同层级多产品身份的业绩要求”，与E22完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 24225,
+      "completion_tokens": 2202,
+      "total_tokens": 26427,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rvs6bXboyQvLNHdGzDemgE4V",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 32839,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1",
+      "invalid_quote:E2",
+      "invalid_quote:E11",
+      "invalid_quote:E12",
+      "invalid_quote:E21"
+    ],
+    "materialSha256": "c37750543b055b226ba2d7a42e25ad55b578cdd3b49ec0c77fa559841380b076"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，明确指出了安装测试应验证安装后正常运行，并给出了具体方法和完成标准，未发现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "软件安装测试除了确认能装上，还应该**核实软件在安装后可立即正常运行**。",
+          "reason": "待测材料直接支持该要素，实体、属性均正确对应。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通常是指**运行大量为功能测试制定的测试**",
+          "reason": "待测材料明确绑定该表述，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务",
+          "reason": "待测材料直接引用该技术方法，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "`<产品名称>` 事务成功执行，没有出现任何故障",
+          "reason": "待测材料完整呈现完成标准，但省略了产品名称，不过作为通用表述已可支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1704,
+      "completion_tokens": 291,
+      "total_tokens": 1995
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "0abb1a1d532f4993b6feeefc98d62eb8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3284,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ee1926d496aaca921d7e73b3c8bac47cb7bddb17df49015549ed89d3320132bb"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确聚焦于问题“安装后还应验证什么”，完整覆盖了参考回答中的四个核心要素（核实可立即正常运行、运行功能测试、使用预定义脚本子集、完成标准为事务成功无故障），并补充了前提条件和例外情况，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常 运行。",
+          "reason": "待测材料第20页明确写出“第二个目的是 核实软件在安装后可立即正常 运行。”，与参考要素1完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是指运行大量为功能测试制定的测试。",
+          "reason": "待测材料第20页明确写出“这通 常是指运行大量为功能测试制定的测试。”，与参考要素2完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "待测材料第19页明确写出“使用预先确定的功能测试脚本子集来运行事务。”，与参考要素3完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功执行，没有出现任何故障。",
+          "reason": "待测材料第19页明确写出“事务成功执行，没有出现任何故障。”，与参考要素4完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 28667,
+      "completion_tokens": 366,
+      "total_tokens": 29033
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "77a949084ed0447a8ebaf5d788f47435",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8142,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3fac16beb8320260e5fbdb0e6ce3c3e388420624bfcfa4ba4167f52eeab5d5e0"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答准确回答了问题，引用文档中关于安装测试第二目的、技术方法和完成标准的证据，内容完整无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常运行。",
+          "reason": "引用与参考完全一致，待测材料完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是 指运行 大量为功能测试 制定的测试。",
+          "reason": "引用与参考一致，完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "引用与参考一致，完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功执行，没有出现任何故障。",
+          "reason": "引用与参考一致，完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 57166,
+      "completion_tokens": 268,
+      "total_tokens": 57434
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "c9b447822e78477b950a2bfb27be317d",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12496,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c7d1dacff608bf13599a77e97cc1e08518d2fca51474aaf9b8ede22805395991"
+  }
+}

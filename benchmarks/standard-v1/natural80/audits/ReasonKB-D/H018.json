@@ -1,0 +1,103 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常 运行。",
+          "reason": "待测材料中直接包含此语句，实体和属性完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是 指运行 大量为功能测试 制定的测试。",
+          "reason": "待测材料中的表述与参考要素一致，无矛盾或缺失。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "待测材料中明确提及该方法，与参考完全对应。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功执行，没有出现任何故障。",
+          "reason": "待测材料中完成标准完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5351,
+      "completion_tokens": 259,
+      "total_tokens": 5610,
+      "prompt_tokens_details": {
+        "cached_tokens": 5120
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R0eCdsndEtQcTJu8GOVAaVTB",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3825,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "3a9798aea6f1d44dbad7c21cb72bb4c6751170cc9490fff2491c5ad90cd1edbb"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常 运行。",
+          "reason": "完全支持，且实体和属性绑定正确",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是指运行 大量为功能测试 制定的测试。",
+          "reason": "完全支持，但原文中关键词出现在前文而非表格内，实体绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "完全支持，方法描述完整，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "<产品名称> 事务成功执行，没有出现任何故障。",
+          "reason": "完全支持，完成标准与参考一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5351,
+      "completion_tokens": 253,
+      "total_tokens": 5604,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RPORJ76uSdGmYBgZg6HAnxD4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7439,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:4"
+    ],
+    "materialSha256": "3a9798aea6f1d44dbad7c21cb72bb4c6751170cc9490fff2491c5ad90cd1edbb"
+  }
+}

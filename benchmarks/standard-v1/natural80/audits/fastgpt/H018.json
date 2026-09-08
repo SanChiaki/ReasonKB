@@ -1,0 +1,153 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽然在开头包含了参考要素1、2、3、4的表述，但大量扩展了与参考无关的安装测试内容（如异常处理、卸载、升级等），且回答不仅限于问题所要求的'安装后可立即正常运行'这一核心，造成答非所问和范围偏差，因此整体回答不被视为正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "核实软件在安装后可立即正常运行",
+          "reason": "待测材料第一点明确包含'核实软件在安装后可立即正常运行'，实体和属性与参考一致，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通常是指运行大量为功能测试制定的测试",
+          "reason": "待测材料第一点直接引用'通常是指运行大量为功能测试制定的测试'，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务",
+          "reason": "待测材料在'关于特殊事项的说明'中提及'需要考虑应选择哪些事务'，但未明确体现'使用预先确定的功能测试脚本子集’，仅部分涉及，因此判定为部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功执行，没有出现任何故障",
+          "reason": "待测材料在'证据不足部分'明确提到'事务成功执行，没有出现任何故障'，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2690,
+      "completion_tokens": 372,
+      "total_tokens": 3062,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RpTY7DqgIL8fQEKYsjZ9SK3w",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7467,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:3"
+    ],
+    "materialSha256": "7098d7ad8b3c3057175e3bfd23a98ba93c92b8e7eaf55b9a81aa22cfa916be8f"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答虽然引用并整合了多个文档内容，但并未直接给出参考答案的核心结论（即安装测试第二个目的是核实软件安装后可立即正常运行等），而是罗列了其他验证项，且部分内容超出了问题范围，未回答问题所要求的核心验证内容，因此不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装 后可立即正常 运行。",
+          "reason": "待测材料中的doc_f20051e6和doc_39ff7e5c均包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通常是 指运行大量为功能测试制定的测试。",
+          "reason": "待测材料中的doc_f20051e6和doc_39ff7e5c均包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试 脚本子集来 运行事务。",
+          "reason": "待测材料中的doc_f20051e6和doc_39ff7e5c均包含此句，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功 执行， 没有出现任 何故障。",
+          "reason": "待测材料中的doc_f20051e6和doc_39ff7e5c均包含此句，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10759,
+      "completion_tokens": 368,
+      "total_tokens": 11127,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RDPAQxZtv0yar4C9gxCk29I0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6131,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fe00278ecfb1e0f960a36b4712c84ab9bef3b55f2e8ea5d06813fb812f0fc898"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽然正确回答了问题，但包含大量超出参考答案范围的内容，且未突出参考答案核心的四个要素，因此不被视为完全正确的最终回答。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装 后可立即正常 运行。",
+          "reason": "待测材料中的doc_f20051e6...页面20和doc_39ff7e5c...页面18包含完全相同的表述，实体、属性、条件均与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通常是 指运行大量为功能测试制定的测试。",
+          "reason": "待测材料doc_f20051e6...页面20和doc_39ff7e5c...页面18均包含此表述，且前后语境一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试 脚本子集来 运行事务。",
+          "reason": "待测材料doc_f20051e6...页面20和doc_39ff7e5c...页面19的技术部分均包含此句，实体和条件匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "事务成功 执行， 没有出现任 何故障。",
+          "reason": "待测材料doc_f20051e6...页面20和doc_39ff7e5c...页面19的完成标准中均包含完全一致的表述。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10759,
+      "completion_tokens": 376,
+      "total_tokens": 11135,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RxRZu4uozHCImC5rwOt7jGSn",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6395,
+    "attempts": [
+      {
+        "error": "Expecting value: line 1 column 1 (char 0)",
+        "at": "2026-09-07T11:50:36+0800"
+      }
+    ],
+    "validationIssues": [],
+    "materialSha256": "fe00278ecfb1e0f960a36b4712c84ab9bef3b55f2e8ea5d06813fb812f0fc898"
+  }
+}

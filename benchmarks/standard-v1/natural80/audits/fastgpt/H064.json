@@ -1,0 +1,103 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整准确地回答了问题，明确指出系统提示“请选择要上线的资源”，并补充了条件和证据来源，未包含重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "当用户不选择任何数据，直接点击“全部发布”按钮时，系统会给出提示“请选择要上线的资源”。",
+          "reason": "材料完整包含了不选择数据的条件、点击全部发布按钮的操作，以及系统提示的具体内容，实体和属性正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 860,
+      "completion_tokens": 130,
+      "total_tokens": 990,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RNvTFfDrRXjd9ShsYc46F3Dj",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4398,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e9db29d54916a71e8be92a5157c86073215eea3c2e8b302ecc33ec498d6660f7"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确提炼了测试用例MM-092的内容，明确指出系统提示“请选择要上线的资源”，并正确引用证据来源，无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发 布按钮；",
+          "reason": "待测材料中的测试用例MM-092的步骤明确描述“不选择任何数据，点击全部发布按钮”，与参考要素中的行为部分一致；但待测材料未提及“点击全部发布按钮”的完整措辞（材料中为“全部发 布按钮”，存在空格，但语义一致），且无矛盾内容，因此视为完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10169,
+      "completion_tokens": 180,
+      "total_tokens": 10349,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtAgouY6mASyVP8wqoQ5LDG4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7057,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d26e1d60f7caacfd513eb6cdb6ea965e5b543e5005019d29918ba22d0807df06"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答明确给出了系统应提示‘请选择要上线的资源’，并正确引用了文档 ID 为 doc_0f8826db-2391-40bf-a9cf-b33fddedc5cf 的第 16 页测试用例 MM-092，信息准确且回答了问题，无重大错误。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "1、不选择任何数据，点击全部发 布按钮；\n给出提示：请选择要上线的资源；",
+          "reason": "待测材料中 doc_0f8826db-2391-40bf-a9cf-b33fddedc5cf 页面16（MM-092）完整包含前提条件‘不选择任何数据，点击全部发布按钮’和预期结果‘给出提示：请选择要上线的资源’，实体、条件、行为、提示内容均与参考答案匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 10169,
+      "completion_tokens": 227,
+      "total_tokens": 10396,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rw3STPMDE03mcQN1NfPBidPA",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10240,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "d26e1d60f7caacfd513eb6cdb6ea965e5b543e5005019d29918ba22d0807df06"
+  }
+}

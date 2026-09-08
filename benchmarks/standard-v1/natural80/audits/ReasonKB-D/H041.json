@@ -1,0 +1,89 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，没有回答任何问题，缺少所有必要的答案内容。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从3-6个月缩短到 1-2周",
+          "reason": "待测材料中明确提到‘第三方开庖周期从3-6个月缩短到 1-2周’，实体、数量、条件完全匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料中明确提到‘应用全球部署 15+Region’，实体、数量、条件完全匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操 作响应时间 ≤3S",
+          "reason": "待测材料中明确提到‘用户在仸何地方 打开页面或操 作响应时间 ≤3S’，实体、条件、数量完全匹配，支持完整。注意‘仸何’为原文排版或错别字，但含义与‘任何’一致，不影响支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 722,
+      "completion_tokens": 294,
+      "total_tokens": 1016,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ru3g1CtGn53Y1Ap01QfDwAqH",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5452,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "61b009a26b378d6f3db5b6559e42ed98ad16248294f0d8f2f479cec99d9d6dc2"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题，故不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从\n3-6个月缩短到 1-2周",
+          "reason": "待测材料明确提到第三方开店周期从3-6个月缩短到1-2周，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料明确提到应用全球部署15+Region，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操\n作响应时间 ≤3S",
+          "reason": "待测材料明确提到用户在任意地方打开页面或操作响应时间≤3秒，与参考要素一致（注意'仸'为错别字，但含义相同）。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 722,
+      "completion_tokens": 249,
+      "total_tokens": 971,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RH6D4WPQh73yT4QwOTaVlCtl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11199,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "61b009a26b378d6f3db5b6559e42ed98ad16248294f0d8f2f479cec99d9d6dc2"
+  }
+}

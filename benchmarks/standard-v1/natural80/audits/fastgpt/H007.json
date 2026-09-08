@@ -1,0 +1,139 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答虽然提供了立项报告评审内容的详细列表，但该列表与参考答案的核心要素（可行性评估报告的七部分内容）完全不同，且未包含参考答案中任何一项关键要素（如项目背景及概况、市场分析、优劣势分析等）。回答未能直接回应问题所期望的“可行性评估报告的内容”，因此不视为正确回答。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "这里需要引用待测材料中的逐字内容，但待测材料未包含‘可行性评估报告’或七部分内容的提及，因此此引用示意性表示待测材料中不存在对应内容。",
+          "reason": "待测材料未提及“可行性评估报告”，也未列出参考答案中的七部分内容（项目背景及概况；项目市场分析或内外部环境分析；项目优劣势分析；项目实施方案及计划；项目风险分析及对应措施；项目投资成本与回报分析；项目实施建议）。待测材料内容属于项目评估报告的撰写提纲，而非可行性评估报告的七部分。因此，参考要素1未被支持。",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料未提及可行性评估报告的撰写者（项目发起人或指定人员）或与市场信息收集与分析的关系。因此无支持。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "",
+          "reason": "待测材料未提及“市场信息收集与分析”及其范围与项目类型的关系。因此无支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3071,
+      "completion_tokens": 366,
+      "total_tokens": 3437,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "6a2810a6019d4f8fa149666645e69177",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6688,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f701d2f823ba869c58c601448fa901fc5d37b064defc6b25b67b0ad434207c52"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答列举了项目评估报告撰写提纲中的内容（如项目概况、投资、效益等），但未包含“可行性评估报告包含七部分内容”（要素1），也未提及“市场信息收集与分析”及“项目类型差异”（要素2、3），且最终回答引用多个文档，未使用参考答案支持的文档。整体上未完整回答评审通常看立项报告中的哪些内容（因缺失七部分内容），故不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "通常，可行性评估报告包括如下七部分内容：（1）项目背景及概况；（2）项目市场分析或内外部环境分析；（3）项目优劣势分析；（4）项目实施方案及计划；（5）项目风险分析及对应措施；（6）项目投资成本与回报分析；（7）项目实施建议。",
+          "reason": "待测材料所有页面从未提及“可行性评估报告”或“可行性评估报告包括七部分内容”这一表述。材料有“可行性研究”（doc_fecd706...）和“可行性分析”（doc_3a8cf9...），但未列出七部分清单，也未给出具体七部分内容，故完全不支持要素1。",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "由项目发起人或指定的人员，根据市场信息收集与分析的情况，撰写可行性报告。",
+          "reason": "待测材料未提及“可行性评估报告由项目发起人或指定人员撰写”或“根据市场信息收集与分析情况撰写”等内容，故缺少要素2。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "待测材料未提及“市场信息收集与分析”或“市场信息收集范围根据项目类型不同而异”等内容。材料多处提及“市场调研、市场需求、竞争分析”等，但未绑定“项目类型不同”这一条件，故缺少要素3。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13564,
+      "completion_tokens": 466,
+      "total_tokens": 14030,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "c89fcbc4583e44469382cc4ef5626179",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9623,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "ce3c1af0c2b00a8d36759a96c2ac60c54f2b25a2c73231b5a13e535176322ba1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer虽然结构完整，但核心内容与参考回答不符：参考回答明确指向‘可行性评估报告’及其七个标准部分，而finalAnswer基于另一套‘项目评估报告撰写提纲’和软件评估内容，未回答参考回答中的要点，且包含了大量超出问题要求的内容（如过程评估、软件功能效果），属于重大偏差。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "通常，可行性评估报告包括如下七部分内容：（1）项目背景及概况；（2）项目市场分析或内外部环境分析；（3）项目优劣势分析；（4）项目实施方案及计划；（5）项目风险分析及对应措施；（6）项目投资成本与回报分析；（7）项目实施建议。",
+          "reason": "待测材料中没有任何关于“可行性评估报告”的七部分内容，也未出现相同的七项要素。material中包含项目评估报告提纲（背景、进度、预算等），但要素完全不同，且无“市场分析”“优劣势分析”等关键点。因此不完整支持该陈述。",
+          "support": "missing"
+        },
+        {
+          "id": "quote from doc_cc2a681b...页140：第一项概述中提及“项目情况简述”、“项目决策”等，但这些概念和内容与参考要素中的“可行性评估报告”不匹配，无“由项目发起人或指定人员撰写”的关键信息。material中未出现“可行性报告”“发起人”等。相反，其他文档提到“研发组长和评估组长形成可行性研究报告”（doc_fecd702e...），但该文档未出现在supports列表中，因此不完全支持。",
+          "quote": "",
+          "reason": "材料中未见“由项目发起人或指定的人员撰写”的表述，也未在引用的材料中明确提到“市场信息收集与分析”作为撰写的依据。虽然研发管理制度中提到“可行性研究”由研发组长和评估组长进行，但未提“市场信息收集与分析”的情况，且与参考引用文档不匹配。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "材料中未出现“根据项目类型不同”或“市场信息收集”的相关内容。虽然材料中“项目评估报告”会有不同内容，但未涉及”市场信息收集与分析”的差异化范围。因此不完整。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 13564,
+      "completion_tokens": 554,
+      "total_tokens": 14118,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "c8520ae5a89a4010b52e9c2b5d6a9c50",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6699,
+    "attempts": [],
+    "validationIssues": [
+      "element_id_mismatch"
+    ],
+    "materialSha256": "ce3c1af0c2b00a8d36759a96c2ac60c54f2b25a2c73231b5a13e535176322ba1"
+  }
+}

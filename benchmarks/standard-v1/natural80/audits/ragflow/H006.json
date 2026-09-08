@@ -1,0 +1,670 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答将项目阶段归纳为启动、规划、执行、监控、收尾五个阶段，与参考答案的七个阶段（立项、启动、规划、实施、监控、收尾、总结）不符，遗漏了立项和总结阶段；且各阶段责任人员定义与参考答案不一致（如缺少项目发起人、项目管理委员会、执行秘书处等关键角色），并引入文档中未出现的角色（PMO、质量监督等），内容偏差重大，不能正确回答问题。",
+      "elements": [
+        {
+          "id": "phase-1",
+          "quote": "",
+          "reason": "待测材料仅提及“启动”过程，未明确“立项”作为独立阶段，仅在例外中提及“立项条件”，但未作为阶段列出。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1a",
+          "quote": "",
+          "reason": "待测材料未提及“项目发起人”角色，也未说明立项由发起人主导。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1b",
+          "quote": "",
+          "reason": "待测材料未提及立项时组织“项目评估会”。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1c",
+          "quote": "",
+          "reason": "待测材料未提及“项目管理委员会”确定立项结果，或“总经理”的最终否决权。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1d",
+          "quote": "",
+          "reason": "待测材料未提及“执行秘书处”或“项目编号”。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-2",
+          "quote": "启动过程",
+          "reason": "待测材料将“启动”作为第一阶段，但内容为申请立项和组建团队，与参考答案的“启动”定义不同（制定章程、确定人选），且缺少正式启动会细节。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-2a",
+          "quote": "",
+          "reason": "待测材料未提及“项目发起人”组织启动会，仅提及项目经理组建团队。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2b",
+          "quote": "",
+          "reason": "待测材料未提及“项目管理委员会”审批项目经理人选。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2c",
+          "quote": "由项目经理协调，明确领导层、执行层、配合层、监督层等人员构成",
+          "reason": "待测材料提到项目经理组建团队并明确人员构成，部分支持了项目经理确定参与人员并分配职责，但未明确“职责分配”且不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-3",
+          "quote": "规划（计划）过程",
+          "reason": "待测材料将“规划”作为第二阶段，与参考答案的“规划”阶段一致，但内容侧重WBS和计划制定，未提及人员培训、物资采购等具体活动。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-3a",
+          "quote": "由**项目经理**负责牵头制定计划",
+          "reason": "待测材料支持项目经理负责制定计划，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-3b",
+          "quote": "并得到项目干系人批准",
+          "reason": "待测材料提及计划需干系人批准，但未明确“项目管理委员会”或“变更需提请审核”，仅笼统提及干系人。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-4",
+          "quote": "执行过程",
+          "reason": "待测材料将“执行”作为第三阶段，对应参考答案的“实施”阶段，但名称不同，且内容覆盖实施和监控，部分重叠。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4a",
+          "quote": "由**项目经理**负责领导团队、分配任务、协调资源、内外沟通",
+          "reason": "待测材料支持项目经理指导和管理活动执行，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-4b",
+          "quote": "具体执行由**项目组成员**完成",
+          "reason": "待测材料支持项目组成员执行活动，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-4c",
+          "quote": "范围、金额、进度、成本发生变更时，需根据情况向更高层级（如**公司PMO**或管理层）汇报审批",
+          "reason": "待测材料提及变更审批，但对象为PMO或管理层，而非“项目管理委员会”，对象不匹配，故为部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4d",
+          "quote": "",
+          "reason": "待测材料未提及“项目周会”或“每周组织”。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4e",
+          "quote": "",
+          "reason": "待测材料未提及召集项目组成员、发起人、管理委员会成员参会。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4f",
+          "quote": "",
+          "reason": "待测材料未提及“信息联络单”或向资源部门发送请求。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4g",
+          "quote": "",
+          "reason": "待测材料未提及资源部门无法提供时由项目管理委员会协调。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-5",
+          "quote": "监控过程",
+          "reason": "待测材料将“监控”作为第四阶段，与参考答案阶段一致，但内容笼统，未完整描述原文要素。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-5a",
+          "quote": "项目经理/项目主管：负责整体监控，定期汇报进度、工时、预测",
+          "reason": "待测材料提及项目经理监控，但未明确“项目组成员及项目经理自我管理”和“自我监控”，仅部分覆盖。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-5b",
+          "quote": "范围、金额、进度、成本发生变更时，需根据情况向更高层级（如**公司PMO**或管理层）汇报审批",
+          "reason": "待测材料未提及“项目管理委员会作为变更控制机构”，审批对象为PMO或管理层，不匹配，仅部分支持变更审批。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-5c",
+          "quote": "",
+          "reason": "待测材料未提及项目管理委员会评估过程或紧急叫停。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-6",
+          "quote": "收尾过程",
+          "reason": "待测材料将“收尾”作为第五阶段，但内容为总结、后评估、归档，未明确表述“整理项目过程资源”、“转交最终成果”、“终止活动”。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-6a",
+          "quote": "",
+          "reason": "待测材料提及“文档归档”，但未提及项目经理“整理项目过程资源”。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-6b",
+          "quote": "",
+          "reason": "待测材料未提及“转交项目最终成果”。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-7",
+          "quote": "",
+          "reason": "待测材料未将“总结”作为独立阶段，仅在收尾过程中包含“总结”内容，因此缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7a",
+          "quote": "",
+          "reason": "待测材料未提及项目经理组织项目组成员梳理过程并制定改善措施。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7b",
+          "quote": "项目总结、后评估、文档归档",
+          "reason": "待测材料提及“总结”和“后评估”，符合项目经理进行总结和后评估的要素，但未明确“项目经理负责”和“改善建议”，不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7c",
+          "quote": "文档归档",
+          "reason": "待测材料提及文档归档，但未明确“项目经理负责组织整理”和“交项目管理委员会审查备案”。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7d",
+          "quote": "项目质量监督/PMO：进行项目后评估",
+          "reason": "待测材料提及项目后评估，但主体为质量监督/PMO而非“项目经理与项目管理委员会分别评价”，对象不匹配，部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7e",
+          "quote": "",
+          "reason": "待测材料未提及“项目管理委员会”或“激励结果”。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7518,
+      "completion_tokens": 2178,
+      "total_tokens": 9696
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "5c8c86e56d6e402092f18704e82d9e44",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12345,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:phase-responsible-5a",
+      "invalid_quote:phase-responsible-7d"
+    ],
+    "materialSha256": "be8327d322b113c159a42671e7553dc5dbc74ab8e736387dd47d1b808e50c84b"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答将阶段概括为5个，但参考答案明确要求7个阶段（立项、启动、规划、实施、监控、收尾、总结），且未提及‘总结’阶段，缺失关键内容；同时各阶段责任人的描述与参考答案存在多处不一致，如未提及‘项目发起人主导立项’、‘项目管理委员会审批项目经理’、‘总结阶段由项目管理委员会确定激励结果’等关键要素。",
+      "elements": [
+        {
+          "id": "phase-1",
+          "quote": "启动 规划 执行 监控 收尾项目管理知识体系全貌",
+          "reason": "材料中提及‘启动’阶段，但未独立描述‘立项’阶段，仅有‘立项申请’作为启动阶段任务之一，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-1a",
+          "quote": "立项是项目前期工作的重要一环",
+          "reason": "材料仅提及‘立项’概念，未明确‘项目发起人主导’立项，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-1b",
+          "quote": "",
+          "reason": "材料中未找到组织项目评估会的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1c",
+          "quote": "",
+          "reason": "材料未提及项目管理委员会确定立项结果。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1d",
+          "quote": "",
+          "reason": "材料未提及执行秘书处发项目编号。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-2",
+          "quote": "启动-制定项目 章程并确定 初步范围",
+          "reason": "材料中明确描述启动阶段包括制定章程和确定初步范围，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-2a",
+          "quote": "由项目发起人组织项目启动会",
+          "reason": "材料中未提及此具体描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2b",
+          "quote": "",
+          "reason": "材料中未提及项目管理委员会审批项目经理人选。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2c",
+          "quote": "选择基本的项目组成员",
+          "reason": "材料仅提及选择成员，但未明确项目经理确定参与人员及职责分配。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-3",
+          "quote": "制定项目计划",
+          "reason": "材料中规划阶段描述为制定计划，与要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-3a",
+          "quote": "项目经理负责牵头制定计划",
+          "reason": "材料中最终回答提及项目经理负责牵头，但原文未直接报出此细节，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-3b",
+          "quote": "",
+          "reason": "材料未提及计划变更需项目管理委员会审核。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-4",
+          "quote": "执行-制导和管理项目的执行活动",
+          "reason": "材料中实施阶段描述为执行和管理项目活动，与要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-4a",
+          "quote": "领导团队",
+          "reason": "材料中提及项目经理领导团队，但未明确指导和管理执行，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4b",
+          "quote": "服从项目经理的 智慧，执行计划分 配的任务",
+          "reason": "材料中项目成员责任包括执行分配任务，但未明确‘根据项目规划’，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4c",
+          "quote": "变更控制",
+          "reason": "材料仅提及变更控制，未明确由项目管理委员会批准。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4d",
+          "quote": "",
+          "reason": "材料未提及项目周会由项目经理每周组织。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4e",
+          "quote": "",
+          "reason": "材料未提及周会召集的具体人员。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4f",
+          "quote": "",
+          "reason": "材料未提及信息联络单的使用。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4g",
+          "quote": "",
+          "reason": "材料未提及资源部门无法提供资源时的协调机制。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-5",
+          "quote": "监控项目执行 并进行整体 变更控制",
+          "reason": "材料中监控阶段描述为监控执行和整体变更控制，与要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-5a",
+          "quote": "项目监控",
+          "reason": "材料仅提及监控，未明确项目组成员及项目经理的自我管理和监控。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-5b",
+          "quote": "",
+          "reason": "材料未提及项目管理委员会作为变更管理机构审批变更。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5c",
+          "quote": "",
+          "reason": "材料未提及项目管理委员会评估和紧急叫停。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-6",
+          "quote": "收尾-项目收尾和结 束",
+          "reason": "材料中收尾阶段描述为项目收尾和结束，但未明确资源整理和成果转交，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-6a",
+          "quote": "",
+          "reason": "材料未提及项目经理整理过程资源。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-6b",
+          "quote": "",
+          "reason": "材料未提及项目经理转交成果。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-7",
+          "quote": "",
+          "reason": "材料中未提及‘总结’阶段，而是作为收尾的一部分。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7a",
+          "quote": "项目总结",
+          "reason": "材料提及项目总结，但未明确由项目经理组织及具体内容。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7b",
+          "quote": "项目总结",
+          "reason": "材料提及项目总结，但未明确项目经理负责全过程梳理。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7c",
+          "quote": "文档归档",
+          "reason": "材料提及文档归档，但未明确由项目经理组织并交项目管理委员会审查备案。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7d",
+          "quote": "评估与验收",
+          "reason": "材料提及评估，但未明确由项目经理与项目管理委员会分别评价。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7e",
+          "quote": "",
+          "reason": "材料未提及激励由项目管理委员会确定。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 23349,
+      "completion_tokens": 1813,
+      "total_tokens": 25162
+    },
+    "model": "DeepSeek-V4-Flash-0731",
+    "responseId": "e0b9e9965f314052ad43785322564176",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8776,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:phase-responsible-3a"
+    ],
+    "materialSha256": "0200692dc27df099944c28c7d223b028fb09c0943814b5aafdb0edf68d8058f7"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer correctly identifies the five project phases (启动、规划、执行、监控、收尾) and provides corresponding key deliverables and responsible roles based on the provided material. It also addresses the question's ask about who to contact in each stage by describing roles rather than specific names, and includes important caveats about role qualifications and document requirements. No major errors are present.",
+      "elements": [
+        {
+          "id": "phase-1",
+          "quote": "第一阶段：启动过程",
+          "reason": "Material explicitly lists 启动 as a project phase, supporting the element that 立项 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-1a",
+          "quote": "",
+          "reason": "No material supports that 立项阶段由项目发起人主导. The returned material only lists 立项 as a phase without mentioning project initiator's role.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1b",
+          "quote": "",
+          "reason": "No material mentions project evaluation meeting or that it is organized by project initiator. The material only mentions 立项 without further details.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1c",
+          "quote": "",
+          "reason": "No material mentions 项目管理委员会 determining project approval result. The material does not include such committee role.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1d",
+          "quote": "",
+          "reason": "No material mentions 执行秘书处 issuing project number. Such detail is absent from returned material.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-2",
+          "quote": "第一阶段：启动过程",
+          "reason": "Material explicitly lists 启动 as a phase, supporting the element that 启动 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-2a",
+          "quote": "",
+          "reason": "No material mentions project initiator organizing a kickoff meeting. The material only mentions 启动 process without detail on meeting organizer.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2b",
+          "quote": "",
+          "reason": "No material mentions 项目管理委员会 approval of project manager. The material does not include this process detail.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2c",
+          "quote": "",
+          "reason": "No material mentions that project manager determines participants and assigns responsibilities. The material only mentions 组建项目团队 in general terms.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-3",
+          "quote": "第二阶段：规划过程",
+          "reason": "Material explicitly lists 规划 as a phase, supporting the element that 规划 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-3a",
+          "quote": "",
+          "reason": "No material mentions project manager organizing the project plan. The material discusses planning activities but not the responsible person.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-3b",
+          "quote": "",
+          "reason": "No material mentions change requiring project management committee review during planning. The material does not discuss change in that context.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-4",
+          "quote": "第三阶段：执行过程",
+          "reason": "Material explicitly lists 执行 as a phase, supporting the element that 实施 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-4a",
+          "quote": "",
+          "reason": "No material mentions project manager guiding and managing execution activities. The material mentions 项目经理's role generally but not specifically for 实施阶段.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4b",
+          "quote": "",
+          "reason": "No material mentions project group members executing according to project plan during 实施阶段. The material lists 项目成员 as a role but not with this-specific duty.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4c",
+          "quote": "",
+          "reason": "No material mentions 项目管理委员会 approving changes during implementation. The material discusses change control but without specifying committee role.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4d",
+          "quote": "",
+          "reason": "No material mentions weekly project meetings or that project manager organizes them. The material has a project weekly report in 监控 tools but no meeting organizer.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4e",
+          "quote": "",
+          "reason": "No material mentions the weekly meeting attendees such as project initiator and committee members. The material does not detail this.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4f",
+          "quote": "",
+          "reason": "No material mentions using a project information contact form to request resources from a resource department. The material does not describe this mechanism.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4g",
+          "quote": "",
+          "reason": "No material mentions that the project management committee coordinates when resource department cannot provide. Such detail is absent.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-5",
+          "quote": "第四阶段：监控过程",
+          "reason": "Material explicitly lists 监控 as a phase, supporting the element that 监控 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-5a",
+          "quote": "",
+          "reason": "No material mentions project team members and project manager self-monitoring during 监控阶段. The material discusses monitoring methods but not who performs them.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5b",
+          "quote": "",
+          "reason": "No material mentions 项目管理委员会 approving changes as management control body. The material mentions change control but not committee role.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5c",
+          "quote": "",
+          "reason": "No material mentions 项目管理委员会 evaluating process and stopping project if necessary. The material does not include this.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-6",
+          "quote": "第五阶段：收尾过程",
+          "reason": "Material explicitly lists 收尾 as a phase, supporting the element that 收尾 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-6a",
+          "quote": "",
+          "reason": "No material mentions project manager organizing process resources during 收尾. The material mentions 收尾阶段 has document archiving but not who does the resource organization.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-6b",
+          "quote": "",
+          "reason": "No material mentions project manager transferring final deliverables. The material mentions 项目收尾 but not the responsible person for deliverable transfer.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-7",
+          "quote": "项目总结",
+          "reason": "Material explicitly mentions 项目总结 as part of the 收尾阶段, supporting the element that 总结 is a phase.",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-7a",
+          "quote": "",
+          "reason": "No material mentions project manager organizing project team to review process and develop improvement measures. The material mentions 项目总结 but not that detail.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7b",
+          "quote": "",
+          "reason": "No material mentions project manager summarizing the whole project and proposing improvements. The material does not detail who does the summary.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7c",
+          "quote": "",
+          "reason": "No material mentions project manager organizing document compilation for committee review. The material mentions 文档归档 but not who organizes it or to whom it is submitted.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7d",
+          "quote": "",
+          "reason": "No material mentions project manager and committee separately evaluating project. The material has project evaluation but not as a joint evaluation by two parties.",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7e",
+          "quote": "",
+          "reason": "No material mentions committee determining team incentives. The material does not include this detail.",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 23349,
+      "completion_tokens": 1754,
+      "total_tokens": 25103,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RuTcQxeomko7IMllFFnkfGbZ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 43196,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "0200692dc27df099944c28c7d223b028fb09c0943814b5aafdb0edf68d8058f7"
+  }
+}

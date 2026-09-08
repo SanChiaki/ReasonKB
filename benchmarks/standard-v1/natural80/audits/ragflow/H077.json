@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，包含合同工期450天和拆迁影响工期顺延两个要点，未发现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "合同工期450天",
+          "reason": "待测材料明确提到“合同工期：450天”，实体、数量正确绑定，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "进度计划若受拆迁等因素影响，工期相应顺延。",
+          "reason": "待测材料直接引用该句，条件、否定和例外均正确绑定，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 783,
+      "completion_tokens": 170,
+      "total_tokens": 953,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RaIj4ggZQ9kMjYleZhm9Itij",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4605,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "52d4ab22962e07a2c508dd453abedf6d02406541001d64531676e4b2bd9c0757"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，引用了待测材料中的原文证据，内容包括合同工期450天和拆迁影响工期顺延，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "合同工期450天，进度计划若受拆迁等因素影响，工期相应顺延。",
+          "reason": "待测材料多处页面（如页面2、9、24）中均明确包含“合同工期450天”，实体和数量正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "合同工期450天，进度计划若受拆迁等因素影响，工期相应顺延。",
+          "reason": "待测材料中明确表述“进度计划若受拆迁等因素影响，工期相应顺延”，条件（若…影响）和处置（顺延）均准确对应。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 30476,
+      "completion_tokens": 219,
+      "total_tokens": 30695,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RRLXJScMvmpg5Z11hoqoSeJS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7875,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "cf71716e44ff0e0499438996c3096659eb6164940418983f3a0484b702e7c154"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，包含合同工期450天和工期顺延的处理方式，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "合同工期450天",
+          "reason": "待测材料页面2等处的备注栏中有'合同工期450天'，关键词与数值均匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "进度计划若受拆迁等因素影响，工期相应顺延。",
+          "reason": "待测材料页面2等处的备注栏中有'进度计划若受拆迁等因素影响，工期相应顺延。'，条件与结果绑定正确，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 35280,
+      "completion_tokens": 188,
+      "total_tokens": 35468,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RscXUmCcTyqQs3OJSeBrQApe",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8729,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "79109065a3da1d8775651768877b2ad3eaed2275b46a41b3f7b3b9a0ed9eb321"
+  }
+}

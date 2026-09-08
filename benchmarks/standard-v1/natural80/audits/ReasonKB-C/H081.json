@@ -1,0 +1,180 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料中没有提供最终回答，且材料主要内容是规划采购的输入（项目管理计划等），与参考答案关注的采购计划编制和询价计划编制输入不同，因此无法确认最终回答正确性，且存在重大差异。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": ".1 范围说明",
+          "reason": "待测材料中采购计划编制输入表格列有'.1 范围说明'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E2",
+          "quote": ".2 产品概述",
+          "reason": "待测材料中采购计划编制输入表格列有'.2 产品概述'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E3",
+          "quote": ".3 采购来源",
+          "reason": "待测材料中采购计划编制输入表格列有'.3 采购来源'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E4",
+          "quote": ".4 市场条件",
+          "reason": "待测材料中采购计划编制输入表格列有'.4 市场条件'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E5",
+          "quote": ".5 其他计划编制的输出",
+          "reason": "待测材料中采购计划编制输入表格列有'.5 其他计划编制的输出'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E6",
+          "quote": ".6 约束条件",
+          "reason": "待测材料中采购计划编制输入表格列有'.6 约束条件'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E7",
+          "quote": ".7 假定",
+          "reason": "待测材料中采购计划编制输入表格列有'.7 假定'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E8",
+          "quote": ".1 采购管理计划",
+          "reason": "待测材料中询价计划编制输入表格列有'.1 采购管理计划'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E9",
+          "quote": ".2 工作说明",
+          "reason": "待测材料中询价计划编制输入表格列有'.2 工作说明'，与要素内容一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E10",
+          "quote": ".3 其他计划编制的输出",
+          "reason": "待测材料中询价计划编制输入表格列有'.3 其他计划编制的输出'，与要素内容一致，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3212,
+      "completion_tokens": 715,
+      "total_tokens": 3927,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RjtY3D3HA12V9fWbbvDydMr8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 19774,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H081_E10"
+    ],
+    "materialSha256": "ccbd88c4dee0a7c711de835a46d83a3d86d0d0f282d043aeb7ada9d658c54bea"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": ".1 范围说明",
+          "reason": "待测材料在采购计划编制表格中列出“范围说明”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E2",
+          "quote": ".2 产品概述",
+          "reason": "待测材料在采购计划编制表格中列出“产品概述”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E3",
+          "quote": ".3 采购来源",
+          "reason": "待测材料在采购计划编制表格中列出“采购来源”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E4",
+          "quote": ".4 市场条件",
+          "reason": "待测材料在采购计划编制表格中列出“市场条件”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E5",
+          "quote": ".5 其他计划编制的输出",
+          "reason": "待测材料在采购计划编制表格中列出“其他计划编制的输出”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E6",
+          "quote": ".6 约束条件",
+          "reason": "待测材料在采购计划编制表格中列出“约束条件”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E7",
+          "quote": ".7 假定",
+          "reason": "待测材料在采购计划编制表格中列出“假定”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E8",
+          "quote": ".1 采购管理计划",
+          "reason": "待测材料中，询价计划编制表格列出“采购管理计划”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E9",
+          "quote": ".2 工作说明",
+          "reason": "待测材料中，询价计划编制表格列出“工作说明”为输入数据，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E10",
+          "quote": ".3 其他计划编制的输出",
+          "reason": "待测材料中，询价计划编制表格列出“其他计划编制的输出”为输入数据，与要素完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3212,
+      "completion_tokens": 644,
+      "total_tokens": 3856,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RJkUrOEQasMq2KrTjLzotXyy",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15047,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H081_E10"
+    ],
+    "materialSha256": "ccbd88c4dee0a7c711de835a46d83a3d86d0d0f282d043aeb7ada9d658c54bea"
+  }
+}

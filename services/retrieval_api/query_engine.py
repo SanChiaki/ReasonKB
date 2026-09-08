@@ -43,6 +43,11 @@ MAX_PARALLEL_DOCUMENT_RETRIEVALS = 5
 MAX_TREE_SEARCH_ROUNDS = 3
 MAX_TREE_SEARCH_PAGES_PER_ROUND = 8
 MAX_TREE_SEARCH_PAGES = 16
+ADAPTIVE_TREE_SEARCH_ROUNDS = 5
+ADAPTIVE_TREE_SEARCH_PAGES_PER_ROUND = 8
+ADAPTIVE_TREE_SEARCH_PAGES = 40
+ADAPTIVE_TREE_SEARCH_INITIAL_PAGES = 8
+ADAPTIVE_TREE_SEARCH_ANCHOR_PAGES = 4
 MAX_LIST_OVERVIEW_PAGES = 4
 MAX_TREE_ASSESSMENT_CHARS = 48000
 MAX_EVIDENCE_VALIDATION_CHARS = 48000
@@ -60,6 +65,7 @@ PAGE_SELECTION_MAX_TOKENS = 384
 EVIDENCE_ASSESSMENT_MAX_TOKENS = 384
 TREE_ASSESSMENT_ESCALATION_MAX_TOKENS = 512
 EVIDENCE_SET_ASSESSMENT_MAX_TOKENS = 1280
+ANSWER_FACT_EXTRACTION_MAX_TOKENS = 2048
 DOCUMENT_DEGRADED_REASONS_KEY = "_reasonkb_retrieval_degraded_reasons"
 SUPPORTED_ASPECTS_KEY = "_reasonkb_supported_aspects"
 logger = logging.getLogger(__name__)
@@ -137,6 +143,8 @@ class _EvidenceAssessment:
     sufficient: bool
     next_pages: str | None
     degraded_reason: str | None = None
+    covered_targets: tuple[str, ...] = ()
+    unresolved_targets: tuple[str, ...] = ()
 
     def __iter__(self):
         yield self.sufficient
@@ -279,6 +287,177 @@ _RETRIEVAL_COMPLEXITY_RE = re.compile(
     r"比较|对比|差异|异同|关联|关系|原因|为什么|为何|影响|跨文档|多跳|权衡)",
     re.IGNORECASE,
 )
+
+_TREE_SEARCH_POLICIES = frozenset({"fixed", "adaptive", "adaptive_slots", "optimized"})
+_EVIDENCE_VALIDATION_POLICIES = frozenset({"strict", "preserve"})
+
+
+@dataclass(frozen=True)
+class _TreeSearchBudget:
+    max_rounds: int
+    max_pages: int
+    pages_per_round: int
+    initial_pages: int
+    anchor_pages: int = 0
+    use_targets: bool = False
+
+
+def _tree_search_policy() -> str:
+    """Return the retrieval policy used for an experiment or deployment."""
+    # C is the standard-v1 production default. Other policies remain explicit
+    # overrides for regression comparison and rollback.
+    configured = os.getenv("REASONKB_TREE_SEARCH_POLICY", "adaptive_slots").strip().lower()
+    if configured not in _TREE_SEARCH_POLICIES:
+        logger.warning(
+            "Unsupported REASONKB_TREE_SEARCH_POLICY=%r; using adaptive_slots",
+            configured,
+        )
+        return "adaptive_slots"
+    return configured
+
+
+def _tree_search_budget(query: str) -> _TreeSearchBudget:
+    policy = _tree_search_policy()
+    if policy == "fixed":
+        return _TreeSearchBudget(
+            MAX_TREE_SEARCH_ROUNDS,
+            MAX_TREE_SEARCH_PAGES,
+            MAX_TREE_SEARCH_PAGES_PER_ROUND,
+            MAX_TREE_SEARCH_PAGES_PER_ROUND,
+        )
+
+    query_text = query.strip() if isinstance(query, str) else ""
+    complex_query = bool(
+        len(query_text) > 160
+        or _RETRIEVAL_COMPLEXITY_RE.search(query_text)
+        or _is_complete_list_query(query_text)
+    )
+    if complex_query:
+        return _TreeSearchBudget(
+            ADAPTIVE_TREE_SEARCH_ROUNDS,
+            ADAPTIVE_TREE_SEARCH_PAGES,
+            ADAPTIVE_TREE_SEARCH_PAGES_PER_ROUND,
+            ADAPTIVE_TREE_SEARCH_INITIAL_PAGES,
+            ADAPTIVE_TREE_SEARCH_ANCHOR_PAGES
+            if policy in {"adaptive_slots", "optimized"}
+            else 0,
+            policy in {"adaptive_slots", "optimized"},
+        )
+    return _TreeSearchBudget(
+        MAX_TREE_SEARCH_ROUNDS + 1,
+        MAX_TREE_SEARCH_PAGES + MAX_TREE_SEARCH_PAGES_PER_ROUND,
+        MAX_TREE_SEARCH_PAGES_PER_ROUND,
+        ADAPTIVE_TREE_SEARCH_INITIAL_PAGES,
+        ADAPTIVE_TREE_SEARCH_ANCHOR_PAGES
+        if policy in {"adaptive_slots", "optimized"}
+        else 0,
+        policy in {"adaptive_slots", "optimized"},
+    )
+
+
+def _coverage_target_hints(query: str) -> tuple[str, ...]:
+    """Build small, deterministic targets so flash models can continue by slot."""
+    text = re.sub(r"\s+", " ", str(query or "")).strip()
+    if not text:
+        return ()
+    parts = re.split(
+        r"(?:[,;；，]|\band\b|\bor\b|\bplus\b|以及|并且|同时|分别|和|与)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    targets = []
+    for part in parts:
+        value = part.strip(" ??.。！？!：:")
+        if len(value) < 3:
+            continue
+        if value.lower().startswith(("what is ", "what are ", "which ", "how ")):
+            value = re.sub(r"^(what is|what are|which|how)\s+", "", value, flags=re.I)
+        if value and value not in targets:
+            targets.append(value[:120])
+    if not targets:
+        targets = [text[:120]]
+    return tuple(targets[:6])
+
+
+def _evidence_validation_policy() -> str:
+    configured = os.getenv(
+        "REASONKB_EVIDENCE_VALIDATION_POLICY",
+        "strict",
+    ).strip().lower()
+    if configured not in _EVIDENCE_VALIDATION_POLICIES:
+        logger.warning(
+            "Unsupported REASONKB_EVIDENCE_VALIDATION_POLICY=%r; using strict",
+            configured,
+        )
+        return "strict"
+    return configured
+
+
+_ANSWER_POLICIES = frozenset({"direct", "extract_then_synthesize"})
+
+
+def _answer_policy() -> str:
+    configured = os.getenv("REASONKB_ANSWER_POLICY", "direct").strip().lower()
+    if configured not in _ANSWER_POLICIES:
+        logger.warning(
+            "Unsupported REASONKB_ANSWER_POLICY=%r; using direct",
+            configured,
+        )
+        return "direct"
+    return configured
+
+
+def _page_anchor_pages(
+    query: str,
+    document: dict[str, Any],
+    limit: int,
+) -> list[int]:
+    """Find high-signal page anchors at query time; these are only PageIndex seeds."""
+    if limit <= 0:
+        return []
+
+    # The general excerpt scorer intentionally allows substring matches for
+    # short Chinese tokens.  That is too permissive for query-time anchors:
+    # English stopwords such as ``of`` and ``the`` would otherwise anchor an
+    # unrelated neighboring page (for example, ``Other`` contains both).
+    stopwords = {
+        "a", "an", "and", "are", "as", "at", "be", "by", "do", "for",
+        "from", "how", "in", "is", "it", "of", "on", "or", "that", "the",
+        "their", "this", "to", "was", "were", "what", "which", "with",
+    }
+    query_tokens = [
+        token
+        for token in _tokenize_query(query)
+        if not (token.isascii() and (len(token) < 3 or token in stopwords))
+    ]
+    if not query_tokens:
+        return []
+
+    def anchor_score(block: str) -> int:
+        lowered = block.lower()
+        score = 0
+        for token in query_tokens:
+            if token.isascii():
+                matched = bool(re.search(rf"(?<![a-z0-9]){re.escape(token)}(?![a-z0-9])", lowered))
+            else:
+                matched = token in block
+            if matched:
+                score += 4 if len(token) >= 2 else 1
+        return score * 100 - min(len(block), 400) // 4
+
+    ranked: list[tuple[int, int]] = []
+    for item in document.get("pages", []):
+        if not isinstance(item, dict) or not _is_page_number(item.get("page")):
+            continue
+        content = item.get("content")
+        if not isinstance(content, str) or not content.strip():
+            continue
+        blocks = _split_excerpt_blocks(content)
+        score = max((anchor_score(block) for block in blocks), default=-10**9)
+        if score > 0:
+            ranked.append((score, int(item["page"])))
+    ranked.sort(key=lambda pair: (-pair[0], pair[1]))
+    return [page for _score, page in ranked[:limit]]
 
 
 def _tree_assessment_reasoning_mode(
@@ -1069,7 +1248,10 @@ def choose_page_window(
     from pageindex.utils import extract_json
 
     document_map = _build_document_map(document)
-    fallback = _default_page_window(document)
+    budget = _tree_search_budget(query)
+    anchor_pages = _page_anchor_pages(query, document, budget.anchor_pages)
+    anchor_window = _format_page_window(anchor_pages)
+    fallback = anchor_window or _default_page_window(document)
     try:
         structure_json = get_document_structure(document_map, document["id"])
     except Exception:
@@ -1081,6 +1263,13 @@ def choose_page_window(
         + "\nUse these only as starting hints. Inspect the complete tree and select other "
         "nodes whenever they better cover the question."
         if semantic_seed_node_ids
+        else ""
+    )
+    anchor_hint = (
+        "\nLexical page anchors (seed hints only): "
+        + json.dumps(anchor_pages, ensure_ascii=False)
+        + "\nUse these pages only as recall-oriented starting points; continue to inspect the tree."
+        if anchor_pages
         else ""
     )
     prompt = f"""
@@ -1097,6 +1286,7 @@ Question: {query}
 Structure:
 {structure_json}
 {semantic_hint}
+{anchor_hint}
 
 Return JSON only:
 {{"node_list": ["0007"], "pages": "3-5"}}
@@ -1123,13 +1313,26 @@ Use node_list when node IDs are available. Also return the corresponding physica
     if not isinstance(parsed, dict):
         return _PageWindow(fallback, "page_selection_malformed")
 
-    selected_pages = _page_selection_from_payload(parsed, document)
+    selected_pages = _page_selection_from_payload(
+        parsed,
+        document,
+        limit=budget.initial_pages,
+    )
     if selected_pages:
         selected_pages = _augment_list_page_selection(
             query,
             document,
             selected_pages,
         )
+        if anchor_pages:
+            selected_pages = sorted(set(selected_pages).union(anchor_pages))
+            if len(selected_pages) > budget.initial_pages:
+                retained = set(anchor_pages)
+                for page in selected_pages:
+                    if len(retained) >= budget.initial_pages:
+                        break
+                    retained.add(page)
+                selected_pages = sorted(retained)
         return _PageWindow(_format_page_window(selected_pages))
     selection_state = _page_selection_request_state(
         parsed,
@@ -1244,6 +1447,15 @@ def _assess_evidence_and_choose_next_pages(
         return _EvidenceAssessment(True, None)
 
     structure = remove_fields(document.get("structure", []), fields=["text"])
+    budget = _tree_search_budget(query)
+    target_hints = _coverage_target_hints(query) if budget.use_targets else ()
+    target_instruction = (
+        "\nMaterial coverage targets (keep these exact strings when possible):\n"
+        + json.dumps(list(target_hints), ensure_ascii=False)
+        + "\nFor each round, report covered_targets and unresolved_targets."
+        if target_hints
+        else ""
+    )
     prompt = f"""
 You are continuing a bounded PageIndex tree search.
 Decide whether the collected evidence directly covers every material part of the question. Prefer
@@ -1256,6 +1468,8 @@ Already inspected pages: {_format_page_window(inspected_pages)}
 Document tree:
 {json.dumps(structure, ensure_ascii=False)}
 
+{target_instruction}
+
 Collected evidence:
 {json.dumps(_compact_evidence_for_assessment(evidence), ensure_ascii=False)}
 
@@ -1264,7 +1478,9 @@ Return JSON only:
 {{
   "sufficient": true,
   "next_node_list": [],
-  "next_pages": ""
+  "next_pages": "",
+  "covered_targets": [],
+  "unresolved_targets": []
 }}
 """
     reasoning = _TREE_ASSESSMENT_REASONING.get()
@@ -1312,15 +1528,33 @@ Return JSON only:
         sufficient = True if normalized in {"true", "yes"} else False if normalized in {"false", "no"} else None
     if not isinstance(sufficient, bool):
         return _EvidenceAssessment(True, None, "tree_assessment_malformed")
-    if sufficient:
-        return _EvidenceAssessment(True, None)
 
-    remaining_budget = MAX_TREE_SEARCH_PAGES - len(inspected_pages)
+    def _payload_targets(value: Any) -> tuple[str, ...]:
+        if not isinstance(value, list):
+            return ()
+        return tuple(
+            dict.fromkeys(
+                item.strip()[:120]
+                for item in value
+                if isinstance(item, str) and item.strip()
+            )
+        )
+
+    covered_targets = _payload_targets(parsed.get("covered_targets"))
+    unresolved_targets = _payload_targets(parsed.get("unresolved_targets"))
+
+    # A slots-enabled policy treats unresolved targets as a reason to continue,
+    # but only when the model also supplies new pages or nodes.
+    if sufficient and not unresolved_targets:
+        return _EvidenceAssessment(True, None, None, covered_targets, unresolved_targets)
+
+    budget = _tree_search_budget(query)
+    remaining_budget = budget.max_pages - len(inspected_pages)
     next_pages = _page_selection_from_payload(
         parsed,
         document,
         exclude=inspected_pages,
-        limit=min(MAX_TREE_SEARCH_PAGES_PER_ROUND, remaining_budget),
+        limit=min(budget.pages_per_round, remaining_budget),
     )
     if not next_pages:
         selection_state = _page_selection_request_state(
@@ -1335,14 +1569,32 @@ Return JSON only:
             ),
         )
         if selection_state == "empty":
-            return _EvidenceAssessment(True, None)
+            return _EvidenceAssessment(
+                True,
+                None,
+                None,
+                covered_targets,
+                unresolved_targets,
+            )
         degraded_reason = (
             "tree_assessment_malformed"
             if selection_state == "missing"
             else "tree_assessment_invalid_next_pages"
         )
-        return _EvidenceAssessment(True, None, degraded_reason)
-    return _EvidenceAssessment(False, _format_page_window(next_pages))
+        return _EvidenceAssessment(
+            True,
+            None,
+            degraded_reason,
+            covered_targets,
+            unresolved_targets,
+        )
+    return _EvidenceAssessment(
+        False,
+        _format_page_window(next_pages),
+        None,
+        covered_targets,
+        unresolved_targets,
+    )
 
 
 def _merge_page_evidence(
@@ -1368,15 +1620,25 @@ def _document_tree_search_steps(
     document: dict[str, Any],
 ) -> Iterable[dict[str, Any]]:
     degraded_reasons: list[str] = []
-    fallback_pages = _default_page_window(document)
+    budget = _tree_search_budget(query)
+    fallback_seed_pages = _page_anchor_pages(query, document, budget.anchor_pages)
+    fallback_pages = _format_page_window(fallback_seed_pages) or _default_page_window(document)
     selected = choose_page_window(query, document)
     selection_degraded_reason = getattr(selected, "degraded_reason", None)
     if selection_degraded_reason:
         degraded_reasons.append(selection_degraded_reason)
-    selected_numbers = _bounded_page_numbers(selected, document)
+    selected_numbers = _bounded_page_numbers(
+        selected,
+        document,
+        limit=budget.initial_pages,
+    )
     used_fallback = not selected_numbers
     if not selected_numbers:
-        selected_numbers = _bounded_page_numbers(fallback_pages, document)
+        selected_numbers = _bounded_page_numbers(
+            fallback_pages,
+            document,
+            limit=budget.initial_pages,
+        )
     if not selected_numbers:
         yield {"type": "empty", "reason": "invalid_page_selection"}
         return
@@ -1387,10 +1649,19 @@ def _document_tree_search_steps(
         "pages": pages,
         "round": 1,
         "fallback": used_fallback,
+        "budget": {
+            "max_rounds": budget.max_rounds,
+            "max_pages": budget.max_pages,
+            "pages_per_round": budget.pages_per_round,
+        },
     }
     evidence = _load_page_excerpt(document, pages)
 
-    fallback_numbers = _bounded_page_numbers(fallback_pages, document)
+    fallback_numbers = _bounded_page_numbers(
+        fallback_pages,
+        document,
+        limit=budget.initial_pages,
+    )
     fallback_window = _format_page_window(fallback_numbers)
     if not evidence and fallback_window and pages != fallback_window:
         selected_numbers = fallback_numbers
@@ -1400,6 +1671,11 @@ def _document_tree_search_steps(
             "pages": pages,
             "round": 1,
             "fallback": True,
+            "budget": {
+                "max_rounds": budget.max_rounds,
+                "max_pages": budget.max_pages,
+                "pages_per_round": budget.pages_per_round,
+            },
         }
         evidence = _load_page_excerpt(document, pages)
 
@@ -1408,9 +1684,12 @@ def _document_tree_search_steps(
         return
 
     inspected_pages = set(selected_numbers)
+    stop_reason = "initial_selection"
+    rounds_completed = 1
     if _has_searchable_tree(document):
-        for round_number in range(2, MAX_TREE_SEARCH_ROUNDS + 1):
-            if len(inspected_pages) >= MAX_TREE_SEARCH_PAGES:
+        for round_number in range(2, budget.max_rounds + 1):
+            if len(inspected_pages) >= budget.max_pages:
+                stop_reason = "max_pages"
                 break
             reasoning_token = _TREE_ASSESSMENT_REASONING.set(
                 _tree_assessment_reasoning_mode(query, round_number)
@@ -1432,18 +1711,25 @@ def _document_tree_search_steps(
             )
             if assessment_degraded_reason:
                 degraded_reasons.append(assessment_degraded_reason)
+            rounds_completed = round_number
             if sufficient or not next_pages:
+                stop_reason = (
+                    "coverage_complete"
+                    if sufficient
+                    else "no_next_pages"
+                )
                 break
             next_numbers = _bounded_page_numbers(
                 next_pages,
                 document,
                 exclude=inspected_pages,
                 limit=min(
-                    MAX_TREE_SEARCH_PAGES_PER_ROUND,
-                    MAX_TREE_SEARCH_PAGES - len(inspected_pages),
+                    budget.pages_per_round,
+                    budget.max_pages - len(inspected_pages),
                 ),
             )
             if not next_numbers:
+                stop_reason = "no_new_pages"
                 break
             next_window = _format_page_window(next_numbers)
             inspected_pages.update(next_numbers)
@@ -1452,21 +1738,41 @@ def _document_tree_search_steps(
                 "pages": next_window,
                 "round": round_number,
                 "fallback": False,
+                "budget": {
+                    "max_rounds": budget.max_rounds,
+                    "max_pages": budget.max_pages,
+                    "pages_per_round": budget.pages_per_round,
+                },
             }
             evidence = _merge_page_evidence(
                 evidence,
                 _load_page_excerpt(document, next_window),
             )
+        else:
+            stop_reason = "max_rounds"
+    else:
+        stop_reason = "no_searchable_tree"
 
     yield {
         "type": "result",
         "pages": _format_page_window(inspected_pages),
         "evidence": evidence,
         "degraded_reasons": tuple(dict.fromkeys(degraded_reasons)),
+        "search_diagnostics": {
+            "policy": _tree_search_policy(),
+            "max_rounds": budget.max_rounds,
+            "max_pages": budget.max_pages,
+            "pages_per_round": budget.pages_per_round,
+            "initial_pages": budget.initial_pages,
+            "anchor_pages": budget.anchor_pages,
+            "rounds_completed": rounds_completed,
+            "inspected_page_count": len(inspected_pages),
+            "stop_reason": stop_reason,
+        },
     }
 
 
-def _generate_answer(query: str, context_blocks: list[dict[str, Any]]) -> str:
+def _generate_answer_direct(query: str, context_blocks: list[dict[str, Any]]) -> str:
     prompt = f"""
 Answer the user's question only from the provided document evidence.
 Answer every material part of the question. For lists, indicators, and taxonomies,
@@ -1492,6 +1798,119 @@ Return only the answer text.
         logger.warning("Rejected truncated answer generation output")
         return ""
     return answer.strip() if answer else ""
+
+
+def _extract_answer_claims(
+    query: str,
+    context_blocks: list[dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    """Extract page-grounded atomic claims before answer synthesis.
+
+    This is deliberately a bounded, validated intermediate representation.  It
+    improves flash-model answers for multi-part questions while allowing the
+    caller to fall back to the existing direct prompt on any provider or schema
+    failure.
+    """
+    prompt = f"""
+Extract the smallest set of directly supported facts needed to answer the question.
+Use only the provided evidence; do not infer or fill gaps. Keep list hierarchy,
+qualifiers, units, years, and named entities. Each claim must include the physical
+page that contains its supporting text and a short verbatim evidence excerpt.
+
+Question: {query}
+
+Evidence:
+{json.dumps(context_blocks, ensure_ascii=False)}
+
+Return JSON only:
+{{"claims":[{{"claim":"...","page":1,"evidence":"..."}}],"missing":[]}}
+"""
+    from pageindex.utils import extract_json
+
+    raw, completion_error, finish_reason = _active_completion(
+        prompt,
+        model_role="answer",
+        stage="answer_fact_extraction",
+        reasoning="disabled",
+        max_output_tokens=ANSWER_FACT_EXTRACTION_MAX_TOKENS,
+    )
+    if completion_error or finish_reason == "max_output_reached" or not raw:
+        return None
+    try:
+        parsed = extract_json(raw)
+    except Exception:
+        return None
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("claims"), list):
+        return None
+
+    available_pages = {
+        item.get("page")
+        for block in context_blocks
+        if isinstance(block, dict)
+        for item in block.get("evidence", [])
+        if isinstance(item, dict) and _is_page_number(item.get("page"))
+    }
+    claims: list[dict[str, Any]] = []
+    for item in parsed["claims"][:32]:
+        if not isinstance(item, dict):
+            return None
+        claim = item.get("claim")
+        excerpt = item.get("evidence")
+        page = item.get("page")
+        if (
+            not isinstance(claim, str)
+            or not claim.strip()
+            or not isinstance(excerpt, str)
+            or not excerpt.strip()
+            or not _is_page_number(page)
+            or page not in available_pages
+        ):
+            return None
+        claims.append(
+            {
+                "claim": claim.strip()[:1000],
+                "page": page,
+                "evidence": excerpt.strip()[:1200],
+            }
+        )
+    return claims if claims else None
+
+
+def _synthesize_answer_from_claims(
+    query: str,
+    claims: list[dict[str, Any]],
+) -> str:
+    prompt = f"""
+Answer the question using only the verified claims below. Do not add facts that are
+not present in the claims. Cover every material part of the question, preserve list
+hierarchy and qualifiers, and be concise. Do not mention this extraction step or
+the evidence format. Return only the answer text.
+
+Question: {query}
+Verified claims:
+{json.dumps(claims, ensure_ascii=False)}
+"""
+    answer, completion_error, finish_reason = _active_completion(
+        prompt,
+        model_role="answer",
+        stage="answer_synthesis",
+        reasoning=_answer_reasoning_mode(query, [{"evidence": claims}]),
+        max_output_tokens=_answer_max_output_tokens(),
+    )
+    if completion_error or finish_reason == "max_output_reached":
+        return ""
+    return answer.strip() if answer else ""
+
+
+def _generate_answer(query: str, context_blocks: list[dict[str, Any]]) -> str:
+    if _answer_policy() == "extract_then_synthesize":
+        claims = _extract_answer_claims(query, context_blocks)
+        if claims:
+            synthesized = _synthesize_answer_from_claims(query, claims)
+            if synthesized:
+                return synthesized
+        logger.warning("Answer fact pipeline failed; falling back to direct synthesis")
+    return _generate_answer_direct(query, context_blocks)
 
 
 def _parse_json_list(value: str | None) -> list:
@@ -2005,6 +2424,8 @@ question. Even then, return coverage, confidence, and unresolved.
         if completion_error:
             raise ValueError(completion_error)
         parsed = extract_json(raw)
+        if not isinstance(parsed, dict) or not isinstance(parsed.get("matches"), list):
+            raise ValueError("invalid EvidenceSet matches")
         requires_combined_contract = any(
             key in parsed for key in ("coverage", "confidence", "unresolved")
         )
@@ -2041,13 +2462,35 @@ question. Even then, return coverage, confidence, and unresolved.
         )
 
     if accepted_local_indexes is None:
-        retained = tuple(
-            result
-            for index, result in enumerate(document_results)
-            if index not in validation_indexes
-        )
+        if _evidence_validation_policy() == "preserve":
+            # A malformed or unavailable validator is a technical uncertainty,
+            # not proof that PageIndex found no evidence. Keep all provisional
+            # results, mark them degraded, and let the caller expose coverage as
+            # unknown. Explicit ``matches=[]`` still follows the normal no-match
+            # path below because it is a valid semantic decision.
+            retained_items: list[dict[str, Any]] = []
+            for result in document_results:
+                retained_result = dict(result)
+                reasons = tuple(
+                    dict.fromkeys(
+                        [
+                            *result.get(DOCUMENT_DEGRADED_REASONS_KEY, ()),
+                            "evidence_set_assessment_failed",
+                        ]
+                    )
+                )
+                retained_result[DOCUMENT_DEGRADED_REASONS_KEY] = reasons
+                retained_items.append(retained_result)
+            retained = tuple(retained_items)
+        else:
+            retained = tuple(
+                result
+                for index, result in enumerate(document_results)
+                if index not in validation_indexes
+            )
         logger.warning(
-            "EvidenceSet assessment failed attempted=%d retained=%d",
+            "EvidenceSet assessment failed policy=%s attempted=%d retained=%d",
+            _evidence_validation_policy(),
             len(validation_indexes),
             len(retained),
         )
@@ -2094,15 +2537,22 @@ question. Even then, return coverage, confidence, and unresolved.
             continue
         validated_document = dict(result["document"])
         validated_document.pop(EVIDENCE_VALIDATION_REASON_KEY, None)
-        retained_results.append(
-            _assemble_document_result(
-                query,
-                validated_document,
-                _format_page_window(supporting_pages),
-                supporting_evidence,
-                supported_aspects=supported_aspects,
-            )
+        retained_result = _assemble_document_result(
+            query,
+            validated_document,
+            _format_page_window(supporting_pages),
+            supporting_evidence,
+            supported_aspects=supported_aspects,
         )
+        # Evidence validation narrows pages but must not erase the PageIndex
+        # navigation diagnostics attached before the validation pass.
+        if isinstance(result.get("searchDiagnostics"), dict):
+            retained_result["searchDiagnostics"] = dict(result["searchDiagnostics"])
+        if result.get(DOCUMENT_DEGRADED_REASONS_KEY):
+            retained_result[DOCUMENT_DEGRADED_REASONS_KEY] = tuple(
+                dict.fromkeys(result[DOCUMENT_DEGRADED_REASONS_KEY])
+            )
+        retained_results.append(retained_result)
         accepted_count += 1
 
     logger.info(
@@ -2161,6 +2611,11 @@ def _merge_grounded_document_results(
             evidence,
             supported_aspects=aspects,
         )
+        search_diagnostics = result.get("searchDiagnostics") or previous.get(
+            "searchDiagnostics"
+        )
+        if isinstance(search_diagnostics, dict):
+            rebuilt["searchDiagnostics"] = dict(search_diagnostics)
         degraded_reasons = tuple(
             dict.fromkeys(
                 [
@@ -2618,6 +3073,11 @@ def _build_answer_result(
         "citations": citations if mode != "evidence" else [],
         "selectedDocuments": _selected_documents_payload(used_documents, mode),
         "evidence": evidence_blocks if mode == "evidence" else [],
+        "retrievalDiagnostics": [
+            item.get("searchDiagnostics", {})
+            for item in document_results
+            if isinstance(item.get("searchDiagnostics"), dict)
+        ],
         "retrievalStatus": status,
         "coverage": _coverage_payload(
             coverage,
@@ -2688,6 +3148,8 @@ def _build_document_evidence_events(
                 step["pages"],
                 step["evidence"],
             )
+            if step.get("search_diagnostics"):
+                result["searchDiagnostics"] = dict(step["search_diagnostics"])
             degraded_reasons = step.get("degraded_reasons", ())
             if degraded_reasons:
                 result[DOCUMENT_DEGRADED_REASONS_KEY] = tuple(degraded_reasons)
@@ -2947,6 +3409,18 @@ def _build_progressive_evidence_events(
             if wave_validation.degraded_reason:
                 accumulated_reasons.append(wave_validation.degraded_reason)
                 coverage_failed = True
+                if (
+                    _evidence_validation_policy() == "preserve"
+                    and wave_validation.document_results
+                ):
+                    # Preserve provisional PageIndex evidence after a technical
+                    # validator failure. A later wave may validate it normally;
+                    # until then the final result remains explicitly degraded.
+                    grounded_results = _merge_grounded_document_results(
+                        query,
+                        grounded_results,
+                        wave_validation.document_results,
+                    )
             else:
                 accumulated_reasons = [
                     reason

@@ -1,0 +1,110 @@
+{
+  "answerElements": {
+    "value": {
+      "elements": [
+        {
+          "id": "H022-e1",
+          "support": "complete",
+          "quote": "若选项数量少于 7 个，应结合界面布局优先考虑复选组、标签选择等选择控件",
+          "reason": "待测材料直接引用了华为规范原文，明确指出选项数量少于7个时应优先考虑复选组、标签选择等控件，与参考要素完全一致。"
+        },
+        {
+          "id": "H022-e2",
+          "support": "complete",
+          "quote": "下拉多选一般不提供默认选项，此时应使用占位符文本清晰提示用户下拉列表中的期望内容。如：“请选择包含的国家”等",
+          "reason": "待测材料引用了华为规范原文，完整包含了“下拉多选一般不提供默认选项”和“使用占位符文本清晰提示”两个核心点，并给出了示例，支持完整。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题：对于六个选项多选场景，建议不使用下拉多选而优先考虑复选组或标签选择，符合规范；对于无默认值情况，建议使用占位符文本提示，正确且无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 1765,
+      "completion_tokens": 274,
+      "total_tokens": 2039,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-2fxqgmbb21",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2620,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "75392007a4a407e43e354980d78423ab1e6d02a95c176d333844a7af38d00bc5"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "H022-e1",
+          "support": "complete",
+          "quote": "若选项数量少于 7 个，应 结合界面布局 优先考虑复选组、标 签选择等选择 控件",
+          "reason": "待测材料中直接引用了与参考答案完全一致的语句，且实体、数量条件（少于7个）和控件类型（复选组、标签选择）均正确匹配。"
+        },
+        {
+          "id": "H022-e2",
+          "support": "complete",
+          "quote": "下拉 多选一 般不提供 默认选项，此时应使用 占位符文本 清晰提示用户下拉列 表中的 期望内 容",
+          "reason": "待测材料中直接包含原文，实体（下拉多选）、条件（一般不提供默认选项）、提示方式（占位符文本）和目的（清晰提示期望内容）均正确绑定。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，明确建议使用复选组或标签选择而不是下拉多选，并指出无默认值时使用占位符文本提示，且引用证据准确，无重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 15588,
+      "completion_tokens": 273,
+      "total_tokens": 15861,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-34w9qt0gt9",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3362,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1dbccceadac170c7c4174a0ccddbb1856ac56efb2946b8dd4e773ff032c5157f"
+  },
+  "returnedEvidence": {
+    "value": {
+      "elements": [
+        {
+          "id": "H022-e1",
+          "support": "complete",
+          "quote": "若选项数量少于 7 个，应 结合界面布局 优先考虑复选组、标 签选择等选择 控件",
+          "reason": "待测材料中的原文完整包含了参考要素的所有关键信息：选项数量少于7个、结合界面布局、优先考虑复选组和标签选择等选择控件。"
+        },
+        {
+          "id": "H022-e2",
+          "support": "complete",
+          "quote": "下拉 多选一 般不提供 默认选项，此时应使用 占位符文本 清晰提示用户下拉列 表中的 期望内 容。",
+          "reason": "待测材料中的原文完整包含了参考要素的所有关键信息：下拉多选一般不提供默认选项、使用占位符文本、清晰提示期望内容。"
+        }
+      ],
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题：建议使用复选组或标签选择控件而非下拉多选，因为选项少于7个；若必须使用下拉多选且无默认值时，应使用占位符文本提示。回答引用了多个文档证据，且未包含重大错误。"
+    },
+    "usage": {
+      "prompt_tokens": 15588,
+      "completion_tokens": 281,
+      "total_tokens": 15869,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-ex9h4q3ny5",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3320,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1dbccceadac170c7c4174a0ccddbb1856ac56efb2946b8dd4e773ff032c5157f"
+  }
+}

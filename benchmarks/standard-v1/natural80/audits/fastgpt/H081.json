@@ -1,0 +1,263 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未包含参考答案中的任何一个要素（范围说明、产品概述、采购来源、市场条件、其他计划编制的输出、约束条件、假定、采购管理计划、工作说明），且引入了参考答案中不存在的材料（如可行性分析报告、采购申请表等），与参考答案的主要结论矛盾，因此不完整且回答不准确。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“范围说明”作为采购计划编制的输入；仅讨论了其他制度性材料，与参考答案要素无关。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“产品概述”作为采购计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“采购来源”作为采购计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“市场条件”作为采购计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“其他计划编制的输出”作为采购计划编制或询价计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“约束条件”作为采购计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“假定”作为采购计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“采购管理计划”作为询价计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“工作说明”作为询价计划编制的输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "根据提供的文档证据，关于项目选供应商时前面需要准备的输入材料，回答如下：",
+          "reason": "待测材料未提及“其他计划编制的输出”作为询价计划编制的输入（与H081_E5重复，但针对询价阶段仍缺失）。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3399,
+      "completion_tokens": 804,
+      "total_tokens": 4203,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R46XSeFAJumlCxuKJwTLWJmM",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15277,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "62cbfaf872c4870ec9c32cdcc2c079a78fe972be7ec895ecc8ee58327c44d9bd"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答基于其他文档提供了采购申请表、预算等材料，但未包含参考答案所依据的采购计划编制和询价计划编制的具体输入项（如范围说明、产品概述等），且引用了错误的文档，未正确回答问题。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E3",
+          "quote": ".3采购来源",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E4",
+          "quote": ".4市场条件",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E5",
+          "quote": ".5其他计划编制的输出",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E6",
+          "quote": ".6约束条件",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E7",
+          "quote": ".7假定",
+          "reason": "待测材料仅包含原文引用，未包含任何对采购计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料仅包含原文引用，未包含任何对询价计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料仅包含原文引用，未包含任何对询价计划编制输入数据的总结或说明",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E10",
+          "quote": ".3其他计划编制的输出",
+          "reason": "待测材料仅包含原文引用，未包含任何对询价计划编制输入数据的总结或说明",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11773,
+      "completion_tokens": 869,
+      "total_tokens": 12642,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RuGSr7kj0rYhy99m4fPWovC0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 16256,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "afe3b30482318d44d609e051d700ca9ebed14d6cfa2862d779bb8eee04365017"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未复现参考答案中的采购计划编制和询价计划编制的具体输入项（如范围说明、产品概述、市场条件、约束条件等），而是基于其他文档列出了不同的流程性材料，且与问题要求的‘输入材料’不匹配，因此未正确回答问题。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料包含相同文档和页面，明确列出‘范围说明’为采购计划编制输入之一，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料同一列表中列出‘产品概述’作为采购计划编制输入之一，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E3",
+          "quote": ".3采购来源",
+          "reason": "待测材料页面296中列出‘采购来源’作为采购计划编制的第三个输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E4",
+          "quote": ".4市场条件",
+          "reason": "待测材料页面296中列出‘市场条件’作为采购计划编制的第四个输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E5",
+          "quote": ".5其他计划编制的输出",
+          "reason": "待测材料页面296中列出‘其他计划编制的输出’作为采购计划编制的第五个输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E6",
+          "quote": ".6约束条件",
+          "reason": "待测材料页面296中列出‘约束条件’作为采购计划编制的第六个输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E7",
+          "quote": ".7假定",
+          "reason": "待测材料页面296中列出‘假定’作为采购计划编制的第七个输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料同一列表中列出‘采购管理计划’作为询价计划编制输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "11.1采购计划编制11.2询价计划编制11.3询价\n.1输入数据 .1输入数据 .1输入数据\n.1范围说明 .1采购管理计划 .1采购文件\n.2产品概述 .2工作说明 .2合格卖方清单",
+          "reason": "待测材料同一列表中列出‘工作说明’作为询价计划编制输入，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H081_E10",
+          "quote": ".3其他计划编制的输出",
+          "reason": "待测材料页面296中在询价计划编制部分列出‘其他计划编制的输出’作为其第三个输入，与参考答案一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11773,
+      "completion_tokens": 902,
+      "total_tokens": 12675,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RdjkyRVzeyCCCovt9oaLwixF",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 17423,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "afe3b30482318d44d609e051d700ca9ebed14d6cfa2862d779bb8eee04365017"
+  }
+}

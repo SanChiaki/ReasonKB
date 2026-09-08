@@ -1,0 +1,116 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题",
+      "elements": [
+        {
+          "id": "H070-E01",
+          "quote": "实例调度：15 分钟一次",
+          "reason": "实体和数量正确",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E02",
+          "quote": "监控调度：1 分钟一次",
+          "reason": "实体和数量正确",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E03",
+          "quote": "规则调度：15 分钟一次",
+          "reason": "实体和数量正确",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E04",
+          "quote": "告警调度：3 分钟一次",
+          "reason": "实体和数量正确",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E05",
+          "quote": "计量调度：15 分钟一次",
+          "reason": "实体和数量正确",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1982,
+      "completion_tokens": 253,
+      "total_tokens": 2235,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RjgsXeGQI2PGLWFAJ7Umlv8h",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4462,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e87bdf055436f14fb41ff527fdde17efd44c149a54bcb4bc88ef5ef71618b7ab"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H070-E01",
+          "quote": "实例调度：15 分钟一次",
+          "reason": "待测材料明确提及实例调度为15分钟一次，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E02",
+          "quote": "监控调度：1 分钟一次",
+          "reason": "待测材料明确提及监控调度为1分钟一次，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E03",
+          "quote": "规则调度：15 分钟一次",
+          "reason": "待测材料明确提及规则调度为15分钟一次，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E04",
+          "quote": "告警调度：3 分钟一次",
+          "reason": "待测材料明确提及告警调度为3分钟一次，与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H070-E05",
+          "quote": "计量调度：15 分钟一次",
+          "reason": "待测材料明确提及计量调度为15分钟一次，与参考一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1982,
+      "completion_tokens": 318,
+      "total_tokens": 2300,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RoGUsrE9mW0JlzGrzBVhYoKJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 10404,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e87bdf055436f14fb41ff527fdde17efd44c149a54bcb4bc88ef5ef71618b7ab"
+  }
+}

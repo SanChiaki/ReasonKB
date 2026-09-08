@@ -1,0 +1,178 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，给出了正式上线安排日期、完成比例和剩余天数，且与参考答案一致，无重大错误。",
+      "elements": [
+        {
+          "id": "elem1",
+          "quote": "校园系统正式上线安排在 2013年9月16日",
+          "reason": "待测材料明确绑定任务与开始日期，实体、属性、日期均正确。",
+          "support": "complete"
+        },
+        {
+          "id": "elem2",
+          "quote": "校园系统正式上线安排在 2013年9月16日",
+          "reason": "材料中同时表明截止日期与开始日期相同，均为9/16/2013，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "elem3",
+          "quote": "当前完成比例为 0%",
+          "reason": "材料明确完成比例为0%，正确绑定任务。",
+          "support": "complete"
+        },
+        {
+          "id": "elem4",
+          "quote": "已完成数为 0",
+          "reason": "材料中明确已完成列为0，正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "elem5",
+          "quote": "剩余天数为 1天",
+          "reason": "材料明确剩余天数为1，正确绑定任务。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1245,
+      "completion_tokens": 275,
+      "total_tokens": 1520,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RFXbc3mzDWsvturT5HKDQ8mg",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5583,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:elem4"
+    ],
+    "materialSha256": "18968475329a79705373ba929fb9c8335a045933bf0e96bb44dc984be67e3ffe"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer 正确回答了问题，包含了上线日期、完成比例、已完成数和剩余天数，且无重大错误。",
+      "elements": [
+        {
+          "id": "elem1",
+          "quote": "校园系统正式上线",
+          "reason": "材料中任务“校园系统正式上线”对应“开始日期”列为9/16/2013，与要素一致",
+          "support": "complete"
+        },
+        {
+          "id": "elem2",
+          "quote": "9/16/2013",
+          "reason": "材料中任务“校园系统正式上线”对应“截止日期”列为9/16/2013，与要素一致",
+          "support": "complete"
+        },
+        {
+          "id": "elem3",
+          "quote": "0 %",
+          "reason": "材料中任务“校园系统正式上线”的“完成比例”列为0 %，与要素一致",
+          "support": "complete"
+        },
+        {
+          "id": "elem4",
+          "quote": "0",
+          "reason": "材料中任务“校园系统正式上线”的“已完成”列为0，与要素一致",
+          "support": "complete"
+        },
+        {
+          "id": "elem5",
+          "quote": "1",
+          "reason": "材料中任务“校园系统正式上线”的“剩余天数”列为1，与要素一致",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 20771,
+      "completion_tokens": 330,
+      "total_tokens": 21101,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RtydZfSxDoFbvUaMT0V9R6Oz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6742,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "120b3cf2dfdecc1a0256e5bd16a13a06be6eeef2a8754c22d43f1b1473f33f8e"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，所需实体、日期、数量均绑定正确，并补充了必要例外说明，无重大错误。",
+      "elements": [
+        {
+          "id": "elem1",
+          "quote": "校园系统正式上线</td><td></td><td>9/16/2013",
+          "reason": "表格任务明细为“校园系统正式上线”，该行“开始日期”列为“9/16/2013”，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "elem2",
+          "quote": "校园系统正式上线</td><td></td><td>9/16/2013",
+          "reason": "同一行，“截止日期”列也为“9/16/2013”，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "elem3",
+          "quote": "0 %",
+          "reason": "对应行“完成比例”为“0 %”，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "elem4",
+          "quote": "0",
+          "reason": "对应行“已完成”列为“0”，完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "elem5",
+          "quote": "1",
+          "reason": "对应行“剩余天数”列为“1”，完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 20771,
+      "completion_tokens": 336,
+      "total_tokens": 21107,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RkN55Fs75RmUXROtAcUFCBlp",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9212,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:elem1",
+      "invalid_quote:elem2"
+    ],
+    "materialSha256": "120b3cf2dfdecc1a0256e5bd16a13a06be6eeef2a8754c22d43f1b1473f33f8e"
+  }
+}

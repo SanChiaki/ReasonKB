@@ -363,6 +363,81 @@ def test_answer_generation_rejects_truncated_provider_output(monkeypatch):
     assert answer == ""
 
 
+def test_answer_fact_pipeline_extracts_then_synthesizes(monkeypatch):
+    context = query_engine._QueryLlmContext(
+        request_id="answer-fact-pipeline",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="test-key",
+        base_url="https://provider.example/v1",
+        deadline=time.monotonic() + 30,
+    )
+    calls = []
+
+    def complete(**kwargs):
+        calls.append(kwargs)
+        if kwargs["stage"] == "answer_fact_extraction":
+            return CompletionResult(
+                '{"claims":[{"claim":"Threshold is 1000万元.","page":2,'
+                '"evidence":"业绩门槛为年度收入1000万元。"}],"missing":[]}',
+                finish_reason="stop",
+                attempts=1,
+            )
+        assert kwargs["stage"] == "answer_synthesis"
+        return CompletionResult("年度业绩门槛为 1000 万元。", finish_reason="stop", attempts=1)
+
+    monkeypatch.setenv("REASONKB_ANSWER_POLICY", "extract_then_synthesize")
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+    with query_engine._query_llm_context_scope(context):
+        answer = query_engine._generate_answer(
+            "业绩门槛是多少？",
+            [
+                {
+                    "document": "policy.pdf",
+                    "pages": "2",
+                    "evidence": [
+                        {"page": 2, "content": "业绩门槛为年度收入1000万元。"},
+                    ],
+                }
+            ],
+        )
+
+    assert answer == "年度业绩门槛为 1000 万元。"
+    assert [call["stage"] for call in calls] == [
+        "answer_fact_extraction",
+        "answer_synthesis",
+    ]
+
+
+def test_answer_fact_pipeline_falls_back_to_direct_on_extraction_failure(monkeypatch):
+    context = query_engine._QueryLlmContext(
+        request_id="answer-fact-fallback",
+        retrieval_model="retrieval-model",
+        answer_model="answer-model",
+        api_key="test-key",
+        base_url="https://provider.example/v1",
+        deadline=time.monotonic() + 30,
+    )
+    stages = []
+
+    def complete(**kwargs):
+        stages.append(kwargs["stage"])
+        if kwargs["stage"] == "answer_fact_extraction":
+            return CompletionResult("not-json", finish_reason="stop", attempts=1)
+        return CompletionResult("direct fallback answer", finish_reason="stop", attempts=1)
+
+    monkeypatch.setenv("REASONKB_ANSWER_POLICY", "extract_then_synthesize")
+    monkeypatch.setattr(query_engine, "complete_retrieval_llm", complete)
+    with query_engine._query_llm_context_scope(context):
+        answer = query_engine._generate_answer(
+            "What changed?",
+            [{"document": "policy.pdf", "pages": "1", "evidence": [{"page": 1, "content": "A change."}]}],
+        )
+
+    assert answer == "direct fallback answer"
+    assert stages == ["answer_fact_extraction", "answer_generation"]
+
+
 def test_answer_reasoning_auto_escalates_only_for_complex_synthesis(monkeypatch):
     monkeypatch.delenv("ANSWER_REASONING_MODE", raising=False)
 
@@ -559,6 +634,32 @@ def test_fallback_evidence_validation_keeps_only_directly_supported_pages(monkey
         EVIDENCE_VALIDATION_REASON_KEY
         not in validation.document_results[0]["document"]
     )
+
+
+def test_evidence_validation_preserves_page_search_diagnostics(monkeypatch):
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: (
+            '{"matches":[{"candidate_id":"D001","supporting_pages":[2]}]}'
+        ),
+    )
+    result = _fallback_document_result()
+    result["searchDiagnostics"] = {
+        "policy": "optimized",
+        "max_pages": 40,
+        "rounds_completed": 3,
+        "inspected_page_count": 12,
+        "stop_reason": "coverage_complete",
+    }
+
+    validation = query_engine._validate_retrieved_evidence(
+        "钻石经销商的业绩门槛是多少？",
+        [result],
+    )
+
+    assert validation.document_results[0]["searchDiagnostics"] == result[
+        "searchDiagnostics"
+    ]
 
 
 def test_evidence_list_validation_restores_selected_continuation_pages(monkeypatch):
@@ -857,6 +958,30 @@ def test_fallback_evidence_validation_fails_closed_when_validator_is_malformed(
     assert validation.status == "degraded"
     assert validation.degraded_reason == "evidence_set_assessment_failed"
     assert validation.document_results == ()
+
+
+def test_preserve_evidence_validation_keeps_provisional_pages_on_technical_failure(
+    monkeypatch,
+):
+    monkeypatch.setenv("REASONKB_EVIDENCE_VALIDATION_POLICY", "preserve")
+    monkeypatch.setattr(
+        "pageindex.utils.llm_completion",
+        lambda model, prompt, chat_history=None, return_finish_reason=False: "not-json",
+    )
+
+    validation = query_engine._validate_retrieved_evidence(
+        "钻石经销商的业绩门槛是多少？",
+        [_fallback_document_result()],
+    )
+
+    assert validation.status == "degraded"
+    assert validation.coverage is not None
+    assert validation.coverage.coverage == "unknown"
+    assert len(validation.document_results) == 1
+    assert validation.document_results[0]["evidenceBlock"]["pages"] == "1-2"
+    assert "evidence_set_assessment_failed" in validation.document_results[0][
+        query_engine.DOCUMENT_DEGRADED_REASONS_KEY
+    ]
 
 
 def test_validation_keeps_direct_partial_evidence_for_answer_generation(monkeypatch):
@@ -2048,6 +2173,50 @@ def test_choose_page_window_maps_pageindex_node_list_to_physical_pages(monkeypat
     assert pages == "7-8"
 
 
+def test_query_page_anchors_ignore_english_stopword_substrings(monkeypatch):
+    monkeypatch.setenv("REASONKB_TREE_SEARCH_POLICY", "adaptive_slots")
+    document = {
+        "pages": [
+            {"page": 1, "content": "Deferred assets increased during the year."},
+            {"page": 2, "content": "Other financial discussion."},
+            {"page": 3, "content": "Appendix reports total deferred assets of 42 million."},
+        ]
+    }
+
+    assert query_engine._page_anchor_pages(
+        "What was the total value of deferred assets?",
+        document,
+        4,
+    ) == [3, 1]
+
+
+@pytest.mark.parametrize(
+    ("policy", "expected_rounds", "expected_pages", "expected_anchors"),
+    [
+        ("fixed", 3, 16, 0),
+        ("adaptive", 5, 40, 0),
+        ("adaptive_slots", 5, 40, 4),
+        ("optimized", 5, 40, 4),
+    ],
+)
+def test_tree_search_policy_controls_budget_and_slots(
+    monkeypatch,
+    policy,
+    expected_rounds,
+    expected_pages,
+    expected_anchors,
+):
+    monkeypatch.setenv("REASONKB_TREE_SEARCH_POLICY", policy)
+    budget = query_engine._tree_search_budget(
+        "Compare all thresholds and qualification requirements across the policy."
+    )
+
+    assert budget.max_rounds == expected_rounds
+    assert budget.max_pages == expected_pages
+    assert budget.anchor_pages == expected_anchors
+    assert budget.use_targets is (policy in {"adaptive_slots", "optimized"})
+
+
 def test_choose_page_window_keeps_overview_nodes_for_complete_list_questions(
     monkeypatch,
 ):
@@ -2331,10 +2500,14 @@ def test_tree_assessment_marks_requested_invalid_page_as_degraded(monkeypatch):
     assert assessment.degraded_reason == "tree_assessment_invalid_next_pages"
 
 
+@pytest.mark.parametrize(("policy", "expected_assessments"), [("fixed", 2), ("adaptive_slots", 1)])
 def test_query_mode_iterates_pageindex_tree_until_evidence_is_sufficient(
     tmp_path,
     monkeypatch,
+    policy,
+    expected_assessments,
 ):
+    monkeypatch.setenv("REASONKB_TREE_SEARCH_POLICY", policy)
     db_path = _seed_retrieval_db(tmp_path)
     _insert_ready_document(
         db_path,
@@ -2403,7 +2576,7 @@ def test_query_mode_iterates_pageindex_tree_until_evidence_is_sufficient(
     assert result["answer"] == "The total deferred assets were 42 million."
     assert result["citations"][0]["pages"] == "1,3"
     assert result["citations"][0]["focusPage"] == 3
-    assert assessment_count == 2
+    assert assessment_count == expected_assessments
 
 
 def test_evidence_mode_uses_tree_search_but_does_not_generate_an_answer(
@@ -4373,3 +4546,16 @@ def test_answer_question_events_reports_each_tree_search_round(tmp_path, monkeyp
     result = events[-1]["data"]
     assert result["answer"] == "Combined answer."
     assert result["citations"][0]["pages"] == "1,3"
+
+
+@pytest.mark.parametrize("configured", [None, "invalid"])
+def test_standard_default_is_c(monkeypatch, configured):
+    for name in ("REASONKB_TREE_SEARCH_POLICY", "REASONKB_EVIDENCE_VALIDATION_POLICY", "REASONKB_ANSWER_POLICY"):
+        monkeypatch.delenv(name, raising=False)
+    if configured is not None:
+        monkeypatch.setenv("REASONKB_TREE_SEARCH_POLICY", configured)
+    budget = query_engine._tree_search_budget("Compare all eligibility thresholds and requirements")
+    assert budget.use_targets and budget.anchor_pages == 4
+    assert budget.max_rounds == 5 and budget.max_pages == 40
+    assert query_engine._evidence_validation_policy() == "strict"
+    assert query_engine._answer_policy() == "direct"

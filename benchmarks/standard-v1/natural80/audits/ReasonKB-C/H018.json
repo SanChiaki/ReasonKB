@@ -1,0 +1,102 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答问题，因此判断为不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常 运行。",
+          "reason": "待测材料原文确实包含此意思表述：'第二个目的是 核实软件在安装后可立即正常 运行。' 实体、属性绑定正确，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是 指运行 大量为功能测试 制定的测试。",
+          "reason": "待测材料原文与参考答案完全对应，实体、属性绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "待测材料原文包含该表述，实体、属性绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "<产品名称> 事务成功执行，没有出现任何故障。",
+          "reason": "待测材料原文中完成标准为'<产品名称> 事务成功执行，没有出现任何故障。' 与参考答案一致，实体、属性、数量绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5351,
+      "completion_tokens": 279,
+      "total_tokens": 5630,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ra7V4kQO9jhyzHkuesXqgvZf",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5668,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:4"
+    ],
+    "materialSha256": "3a9798aea6f1d44dbad7c21cb72bb4c6751170cc9490fff2491c5ad90cd1edbb"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第二个目的是 核实软件在安装后可立即正常 运行。",
+          "reason": "待测材料中IBD文档A.1.1.2节明确包含该句，实体和数量完全对应。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "这通 常是指运行 大量为功能测试 制定的测试。",
+          "reason": "待测材料中IBD文档A.1.1.2节紧接目的说明，明确说明通常指运行大量功能测试，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "使用预先确定的功能测试脚本子集来运行事务。",
+          "reason": "待测材料表格中技术栏明确包含此句，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "<产品名称> 事务成功执行，没有出现任何故障。",
+          "reason": "待测材料完成标准栏明确包含此句，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5351,
+      "completion_tokens": 294,
+      "total_tokens": 5645,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RFJuVX2I6WoFuZJ5UkIZminN",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5309,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:4"
+    ],
+    "materialSha256": "3a9798aea6f1d44dbad7c21cb72bb4c6751170cc9490fff2491c5ad90cd1edbb"
+  }
+}

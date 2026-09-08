@@ -1,0 +1,161 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料未提供最终回答，因此无法满足问题要求。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能 改进型的项目，总利润额20%作为激励额度， 其中项目研发人员占10%，项 目其他人员占2%，销售人员 占8%。",
+          "reason": "待测材料完整支持该要素，包括项目类型、总额度及各类人员比例。",
+          "support": "complete"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的 项目，总利润额30%作为激励额度， 其中项目研发人员占17%，项 目其他人员占3%，销售人员 占10%。",
+          "reason": "待测材料完整支持该要素，包括项目类型、总额度及各类人员比例。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术 /设备改进型项目，总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术 /设备项目，总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制 改进型项目，总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项 目，总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程 或模式改进型项 目，总利润额20%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项 目，总利润额30%作为项目组成员 激励额度",
+          "reason": "待测材料完整支持该要素，包括项目类型和激励比例。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3131,
+      "completion_tokens": 624,
+      "total_tokens": 3755,
+      "prompt_tokens_details": {
+        "cached_tokens": 2816
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RfxkooMN2j6GCogSlK3ov59x",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 21644,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:new-product-improvement",
+      "invalid_quote:new-product-new",
+      "invalid_quote:process-tech-equipment-improvement",
+      "invalid_quote:process-tech-equipment-new",
+      "invalid_quote:management-improvement",
+      "invalid_quote:management-new",
+      "invalid_quote:business-improvement",
+      "invalid_quote:business-new"
+    ],
+    "materialSha256": "d4f4584ee76d43ab8b4b4e41d086ed92ae2eaca8c2bb7d7442aa7312507d4a3d"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "new-product-improvement",
+          "quote": "对当前产品性能 改进型的项目",
+          "reason": "参考要素中项目分类描述与待测材料表格一致，但激励额度部分被表格分页截断，待测材料仅包含部分内容，且缺少项目其他人员和销售人员的具体比例。",
+          "support": "partial"
+        },
+        {
+          "id": "new-product-new",
+          "quote": "全新产品研发的 项目",
+          "reason": "参考要素中项目分类描述与待测材料表格一致，但激励额度部分被表格分页截断，待测材料仅包含部分内容，且缺少项目其他人员和销售人员的具体比例。",
+          "support": "partial"
+        },
+        {
+          "id": "process-tech-equipment-improvement",
+          "quote": "对当前工艺/技术 /设备改进型项目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        },
+        {
+          "id": "process-tech-equipment-new",
+          "quote": "全新的工艺/技术 /设备项目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        },
+        {
+          "id": "management-improvement",
+          "quote": "对当前管理机制 改进型项目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        },
+        {
+          "id": "management-new",
+          "quote": "全新的管理型项 目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        },
+        {
+          "id": "business-improvement",
+          "quote": "对当前业务流程 或模式改进型项 目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        },
+        {
+          "id": "business-new",
+          "quote": "全新的业务型项 目",
+          "reason": "项目分类描述匹配，激励额度部分在待测材料中完整出现。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3131,
+      "completion_tokens": 538,
+      "total_tokens": 3669,
+      "prompt_tokens_details": {
+        "cached_tokens": 2816
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rb8HNqvoom5LEHs3tLCAQRJt",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15110,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d4f4584ee76d43ab8b4b4e41d086ed92ae2eaca8c2bb7d7442aa7312507d4a3d"
+  }
+}

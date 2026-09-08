@@ -1,0 +1,121 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整且准确地回答了问题，明确指出标准名称和所属行业，无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "标准名称是“气象工程项目可行性研究报告编制规范”",
+          "reason": "待测材料完整支持该要素，标准名称与参考一致，并正确绑定标准号。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "属于“气象”行业",
+          "reason": "待测材料完整支持该要素，行业属性明确绑定标准号，无矛盾。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 673,
+      "completion_tokens": 161,
+      "total_tokens": 834,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Ro9pDHNOhrHgkwEJLNLcWcCD",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3636,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "88e580a68fcefd3946814ad7fa7fac2e1911f1bce1062f8d70c1685108801163"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确定义了标准号及其名称和行业，未超出材料范围，无矛盾，符合问题要求",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "QX/T 277-2015\t气象工程项目可行性研究报告编制规范",
+          "reason": "待测材料中定位到该标准号及其标准名称，且在同一行，准确绑定",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "气象",
+          "reason": "同一行末列明确标注行业领域为气象，与标准号绑定，没有例外或否定",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11940,
+      "completion_tokens": 165,
+      "total_tokens": 12105,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R4uVvghPZqcpVCxMOR9qaKlm",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5675,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1"
+    ],
+    "materialSha256": "94a72408a642977d5c249c82f54f2efe73296bca6b7bc87f09db5cd916456949"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer正确识别了标准号对应的标准名称和所属行业，且信息与参考一致，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "QX/T 277-2015",
+          "reason": "待测材料第32页表格中，序号47行明确列出标准号“QX/T 277-2015”与标准名称“气象工程项目可行性研究报告编制规范”位于同一行，完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "QX/T 277-2015",
+          "reason": "待测材料第32页表格中，序号47行明确列出标准号“QX/T 277-2015”的行业领域为“气象”，完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11940,
+      "completion_tokens": 207,
+      "total_tokens": 12147,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RhbCdRj8D34ENBmVQjekFUVS",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 4310,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "94a72408a642977d5c249c82f54f2efe73296bca6b7bc87f09db5cd916456949"
+  }
+}

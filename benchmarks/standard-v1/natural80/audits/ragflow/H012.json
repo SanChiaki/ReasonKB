@@ -1,0 +1,409 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "答案仅提及效益的度量方法和衡量标准、效益识别分析和规划，未涵盖参考中的16项其他关键要素（如定义效益和假设、如何达成效益、移交运营等），且声称证据不足，未完整回答问题，存在重大遗漏。",
+      "elements": [
+        {
+          "id": "H012-E1",
+          "quote": "此外，计划本身也应基于前期的效益识别和分析工作",
+          "reason": "提到效益识别和分析，但未明确“定义各项效益和相关假设”，假设缺失，故部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H012-E2",
+          "quote": "如何达成各项效益”未出现，效益最大化提及但未明确如何达成，故仅部分。",
+          "reason": "",
+          "support": "partial"
+        },
+        {
+          "id": "H012-E3",
+          "quote": "未提及组件输出与项目集成果联系",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E4",
+          "quote": "效益的度量方法和衡量标准",
+          "reason": "明确提到衡量标准，符合“定义衡量效益的指标（包括KPI）”的核心内容，但未提及KPI具体，故部分。",
+          "support": "partial"
+        },
+        {
+          "id": "H012-E5",
+          "quote": "未提及测量效益的程序",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E6",
+          "quote": "未提及角色和职责",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E7",
+          "quote": "未提及移交运营",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E8",
+          "quote": "未提及移交能力给个人团体",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E9",
+          "quote": "未提及整体流程",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E10",
+          "quote": "未提及何时交付效益",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E11",
+          "quote": "未提及确认机制",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E12",
+          "quote": "未提及变更活动流程系统",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E13",
+          "quote": "未提及对现有流程变更",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E14",
+          "quote": "未提及移交运营时间",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E15",
+          "quote": "未提及基准文件",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E16",
+          "quote": "未提及效益验证",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E17",
+          "quote": "未提及测量点和审查点",
+          "reason": "",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E18",
+          "quote": "效益度量方法和衡量标准",
+          "reason": "提及衡量标准，但未联系项目集目标、财务支出等，故部分。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3628,
+      "completion_tokens": 846,
+      "total_tokens": 4474,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "4e455880c1be416380d780767adeabb4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 21037,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H012-E2"
+    ],
+    "materialSha256": "be361c9160b1c2779c3e49acbd195226d826bb4c75e02317e0ba0dd2f117c596"
+  },
+  "generationContext": {
+    "value": {
+      "elements": [
+        {
+          "id": "H012-E1",
+          "support": "partial",
+          "quote": "项目集效益管理是项目集管理中的关键环节",
+          "reason": "待测材料仅提及效益管理计划需要明确效益的度量方法和衡量标准，未明确定义各项效益和相关假设，故部分支持。"
+        },
+        {
+          "id": "H012-E2",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及如何达成各项效益。"
+        },
+        {
+          "id": "H012-E3",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及将组件输出与项目集成果联系起来。"
+        },
+        {
+          "id": "H012-E4",
+          "support": "complete",
+          "quote": "/益制定有川们度量方法和衡量标准，以便将来用以对项目队进度进行评估",
+          "reason": "待测材料指出效益管理计划应包含效益的度量方法和衡量标准，覆盖了定义衡量效益的指标（包括KPI）这一要素，但KPI未明确提及，然而“衡量标准”可视为包含KPI，且内容相对完整。"
+        },
+        {
+          "id": "H012-E5",
+          "support": "partial",
+          "quote": "制定了效益度量方法和衡量标准",
+          "reason": "待测材料提到了度量方法和衡量标准，但未明确提及“测量程序”的具体内容，因此部分支持。"
+        },
+        {
+          "id": "H012-E6",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及角色和职责。"
+        },
+        {
+          "id": "H012-E7",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及移交进入运营状态。"
+        },
+        {
+          "id": "H012-E8",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及移交能力给个人、团体或组织。"
+        },
+        {
+          "id": "H012-E9",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及提供整体效益管理流程。"
+        },
+        {
+          "id": "H012-E10",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及效益交付的时间或方式。"
+        },
+        {
+          "id": "H012-E11",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及确保效益完全实现的机制。"
+        },
+        {
+          "id": "H012-E12",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及变更相关的活动、流程和系统。"
+        },
+        {
+          "id": "H012-E13",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及对现有流程和系统的必要变更。"
+        },
+        {
+          "id": "H012-E14",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及移交时间和方式。"
+        },
+        {
+          "id": "H012-E15",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及效益管理计划作为基准文件或提供指导。"
+        },
+        {
+          "id": "H012-E16",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及在效益交付阶段验证效益。"
+        },
+        {
+          "id": "H012-E17",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及测量点和审查点。"
+        },
+        {
+          "id": "H012-E18",
+          "support": "missing",
+          "quote": "",
+          "reason": "待测材料未提及效益与项目集目标、财务支出、测量标准的联系。"
+        }
+      ],
+      "answerCorrect": false,
+      "answerReason": "待测最终回答仅笼统地提及效益度量方法和衡量标准，且未正确回答问题的全部要点，遗漏了参考答案中的17个要素，未提供完整且准确的答案。"
+    },
+    "usage": {
+      "prompt_tokens": 8810,
+      "completion_tokens": 964,
+      "total_tokens": 9774,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-v4-flash-0731",
+    "responseId": "as-qx6tkywa2g",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 24220,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H012-E1",
+      "invalid_quote:H012-E5"
+    ],
+    "materialSha256": "c720cca49a426f13e6d0e80b9a61d81d101dfa1c11e52aee436b764a31471cee"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答仅部分覆盖了效益管理计划的核心内容，只强调了度量方法和衡量标准，未能全面回答效益管理计划应提前定清楚的多个方面，遗漏了参考答案中列举的大部分要素，因此回答不完整，且未直接回应问题“应提前定清楚哪些事”的全面要求。",
+      "elements": [
+        {
+          "id": "H012-E1",
+          "quote": "项目 I I行组纱门 11:;ii效实现商 I!'.'八廿织目扣札 11I !'I勺的手庐 叩目集收一斤 :u,1,1 订E在\n1个项目！丿 i,11过程中几 ril1'现",
+          "reason": "材料提到项目集交付效益，但未明确陈述‘定义各项效益和相关假设’，属性绑定不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "H012-E2",
+          "quote": "",
+          "reason": "材料未提及‘如何达成各项效益’。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E3",
+          "quote": "",
+          "reason": "材料未提及‘组件输出与项目集成果联系’。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E4",
+          "quote": "/益制定有川们度量方法和衡量标准，以便将来用以对项目队进度进行评估",
+          "reason": "材料提到度量方法，但未明确关联效益指标或KPI，未完整支持定义衡量效益的指标（包括关键绩效指标）。",
+          "support": "partial"
+        },
+        {
+          "id": "H012-E5",
+          "quote": "",
+          "reason": "材料未提及测量效益的程序。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E6",
+          "quote": "",
+          "reason": "材料未提及角色和职责。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E7",
+          "quote": "",
+          "reason": "材料未提及移交进入运营状态以维持效益。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E8",
+          "quote": "",
+          "reason": "材料未提及个人、团体或组织。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E9",
+          "quote": "",
+          "reason": "材料未提及整体效益管理流程。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E10",
+          "quote": "",
+          "reason": "材料未提及交付效益的时间和方式。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E11",
+          "quote": "",
+          "reason": "材料未提及确保长期实现的机制。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E12",
+          "quote": "",
+          "reason": "材料未提及变更的活动、流程和系统。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E13",
+          "quote": "",
+          "reason": "材料未提及对现有流程或系统的必要变更。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E14",
+          "quote": "",
+          "reason": "材料未提及如何及何时移交进入运营状态。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E15",
+          "quote": "",
+          "reason": "材料未提及效益管理计划作为基准文件或提供指导。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E16",
+          "quote": "",
+          "reason": "材料未提及利用效益管理计划验证效益实现。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E17",
+          "quote": "",
+          "reason": "材料未提及测量点和审查点。",
+          "support": "missing"
+        },
+        {
+          "id": "H012-E18",
+          "quote": "",
+          "reason": "材料未提及效益与项目集目标、财务支出、测量标准的联系。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 8549,
+      "completion_tokens": 959,
+      "total_tokens": 9508,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "cf3f511c8fe4424e978e11def95d62ef",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 18042,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c720cca49a426f13e6d0e80b9a61d81d101dfa1c11e52aee436b764a31471cee"
+  }
+}

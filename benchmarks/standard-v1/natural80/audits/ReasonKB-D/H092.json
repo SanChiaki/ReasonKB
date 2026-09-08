@@ -1,0 +1,74 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "",
+          "reason": "missing，待测材料为空，未提及标准名称",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "missing，待测材料为空，未提及行业归属",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 451,
+      "completion_tokens": 91,
+      "total_tokens": 542,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RUlepXLOAqjtwQLSRjtfV0O6",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12496,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，无法正确支持参考答案",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "",
+          "reason": "待测材料为空，完全缺乏标准名称信息，无法支持要素1",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料为空，完全缺乏行业归属信息，无法支持要素2",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 451,
+      "completion_tokens": 102,
+      "total_tokens": 553,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RK8CpfcZdU17QaAVf7Zxy1TB",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 2960,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

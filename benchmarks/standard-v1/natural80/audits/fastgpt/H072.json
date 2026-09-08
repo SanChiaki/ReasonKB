@@ -1,0 +1,119 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了问题，明确指出定时发送时根据用户选择的表、列及设定的过滤条件查询数据，最终生成XML格式文件，未包含重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "从系统配置中读取所有已经配置的表和列， 展现在页面中， 有用户自行选择发送哪些表的数据， 再根据**过滤条件**， 查询出所有的数据",
+          "reason": "quote明确支持",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "再根据过滤条件， 查询出所有的数据， 生成 **xml文件**",
+          "reason": "quote明确支持生成xml文件",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1174,
+      "completion_tokens": 177,
+      "total_tokens": 1351,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RmesKCwyVnSKytpuXLGCsFJL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8641,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "683ec0a1726a41c6852f7078a1960e16f37f72ea4ff3ac0df5691fbf432c6640"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答正确回答了问题，明确指出查询条件为用户选择的表、列及过滤条件，生成格式为XML，并引用了文档原文，无重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "再根据过滤条件， 查询出所有的数据",
+          "reason": "待测材料页面8的定时发送部分明确提到“再根据过滤条件，查询出所有的数据”，与要素完整一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "生成 xml文件",
+          "reason": "待测材料页面8定时发送部分明确提到“生成 xml文件”，与要素完整一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9996,
+      "completion_tokens": 187,
+      "total_tokens": 10183,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rly06mX8z9f6lLSOdQqh5DrX",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5794,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "70ed51aa35000d15a3928886a7bd5c013e67a2c92cc07e3607862b727e1b9a5a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整、准确地回答了问题，指出查询条件为用户选择的表、列及过滤条件，生成文件为XML，且未包含重大错误。",
+      "elements": [
+        {
+          "id": "H072-E1",
+          "quote": "再根据过滤条件， 查询出所有的数据",
+          "reason": "待测材料中明确包含此表述，实体（数据）、属性（内容）、条件（过滤条件）均正确绑定",
+          "support": "complete"
+        },
+        {
+          "id": "H072-E2",
+          "quote": "生成 xml文件",
+          "reason": "待测材料中明确包含此表述，实体（数据）、属性（格式）、条件（定时发送）均正确绑定",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9996,
+      "completion_tokens": 185,
+      "total_tokens": 10181,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RveMdOQe1GLo3x3PL4JZiOnt",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5949,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "70ed51aa35000d15a3928886a7bd5c013e67a2c92cc07e3607862b727e1b9a5a"
+  }
+}

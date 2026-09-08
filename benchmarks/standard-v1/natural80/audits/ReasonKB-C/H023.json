@@ -1,0 +1,92 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答问题且不包含正确内容。",
+      "elements": [
+        {
+          "id": "H023-e1",
+          "quote": "不处理 广播报文、 多播报文， 但正常转发。",
+          "reason": "材料中明确写出'不处理 广播报文、 多播报文， 但正常转发'，完整支持'NetStream收到不支持的报文时不处理，但正常转发'。",
+          "support": "complete"
+        },
+        {
+          "id": "H023-e2",
+          "quote": "不处理 广播报文、 多播报文",
+          "reason": "材料中明确写出'不处理 广播报文'，完整支持'广播报文是不支持的报文'。",
+          "support": "complete"
+        },
+        {
+          "id": "H023-e3",
+          "quote": "不处理 广播报文、 多播报文",
+          "reason": "材料中明确写出'不处理 多播报文'，完整支持'多播报文是不支持的报文'。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1255,
+      "completion_tokens": 259,
+      "total_tokens": 1514,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RQJzwyX4sTWjKLK9sID0Naa8",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8383,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5c40d328715fcc5983435834a05b5761723fe565a8a0499422237df9583863c1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "",
+      "elements": [
+        {
+          "id": "H023-e1",
+          "quote": "不处理 广播报文、 多播报文， 但正常转发。",
+          "reason": "待测材料中原文‘不处理 广播报文、 多播报文， 但正常转发。’明确了‘不处理’和‘正常转发’两个动作，且‘广播报文、多播报文’为不处理的对象。完整支持该要素，语句表述与参考一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H023-e2",
+          "quote": "不处理 广播报文",
+          "reason": "待测材料中‘不处理 广播报文’明确将广播报文列为不被处理的对象，符合该要素的表述。完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H023-e3",
+          "quote": "不处理 广播报文、 多播报文",
+          "reason": "待测材料中‘不处理 广播报文、 多播报文’明确将多播报文列为不被处理的对象，符合该要素的表述。完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1255,
+      "completion_tokens": 250,
+      "total_tokens": 1505,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R6wMEG3Lr1hzV7SC2DPzxJzt",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9842,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "5c40d328715fcc5983435834a05b5761723fe565a8a0499422237df9583863c1"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答任何问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "相关文档附件 （打包一套）\n列举提供了哪些交接文件，例如： 1、投标书 2、合同，以及合同技术附件；售前交接单",
+          "reason": "待测材料中包含'售前交接单'和'投标书、合同'等交接文件，与E1中'售前售后交接单或实际完成项目招投标方案、项目建设方案、项目合同电子版交接'的部分内容相关，但E1明确指定了'售前售后交接单'，材料中的'售前交接单'并非完全一致，且材料未明确提及'项目建设方案'和'项目招投标方案'，故判定为部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "E2",
+          "quote": "是否属于维护工作：否；项目进度要求：需求确认及深化设计：合同签订后1 个月；系统开发：甲方签署的内容及设计确认函之日起3.5 个月；系统部署及测试：系统开发完成后0.5 个月；系统集成及联调：系统部署完成后1 个月；系统上线试运行、培训：甲方签署试运行确认函之日起3 个月。",
+          "reason": "待测材料中未提及'项目经理任售前或先行实施项目'的内容，因此E2的'不适用'条件未得到支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "不可裁，以下情况除外；",
+          "reason": "待测材料中未包含'过程裁剪表'相关内容，也未出现'不可裁剪'的表述，故E3未得到支持。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "不可裁，以下情况除外；",
+          "reason": "待测材料中未出现'过程裁剪'、'例外'等描述，也未提及'项目经理任售前或先行实施项目'，故E4未得到支持。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3694,
+      "completion_tokens": 494,
+      "total_tokens": 4188,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RpKWQX5mDU2hnxlPapNG5Pnt",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13471,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:E1"
+    ],
+    "materialSha256": "d3c0038c50eae4f8bba589f197d1c287f0471d41ad2079883eb21ebbe6a9a18a"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer为空，未回答用户问题",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "C：有售前售后交接单或实际完成项目招投标方案、项目建设方案、项目合同 电子版交接；",
+          "reason": "待测材料包含售前交接单文档，但未包含上述引文，无直接支持E1的完整定义，且材料未提及招投标方案或项目建设方案，仅部分提及合同，故打分为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "NA:项目经理任售前、先行实施项目；",
+          "reason": "待测材料中未见此描述或类似内容，无法支持E2。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料未提及过程裁剪表或售前售后交接的裁剪属性，无法支持E3。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料未提及过程裁剪或例外条件，无法支持E4。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3694,
+      "completion_tokens": 302,
+      "total_tokens": 3996,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RRCxBuvIeHMPNkg1B38IeTfq",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8855,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "d3c0038c50eae4f8bba589f197d1c287f0471d41ad2079883eb21ebbe6a9a18a"
+  }
+}

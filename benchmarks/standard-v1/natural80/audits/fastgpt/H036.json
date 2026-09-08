@@ -1,0 +1,329 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答未针对参考要素作答，反而认为绩效管理是被管理者的相互提升（对应要素9）等参考表述，存在矛盾，因此最终回答不正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "设定战略性的整体总目标，再由总目标分解成各部门、各单位和每个人的具体目标。",
+          "reason": "材料提到设定整体总目标并分解到各部门、各单位和每个人，但未明确强调“预定的目标”是事先制定好的目标，缺少对“预定”和“事先制定”的绑定，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "管理者与下级共同商定实现目标的行动计划，并定期检查进展、向有关单位和个人反馈。",
+          "reason": "材料提到共同商定计划和检查反馈，但未涉及“如果没有制定好的目标，就不是考核，就是主观臆测”这一否定性条件，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "3",
+          "quote": "设定战略性的整体总目标，再由总目标分解成各部门、各单位和每个人的具体目标。",
+          "reason": "材料提到总目标分解成各部门、各单位和每个人的具体目标，隐含了企业目标、部门目标和个人目标，但未明确“三个目标要做到和谐统一”，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "4",
+          "quote": "",
+          "reason": "材料未提及个人目标要服从于部门目标和企业目标，也没有相关表述。",
+          "support": "missing"
+        },
+        {
+          "id": "5",
+          "quote": "",
+          "reason": "材料未提及部门目标和企业目标对个人目标有指导作用，也没有相关表述。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "材料未提及制定目标要考虑员工的个人价值、部门效益和其他影响。",
+          "support": "missing"
+        },
+        {
+          "id": "7",
+          "quote": "",
+          "reason": "材料未提及“制定可达到的目标是考核的前提”，也未明确目标的可达到性。",
+          "support": "missing"
+        },
+        {
+          "id": "8",
+          "quote": "",
+          "reason": "材料未提及目标不可能实现或过低不利于考核。",
+          "support": "missing"
+        },
+        {
+          "id": "9",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "材料未提及绩效管理是管理者与被管理者的相互提升，但提到了双方的互动和共同收益，隐含了相互提升的意味，但未直接表述，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "10",
+          "quote": "管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升。",
+          "reason": "材料完全支持“管理者方法得当，指引正确，被管理者乐得其所，在辛勤付出的同时收获职位的提升，薪酬的增加，个人成就感增加及归属感提升”。",
+          "support": "complete"
+        },
+        {
+          "id": "11",
+          "quote": "定期检查进展、向有关单位和个人反馈。",
+          "reason": "材料提到定期检查进展和反馈，但未明确通过目标和效果的比较来发现差异、分析达成程度，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "12",
+          "quote": "管理者与下级共同商定实现目标的行动计划，并定期检查进展、向有关单位和个人反馈。",
+          "reason": "材料提到向有关单位和个人反馈，但未明确“与员工反馈考核的情况”，因此只支持了一部分。",
+          "support": "partial"
+        },
+        {
+          "id": "13",
+          "quote": "",
+          "reason": "材料未提及“员工应该知道考核的情况”。",
+          "support": "missing"
+        },
+        {
+          "id": "14",
+          "quote": "",
+          "reason": "材料未提及通过反馈让员工知道做得好的地方和不足的地方，并提出改进意见。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 3487,
+      "completion_tokens": 991,
+      "total_tokens": 4478,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RaGakYg3MLzD45DvIJpSNURB",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15685,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:9",
+      "invalid_quote:10"
+    ],
+    "materialSha256": "a49832d832f7053ef416b26c5398a149c28e103e03a159ecbdd9c53088fb2fad"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer未按参考答案的14项关键做法回答，而是从方案整体中归纳出与题目所问（最后总结）不直接对应的内容，未完整回答问题。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "绩效考核要有预定的目标，预定的目标就是考核还没有开始，事先就制定好的目标。",
+          "reason": "待测材料未包含此句，finalAnswer也未提及预定的目标。",
+          "support": "missing"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料未包含“没有制定好的目标就不是考核”或类似否定表述。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "",
+          "reason": "待测材料未提及企业、部门、个人目标的和谐统一。",
+          "support": "missing"
+        },
+        {
+          "id": "4",
+          "quote": "",
+          "reason": "待测材料未提及个人目标服从部门和企业目标。",
+          "support": "missing"
+        },
+        {
+          "id": "5",
+          "quote": "",
+          "reason": "待测材料未提及部门和企业目标对个人目标的指导作用。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "待测材料未提及制定目标时考虑个人价值、部门效益等方面。",
+          "support": "missing"
+        },
+        {
+          "id": "7",
+          "quote": "",
+          "reason": "待测材料未提及制定可达到目标是考核前提。",
+          "support": "missing"
+        },
+        {
+          "id": "8",
+          "quote": "",
+          "reason": "待测材料未提及目标不可能实现或过低不利于考核。",
+          "support": "missing"
+        },
+        {
+          "id": "9",
+          "quote": "",
+          "reason": "待测材料未提及绩效管理是管理者与被管理者的相互提升。",
+          "support": "missing"
+        },
+        {
+          "id": "10",
+          "quote": "",
+          "reason": "待测材料未提及管理者方法得当等具体描述。",
+          "support": "missing"
+        },
+        {
+          "id": "11",
+          "quote": "",
+          "reason": "待测材料未提及发现差异、目标效果比较等。",
+          "support": "missing"
+        },
+        {
+          "id": "12",
+          "quote": "",
+          "reason": "待测材料未提及与员工反馈考核情况、沟通。",
+          "support": "missing"
+        },
+        {
+          "id": "13",
+          "quote": "",
+          "reason": "待测材料未提及员工应该知道考核情况。",
+          "support": "missing"
+        },
+        {
+          "id": "14",
+          "quote": "",
+          "reason": "待测材料未提及反馈做得好的地方和不足及改进意见。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11490,
+      "completion_tokens": 683,
+      "total_tokens": 12173,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RMXcTnJDMEA0JVPc0duujSZ5",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8859,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fd0d3a87844726f3c602586954db7eb86828e28e0da945e0158994945ddd4602"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答虽基于文档证据给出了华为研发绩效考核方案的具体做法（考核模式、方法、指标、周期、流程、应用、原则），但未包含参考答案所要求的14个关键要素（如预定目标、目标体系、绩效管理是相互提升、反馈沟通等）。且其回答以制度实施方案的具体操作为主，而非参考答案所总结的课程心得式的关键做法，因此与问题期望的答案实质不符。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "考核指标应是明确、具体、有挑战性同时又是现实可行的，并且要切合公司的战略目标、综合平衡短期目标与长期目标的关系。",
+          "reason": "待测材料中仅提及考核指标需现实可行且符合战略目标，但未明确表述“绩效考核要有预定的目标”及“考核还没有开始，事先就制定好的目标”这一核心实体和条件。故仅部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "",
+          "reason": "待测材料中未提及“没有制定好的目标，就不是考核，就是主观臆测”的相关表述。",
+          "support": "missing"
+        },
+        {
+          "id": "3",
+          "quote": "通过组织的整体目标和战略，部门管理者及其上级一起设定本部门具体目标，再由总目标再分解成各部门各单位和每个人的具体目标。",
+          "reason": "待测材料虽涉及总目标、部门目标、个人目标的分解，但未明确表述“三个目标要做到和谐统一”。",
+          "support": "partial"
+        },
+        {
+          "id": "4",
+          "quote": "下级的分项目标和个人目标是构成和实现上级总目标的充分而必要的条件",
+          "reason": "待测材料提到下级个人目标是实现上级总目标的必要条件，但未明确“个人目标要服从于部门目标和企业目标”的服从关系。",
+          "support": "partial"
+        },
+        {
+          "id": "5",
+          "quote": "",
+          "reason": "待测材料未提及“部门目标和企业目标对个人目标有指导作用”的表述。",
+          "support": "missing"
+        },
+        {
+          "id": "6",
+          "quote": "",
+          "reason": "待测材料未提及制定目标需考虑员工个人价值、部门效益和其他影响。",
+          "support": "missing"
+        },
+        {
+          "id": "7",
+          "quote": "考核指标应是明确、具体、有挑战性同时又是现实可行的",
+          "reason": "待测材料强调指标需现实可行，但未明确“制定可达到的目标是考核的前提”这一条件。",
+          "support": "partial"
+        },
+        {
+          "id": "8",
+          "quote": "",
+          "reason": "待测材料未提及“目标不可能实现或目标过低都不利于考核”的内容。",
+          "support": "missing"
+        },
+        {
+          "id": "9",
+          "quote": "",
+          "reason": "待测材料未提及“绩效管理是管理者与被管理者的相互提升”。",
+          "support": "missing"
+        },
+        {
+          "id": "10",
+          "quote": "",
+          "reason": "待测材料未提及管理者方法得当、被管理者收获职位提升等具体描述。",
+          "support": "missing"
+        },
+        {
+          "id": "11",
+          "quote": "在实施的过程中要定期检查实现目标的进展情况，并向有关单位和个人反馈。",
+          "reason": "待测材料提及定期检查和反馈进展，但未明确“通过目标和效果的比较，发现差异，分析达成程度并找出不一致的地方”。",
+          "support": "partial"
+        },
+        {
+          "id": "12",
+          "quote": "在实施的过程中要定期检查实现目标的进展情况，并向有关单位和个人反馈。",
+          "reason": "待测材料提到反馈，但仅笼统提及“反馈”，并非专门针对考核情况的反馈，也未提及与员工沟通。",
+          "support": "partial"
+        },
+        {
+          "id": "13",
+          "quote": "",
+          "reason": "待测材料未提及“员工应该知道考核的情况”。",
+          "support": "missing"
+        },
+        {
+          "id": "14",
+          "quote": "",
+          "reason": "待测材料未提及通过反馈让员工知道做得好与不足并改进。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11490,
+      "completion_tokens": 979,
+      "total_tokens": 12469,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RnalGy8O7dRflJDxTkzzV97M",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 14380,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "fd0d3a87844726f3c602586954db7eb86828e28e0da945e0158994945ddd4602"
+  }
+}

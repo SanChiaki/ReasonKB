@@ -1,0 +1,320 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料不完整，且最终回答为空，无法回答问题，因此不正确。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E5",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E6",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E7",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E8",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E9",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E10",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E11",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E12",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E13",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E14",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E15",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E16",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E17",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E18",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E19",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E20",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E21",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        },
+        {
+          "id": "E22",
+          "quote": "",
+          "reason": "待测材料为空，无法支持该要素。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2815,
+      "completion_tokens": 768,
+      "total_tokens": 3583,
+      "prompt_tokens_details": {
+        "cached_tokens": 2560
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R8uxtqiBhnJcnKFBnKfpuH4K",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 22149,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料为空，最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "E1",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E2",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E3",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E4",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E5",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E6",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E7",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E8",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E9",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E10",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E11",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E12",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E13",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E14",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E15",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E16",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E17",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E18",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E19",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E20",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E21",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        },
+        {
+          "id": "E22",
+          "quote": "",
+          "reason": "材料为空，无法支持",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2815,
+      "completion_tokens": 655,
+      "total_tokens": 3470,
+      "prompt_tokens_details": {
+        "cached_tokens": 2560
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R8QU7Djj0ULfOiwUavUISz2I",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12367,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

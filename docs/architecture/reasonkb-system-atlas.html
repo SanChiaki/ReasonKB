@@ -183,10 +183,10 @@
               <article class="stage" data-index="02" data-path="common"><h3>加载可检索文档</h3><code>documents_loaded</code><p>ready · active · retrieval_eligible · current index</p></article>
               <article class="stage" data-index="03" data-path="common" data-gate><h3>候选文档路由</h3><code>document_selection_started → documents_selected</code><p>semantic + BM25 + LLM + deterministic fallback</p></article>
               <article class="stage" data-index="04" data-path="candidate no-evidence evidence"><h3>开始 Evidence Wave</h3><code>evidence_wave_started</code><p>首轮少量文档，必要时继续扩展</p></article>
-              <article class="stage" data-index="05" data-path="candidate no-evidence evidence"><h3>并行文档内导航</h3><code>document_pages_selected</code><p>选页、读取、充分性判断、继续树导航</p></article>
+              <article class="stage" data-index="05" data-path="candidate no-evidence evidence"><h3>并行文档内导航</h3><code>document_pages_selected</code><p>默认 C：锚点选页、按要素检查覆盖；普通题最多 4 轮/24 页，复杂题 5 轮/40 页</p></article>
               <article class="stage" data-index="06" data-path="candidate no-evidence evidence"><h3>形成暂定证据</h3><code>pending_validation | loaded</code><p>保留页码与出处，尚未完成集合判断</p></article>
-              <article class="stage" data-index="07" data-path="candidate no-evidence evidence" data-gate><h3>EvidenceSet 校验与覆盖</h3><code>evidence_set_assessment_completed</code><p>supporting_pages · aspects · unresolved · confidence</p></article>
-              <article class="stage" data-index="08" data-path="evidence" data-success><h3>输出适配</h3><code>evidence | answer_generation_* → result</code><p>同一 EvidenceSet，按 mode 直接返回或生成答案</p></article>
+              <article class="stage" data-index="07" data-path="candidate no-evidence evidence" data-gate><h3>EvidenceSet 校验与覆盖</h3><code>evidence_set_assessment_completed</code><p>默认 strict：supporting_pages · aspects · unresolved · confidence；显式 D/preserve 可在技术失败时保留暂定证据并标记 degraded</p></article>
+              <article class="stage" data-index="08" data-path="evidence" data-success><h3>输出适配</h3><code>evidence | answer_generation_* → result</code><p>默认 C/direct：evidence 返回完整证据，answer 直接合成；显式 D 可先抽取事实再合成</p></article>
             </div>
             <aside class="inspector" aria-live="polite">
               <div class="inspector-head"><strong>PATH INSPECTOR</strong><span data-code>D / GROUNDED</span></div>

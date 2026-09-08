@@ -1,0 +1,100 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答为空，未回答问题，且无内容支撑。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "通常，可行性评估报告包括如下七部分内容：（1）项目背景及概况；（2）项目市场分析或内外部环境分析；（3）项目优劣势分析；（4）项目实施方案及计划；（5）项目风险分析及对应措施；（6）项目投资成本与回报分析；（7）项目实施建议。",
+          "reason": "待测材料中虽部分提到七部分内容，但未明确列出全部七项，故仅部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "2",
+          "quote": "由项目发起人或指定的人员根据市场信息收集与分析的情况，撰写项目发起的可行性报告",
+          "reason": "待测材料中明确提到可行性报告由项目发起人或指定人员撰写，完全支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "待测材料明确说明信息范围因项目类型而异，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 17823,
+      "completion_tokens": 284,
+      "total_tokens": 18107,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RPgt2ew7JZUL29KolHQk9eLl",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 7164,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2",
+      "invalid_quote:3"
+    ],
+    "materialSha256": "2bb4f63b95ec4691ac69221f78992aa7fbbf2190c439626c14451ba74dd51504"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料没有提供最终回答。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "通常，可行性评估报告包括如下七部分内容：（1）项目背景及概况；（2）项目市场分析或内外部环境分析；（3）项目优劣势分析；（4）项目实施方案及计划；（5）项目风险分析及对应措施；（6）项目投资成本与回报分析；（7）项目实施建议。",
+          "reason": "直接完整支持要素1。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "由项目发起人或指定的人员根据市场信息收集与分析的情况，撰写项目发起的可行性报告",
+          "reason": "直接完整支持要素2。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "根据项目类型不同，需要收集的信息须至少包括如下范围：",
+          "reason": "直接完整支持要素3。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 17823,
+      "completion_tokens": 241,
+      "total_tokens": 18064,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RyLDjMIGR9oveHXLoyLgNwB0",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8885,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2",
+      "invalid_quote:3"
+    ],
+    "materialSha256": "2bb4f63b95ec4691ac69221f78992aa7fbbf2190c439626c14451ba74dd51504"
+  }
+}

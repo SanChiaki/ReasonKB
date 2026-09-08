@@ -1,0 +1,133 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，给出了三方开店周期缩短的具体数值（从3-6个月缩短到1-2周），并说明了来源差异，全球部署15+Region，响应时间≤3S，没有重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从3-6个月缩短到 1-2周",
+          "reason": "待测材料明确写出“第三方开店周期从3-6个月缩短到1-2周”，实体、数值、条件完全一致，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料直接引用“应用全球部署15+Region”，数值和实体匹配，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操作响应时间 ≤3S",
+          "reason": "待测材料引用同一句，包含“任何地方”“响应时间≤3S”等关键限定，完全支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1119,
+      "completion_tokens": 280,
+      "total_tokens": 1399,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RYJlzBaOgcLeCAsLcWpFoiEn",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3817,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:2",
+      "invalid_quote:3"
+    ],
+    "materialSha256": "dd1f019a50adf21a0f3624c6410b69eefda42cd4753fd7df5787b8e8b5608812"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了问题，包含了第三方开店周期缩短、全球部署规模和响应速度三个具体数据，且未引入重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从3-6个月缩短到 1-2周",
+          "reason": "待测材料第14页原文直接包含该要素，且出处明确，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Region",
+          "reason": "待测材料第14页原文直接包含该要素，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操作响应时间 ≤3S",
+          "reason": "待测材料第14页原文直接包含该要素，支持完整。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5232,
+      "completion_tokens": 232,
+      "total_tokens": 5464,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RSPQN7hZmT9RjghZqA5SZGTL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3801,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:2"
+    ],
+    "materialSha256": "1b6caec7682e4735d25b1d6b66495bb7d5a4c6e08939966b49ad11b3c2afba4f"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确提炼了文档中关于开店周期（从3-6个月缩短至1-2周）、全球部署规模（15+Region）以及响应速度（≤3秒）的信息，并注明了来源，回答了问题，未包含重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "第三方开庖周期从 3-6个月缩短到 1-2周",
+          "reason": "待测材料第14页原文直接给出相同表述，实体‘第三方开庖周期’、数量‘3-6个月’到‘1-2周’完全匹配，故为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "应用全球部署 15+Regio",
+          "reason": "待测材料第14页原文包含‘应用全球部署 15+Regio’，与要素‘全球部署15+Region’完全一致，故为完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "用户在仸何地方 打开页面或操作响应时间 ≤3S",
+          "reason": "待测材料第14页原文包含该句，与要素‘用户在任何地方打开页面或操作响应时间≤3S’完全一致（除个别字形差异），故为完整支持。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 5232,
+      "completion_tokens": 328,
+      "total_tokens": 5560,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-ReS4wbEBuMBgbLTsGuoTjmEy",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5321,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "1b6caec7682e4735d25b1d6b66495bb7d5a4c6e08939966b49ad11b3c2afba4f"
+  }
+}

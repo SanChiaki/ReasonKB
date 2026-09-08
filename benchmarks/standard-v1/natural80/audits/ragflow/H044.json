@@ -1,0 +1,141 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整准确回答了问题，涵盖了考核指标、权重、考核标准和跟踪方式，并指出证据不足，无重大错误。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "考核指标：减少成本，权重：10%",
+          "reason": "待测材料完整支持该要素，指标名称‘减少成本’和权重‘10%’均明确绑定，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "考核标准：平衡预算",
+          "reason": "待测材料明确列出‘考核标准：平衡预算’，与要素完全一致，无缺失或错误。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "跟踪方式：每月预算报告",
+          "reason": "待测材料中‘跟踪方式：每月预算报告’直接支持该要素，属性绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1117,
+      "completion_tokens": 246,
+      "total_tokens": 1363,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RdRbnfJL7zSrw1oa0OZuHnyM",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5751,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H044-e01",
+      "invalid_quote:H044-e02",
+      "invalid_quote:H044-e03"
+    ],
+    "materialSha256": "506b7ccb3ea2ca67e5078a864a445e07e9d578c31cb1c8d1f3dc307337abd684"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答正确回答了问题，包含了考核指标、权重、考核标准和跟踪方式，且基于文档证据，无重大错误，并指出了文档未提供的额外信息。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中表格明确列出“减少成本（10％）”，实体、属性、数量完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "平衡预算",
+          "reason": "待测材料中同一表格行明确列出“考核标准”为“平衡预算”，实体和属性正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料中同一表格行明确列出“如何跟踪”为“每月预算报告”，实体和属性正确绑定。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 23153,
+      "completion_tokens": 244,
+      "total_tokens": 23397,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RzkKdog4JH0OGqOizXSGBsq3",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 6452,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "28b98a67ae9d0b10b471450cae0d1483a732d6992d1276fcd84a644ab16ebf30"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整、准确地回答了问题，包含考核指标、权重、考核标准和跟踪方式，并指出了材料的局限性；没有重大错误。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中生产经理助理表格的'减少成本（10％）'完整支持该要素，包括指标名称和权重。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "平衡预算",
+          "reason": "待测材料中生产经理助理表格的'考核标准'列为'平衡预算'，完整支持该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料中生产经理助理表格的'如何跟踪'列为'每月预算报告'，完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 117985,
+      "completion_tokens": 243,
+      "total_tokens": 118228,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RiNPMB3KDU9ByPmgStnAxbAe",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 9274,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "8b89106bb0206dbcc756a0ac0af51150c179d72259fd7ff032a50f4e09a5a3b7"
+  }
+}

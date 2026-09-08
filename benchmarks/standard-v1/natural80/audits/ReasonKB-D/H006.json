@@ -1,0 +1,449 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答用户问题，无法确认各阶段及责任人员，因此整体不正确。",
+      "elements": [
+        {
+          "id": "phase-1",
+          "quote": "项目启动阶段",
+          "reason": "材料中提及“项目启动阶段”但未明确“立项阶段”及定义，仅有部分阶段名称，支持不完整。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-1a",
+          "quote": "",
+          "reason": "材料中未提及“项目发起人”及其在立项阶段的主导作用。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1b",
+          "quote": "",
+          "reason": "材料中未提及“项目评估会”及组织方式。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1c",
+          "quote": "",
+          "reason": "材料中未提及“项目管理委员会”及立项最终结果的确定。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1d",
+          "quote": "",
+          "reason": "材料中未提及“执行秘书处”及项目编号发放。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-2",
+          "quote": "项目启动阶段",
+          "reason": "材料中提及“启动阶段”但未给出详细定义，仅有阶段名称。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-2a",
+          "quote": "",
+          "reason": "材料中未提及“项目启动会”及“项目发起人”组织。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2b",
+          "quote": "",
+          "reason": "材料中未提及“项目管理委员会”审批项目经理人选。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2c",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”确定参与人员及职责分配。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-3",
+          "quote": "项目计划阶段",
+          "reason": "材料中提及“计划阶段”但未给出规划阶段定义。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-3a",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”组织制定实施计划。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-3b",
+          "quote": "",
+          "reason": "材料中未提及“项目管理委员会”审核变更。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-4",
+          "quote": "项目实施阶段",
+          "reason": "材料中提及“实施阶段”但未给出具体定义及责任人。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-4a",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”指导和管理执行。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4b",
+          "quote": "",
+          "reason": "材料中未提及“项目组成员”具体执行活动。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4c",
+          "quote": "",
+          "reason": "材料中未提及“项目管理委员会”批准变更。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4d",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”组织周会及频率。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4e",
+          "quote": "",
+          "reason": "材料中未提及周会召集人员范围。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4f",
+          "quote": "",
+          "reason": "材料中未提及“信息联络单”及发送部门。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4g",
+          "quote": "",
+          "reason": "材料中未提及资源部门无法提供时由项目管理委员会协调。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-5",
+          "quote": "项目监控阶段",
+          "reason": "材料中提及“监控”但未给出具体定义。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-5a",
+          "quote": "",
+          "reason": "材料中未提及项目组成员及项目经理自我监控。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5b",
+          "quote": "",
+          "reason": "材料中未提及项目管理委员会审批变更。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5c",
+          "quote": "",
+          "reason": "材料中未提及项目管理委员会评估及叫停。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-6",
+          "quote": "项目收尾阶段",
+          "reason": "材料中提及“收尾阶段”但未给出具体定义。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-6a",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”整理过程资源。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-6b",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”转交成果。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-7",
+          "quote": "项目总结",
+          "reason": "材料中提及“项目总结”但未明确为阶段，且未提及“总结阶段”名称。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7a",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”组织梳理及改善措施。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7b",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”全过程梳理与改善建议。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7c",
+          "quote": "",
+          "reason": "材料中未提及“项目经理”整理文件交项目管理委员会。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7d",
+          "quote": "",
+          "reason": "材料中未提及“项目经理与项目管理委员会”分别评价。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7e",
+          "quote": "",
+          "reason": "材料中未提及“项目管理委员会”确定激励结果。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 19545,
+      "completion_tokens": 1624,
+      "total_tokens": 21169,
+      "prompt_tokens_details": {
+        "cached_tokens": 7168
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R8pvZgdhKIy6kLIeCbNsDPIG",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 28181,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c91e24f3381a9fe0a82c740502bbe4775f4b5a8e89ffe9d7d1380bf9ecc9a773"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料未提供最终回答，无法判断是否回答问题。",
+      "elements": [
+        {
+          "id": "phase-1",
+          "quote": "项目启动阶段",
+          "reason": "待测材料中《华为内部资料》目录列出“项目启动阶段”，并未明确列出“立项阶段”，且其他文档未见“立项”作为独立阶段。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-1a",
+          "quote": "",
+          "reason": "未找到由项目发起人主导立项的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1b",
+          "quote": "",
+          "reason": "未找到组织项目评估会或类似描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1c",
+          "quote": "",
+          "reason": "未找到项目管理委员会确定立项结果或总经理否决权的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-1d",
+          "quote": "",
+          "reason": "未找到执行秘书处发项目编号的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-2",
+          "quote": "项目启动阶段",
+          "reason": "待测材料中《华为内部资料》目录和项目管理知识体系介绍明确有“启动阶段”。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-2a",
+          "quote": "",
+          "reason": "未找到项目发起人组织启动会或确定项目经理的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2b",
+          "quote": "",
+          "reason": "未找到项目管理委员会审批项目经理人选的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-2c",
+          "quote": "",
+          "reason": "未找到项目经理确定参与人员并分配职责的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-3",
+          "quote": "项目计划阶段",
+          "reason": "待测材料《华为内部资料》目录有“项目计划阶段”，对应规划阶段。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-3a",
+          "quote": "",
+          "reason": "未找到项目经理组织制定实施计划的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-3b",
+          "quote": "",
+          "reason": "未找到变更提请项目管理委员会审核的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-4",
+          "quote": "项目实施阶段",
+          "reason": "待测材料《华为内部资料》目录有“项目实施阶段”。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-4a",
+          "quote": "",
+          "reason": "未找到项目经理指导和管理执行的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4b",
+          "quote": "",
+          "reason": "未找到项目组成员具体执行的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4c",
+          "quote": "",
+          "reason": "未找到项目管理委员会批准变更的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4d",
+          "quote": "",
+          "reason": "未找到项目经理组织项目周会的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4e",
+          "quote": "",
+          "reason": "未找到召集项目组成员、项目发起人及项目管理委员会成员参会的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4f",
+          "quote": "",
+          "reason": "未找到项目信息联络单发给资源部门的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-4g",
+          "quote": "",
+          "reason": "未找到资源部门无法提供时由项目管理委员会协调的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-5",
+          "quote": "项目监控阶段",
+          "reason": "待测材料《华为内部资料》目录有“项目监控阶段”。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-5a",
+          "quote": "",
+          "reason": "未找到项目组成员及项目经理自我监控的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5b",
+          "quote": "",
+          "reason": "未找到项目管理委员会审批变更、评估过程的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-5c",
+          "quote": "",
+          "reason": "未找到项目管理委员会紧急叫停或调整方向的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-6",
+          "quote": "项目收尾阶段",
+          "reason": "待测材料《华为内部资料》目录和《项目管理手册》有“收尾阶段”。",
+          "support": "complete"
+        },
+        {
+          "id": "phase-responsible-6a",
+          "quote": "",
+          "reason": "未找到项目经理整理项目过程资源的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-6b",
+          "quote": "",
+          "reason": "未找到项目经理转交项目最终成果的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-7",
+          "quote": "项目总结",
+          "reason": "待测材料《华为内部资料》有“项目总结”作为收尾阶段任务。",
+          "support": "partial"
+        },
+        {
+          "id": "phase-responsible-7a",
+          "quote": "",
+          "reason": "未找到项目经理组织梳理并制定改善措施的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7b",
+          "quote": "",
+          "reason": "未找到项目经理对全过程总结及提出建议的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7c",
+          "quote": "",
+          "reason": "未找到组织整理文件资料并交项目管理委员会备案的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7d",
+          "quote": "",
+          "reason": "未找到项目经理和项目管理委员会分别评价的描述。",
+          "support": "missing"
+        },
+        {
+          "id": "phase-responsible-7e",
+          "quote": "",
+          "reason": "未找到项目管理委员会确定激励结果的描述。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 19545,
+      "completion_tokens": 1582,
+      "total_tokens": 21127,
+      "prompt_tokens_details": {
+        "cached_tokens": 7168
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-R3hWOulAtweM7TrL3YMZQ6kz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 52714,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "c91e24f3381a9fe0a82c740502bbe4775f4b5a8e89ffe9d7d1380bf9ecc9a773"
+  }
+}

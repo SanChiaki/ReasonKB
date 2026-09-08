@@ -1,0 +1,263 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答声称证据不足、无法回答，但参考答案基于原文明确列出了采购计划编制和询价计划编制的输入材料，因此最终回答未回答问题且包含重大错误（错误判断材料不支持）。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘范围说明’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘产品概述’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘采购来源’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘市场条件’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘其他计划编制的输出’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘约束条件’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘假定’作为采购计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘采购管理计划’作为询价计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘工作说明’作为询价计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "文档中**没有直接列出选供应商前所需的“输入材料”清单**",
+          "reason": "待测材料未提及‘其他计划编制的输出’作为询价计划编制输入，且整体否定存在相关清单，故缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 2017,
+      "completion_tokens": 815,
+      "total_tokens": 2832,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-ROBMp1OdlxEY34xuqgiS7qYJ",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 15718,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "664e6e8dbd3c3e344aa9ae6c3883fd45d29a15df814e8530f62d60ae2b3164cf"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答声称文档未提供相关输入材料清单，但参考答案引用了doc_f621f733-65df-418b-9a88-78ab57ebdb62第296页明确列出了采购计划编制和询价计划编制的输入数据。最终回答未回答该问题，且结论与材料事实不符，遗漏了关键信息。因此不正确。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "",
+          "reason": "待测材料未出现'范围说明'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "",
+          "reason": "待测材料未出现'产品概述'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "",
+          "reason": "待测材料未出现'采购来源'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "",
+          "reason": "待测材料未出现'市场条件'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "",
+          "reason": "待测材料未出现'其他计划编制的输出'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "",
+          "reason": "待测材料未出现'约束条件'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "",
+          "reason": "待测材料未出现'假定'，也未见采购计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "",
+          "reason": "待测材料未出现'采购管理计划'，也未见询价计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "",
+          "reason": "待测材料未出现'工作说明'，也未见询价计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "",
+          "reason": "待测材料未出现'其他计划编制的输出'，也未见询价计划编制输入数据的相关内容，完全缺失。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7036,
+      "completion_tokens": 578,
+      "total_tokens": 7614,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RDJL42YpWym2PBkoH8ae0VcL",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 12148,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "b4ca35ddfc0b533bd717d0048b54c39833f60b40d43531d93de22a84a8dd1c2f"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "finalAnswer 声称证据不足，但题干提供的参考文档（doc_f621f733...）中包含完整的输入材料清单，finalAnswer 未引用该关键证据，且未能回答用户问题，并错误地判断无法回答。",
+      "elements": [
+        {
+          "id": "H081_E1",
+          "quote": "（待测材料中未出现范围说明相关内容）",
+          "reason": "待测材料提到供应商调查、选择指标等，但未涉及“采购计划编制”的“范围说明”输入，故为missing。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E2",
+          "quote": "（待测材料中未出现产品概述相关内容）",
+          "reason": "待测材料未提及“产品概述”作为输入数据。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E3",
+          "quote": "（待测材料中未出现采购来源相关内容）",
+          "reason": "待测材料未提及“采购来源”作为输入数据。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E4",
+          "quote": "（待测材料中未出现市场条件相关内容）",
+          "reason": "待测材料未提及“市场条件”作为输入数据。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E5",
+          "quote": "（待测材料中未出现其他计划编制的输出相关内容）",
+          "reason": "待测材料未提及“其他计划编制的输出”。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E6",
+          "quote": "（待测材料中未出现约束条件相关内容）",
+          "reason": "待测材料未提及“约束条件”作为输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E7",
+          "quote": "（待测材料中未出现假定相关内容）",
+          "reason": "待测材料未提及“假定”作为输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E8",
+          "quote": "（待测材料中未出现采购管理计划相关内容）",
+          "reason": "待测材料未提及“采购管理计划”作为询价计划编制输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E9",
+          "quote": "（待测材料中未出现工作说明相关内容）",
+          "reason": "待测材料未提及“工作说明”作为询价计划编制输入。",
+          "support": "missing"
+        },
+        {
+          "id": "H081_E10",
+          "quote": "（待测材料中未出现其他计划编制的输出相关内容）",
+          "reason": "待测材料未提及询价计划编制输入的“其他计划编制的输出”。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7036,
+      "completion_tokens": 669,
+      "total_tokens": 7705,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RKuQ7apKhkazZuZufhtOlBZz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13251,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "b4ca35ddfc0b533bd717d0048b54c39833f60b40d43531d93de22a84a8dd1c2f"
+  }
+}

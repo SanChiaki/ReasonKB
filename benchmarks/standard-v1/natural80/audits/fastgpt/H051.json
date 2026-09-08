@@ -1,0 +1,236 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整覆盖了参考答案中的全部要素，包括浏览正确性、窗口与字段间浏览、访问方法、窗口对象特征、测试技术、完成标准、特殊事项，并补充了具体核对项，回答了问题且无重大错误。",
+      "elements": [
+        {
+          "id": "H051-1-E1",
+          "quote": "通过测试进行的浏览能正确反映业务的功能和需求。",
+          "reason": "待测材料在“浏览的正确性”下明确表述“通过测试进行的浏览能正确反映业务的功能和需求”，与参考要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E2",
+          "quote": "这种浏览包括窗口与窗口之间、字段与字段之间的浏览",
+          "reason": "待测材料明确提及“这种浏览包括窗口与窗口之间、字段与字段之间的浏览”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E3",
+          "quote": "以及各种访问方法（Tab 键、鼠标移动、和快捷键）的使用",
+          "reason": "待测材料列举了Tab键、鼠标移动、快捷键三种访问方法，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E4",
+          "quote": "窗口的对象和特征（例如，菜单、大小、位置、状态和中心）都符合标准。",
+          "reason": "待测材料完整列出菜单、大小、位置、状态和中心，并声明“符合标准”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E5",
+          "quote": "为每个窗口创建或修改测试，以核实各个应用程序窗口和对象都可正确地进行浏览",
+          "reason": "待测材料在“技术方法”中完整表述“为每个窗口创建或修改测试，以核实各个应用程序窗口和对象都可正确地进行浏览”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E6",
+          "quote": "并处于正常的对象状态。",
+          "reason": "待测材料在“技术方法”中明确“并处于正常的对象状态”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E7",
+          "quote": "成功地核实出各个窗口都与基准版本保持一致",
+          "reason": "待测材料在“完成标准”中明确“成功地核实出各个窗口都与基准版本保持一致”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E8",
+          "quote": "或符合可接受标准。",
+          "reason": "待测材料在“完成标准”中明确“或符合可接受标准”，与参考要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E9",
+          "quote": "并不是所有定制或第三方对象的特征都可访问。",
+          "reason": "待测材料在“例外与特殊事项”中明确“并不是所有定制或第三方对象的特征都可访问”，与参考要素一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 4772,
+      "completion_tokens": 743,
+      "total_tokens": 5515,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RjmfyTgaggAHLkshFrkkTsNz",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8590,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "a049fe5c41195c875e5ed52926930e7148c55a416a9f57ff603fd2c3bcf9db86"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测回答虽未直接否定参考答案，但额外提出文档未支持的UI安全测试与具体检查项，并推测颜色、字号等核对标准，超出原文范围；同时未能保持原文中“特殊事项”的完整性，解决材料部分存在偏差。因此，从事实一致性和回答准确度出发，判定为不正确。",
+      "elements": [
+        {
+          "id": "H051-1-E1",
+          "quote": "通过测试进行的浏览可正确反映业务的功能和需求",
+          "reason": "待测材料（doc_bfa7bbdf, p13; doc_f0f54a24, p12; doc_d56ed175, p13）明确表述该要素，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E2",
+          "quote": "这种浏览包括窗口与窗口之间、字段与字段之间的浏览",
+          "reason": "多个文档（doc_bfa7bbdf, p13; doc_f0f54a24, p12; doc_d56ed175, p13）包含此内容，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E3",
+          "quote": "以及各种访问方法（Tab键、鼠标移动、和快捷键）的使用",
+          "reason": "所有相关文档（doc_bfa7bbdf, p13; doc_f0f54a24, p12; doc_d56ed175, p13）均完整列出该要素。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E4",
+          "quote": "窗口的对象和特征（例如，菜单、大小、位置、状态和中心）都符合标准。",
+          "reason": "doc_bfa7bbdf（p13）和doc_f0f54a24（p13）均完整支持，doc_d56ed175（p13）也包含。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E5",
+          "quote": "为每个窗口创建或修改测试，以核实各个应用程序窗口和对象都可正确地进行浏览",
+          "reason": "doc_bfa7bbdf（p14）、doc_39ff7e5c（p21）、doc_f0f54a24（p13）、doc_d56ed175（p13）均完整包含该内容。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E6",
+          "quote": "并处于正常的对象状态。",
+          "reason": "支持文档（doc_bfa7bbdf, p14等）完整包含该短语，与要素一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E7",
+          "quote": "成功地核实出各个窗口都与基准版本保持一致",
+          "reason": "doc_bfa7bbdf（p14）、doc_39ff7e5c（p21）、doc_f0f54a24（p13）等均明确包含，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E8",
+          "quote": "或符合可接受标准",
+          "reason": "所有相关文档（doc_bfa7bbdf, p14等）均包含“或符合可接受标准”，支持完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E9",
+          "quote": "并不是所有定制或第三方对象的特征都可访问。",
+          "reason": "doc_bfa7bbdf（p14）、doc_39ff7e5c（p21）、doc_f0f54a24（p13）均完整支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11801,
+      "completion_tokens": 805,
+      "total_tokens": 12606,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RpLCYaH368Pk3frc9Uw4Rj9l",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 25341,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7adfec95c6db877442cc133eccc3a6e15300f04df2d74e29cd429a03a39a4ab1"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答虽然正确回答了问题，且包含所有9个参考要素的内容，但由于其中对E5、E6、E7、E8的状态判断被判定为partial而非complete（E5和E6在材料中缺少“窗口”一词导致属性绑定不完整；E7和E8因引用来源可能不足或上下文不完整），因此不能视为完全正确。此外，最终回答包含了更多额外信息（如具体检查项、测试范围、UI设计规范等），不构成重大错误，但核心要素支持度未完全达标。故answerCorrect为false。",
+      "elements": [
+        {
+          "id": "H051-1-E1",
+          "quote": "通过测试进行的浏览可正确反映业务的功能和需求，这种浏览包括窗口与窗口之间、字段与字段之间的浏览，以及各种访问方法（Tab 键、鼠标移动、和快捷键）的使用",
+          "reason": "待测材料中多个文档（doc_bfa7bbdf, doc_39ff7e5c, doc_f0f54a24）均包含此描述，实体、属性、条件绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E2",
+          "quote": "这种浏览包括窗口与窗口之间、字段与字段之间的浏览，以及各种访问方法（Tab 键、鼠标移动、和快捷键）的使用",
+          "reason": "待测材料中明确提到浏览包括窗口与窗口之间、字段与字段之间的浏览，并且与访问方法并列出现，绑定正确。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E3",
+          "quote": "这种浏览包括窗口与窗口之间、字段与字段之间的浏览，以及各种访问方法（Tab 键、鼠标移动、和快捷键）的使用",
+          "reason": "待测材料中直接列出Tab键、鼠标移动、快捷键等访问方法，与要素完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E4",
+          "quote": "窗口的对象和特征（例如，菜单、大小、位置、状态和中心）都符合标准。",
+          "reason": "待测材料中出现相同表述，实体和特征列表完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E5",
+          "quote": "为每个窗口创建或修改测试，以核实各个应用程序窗口和对象都可正确地进行浏览，并处于正常的对象状态。",
+          "reason": "待测材料中的技术描述为“为每个窗口创建或修改测试，以核实各个应用程序窗口和对象都可正确地进行浏览，并处于正常的对象状态。”在doc_bfa7bbdf和doc_f0f54a24中均出现，但doc_39ff7e5c中缺少“窗口”一词（仅“各个应用程序窗口和对象”），导致属性绑定不完整。故为partial。",
+          "support": "partial"
+        },
+        {
+          "id": "H051-1-E6",
+          "quote": "并处于正常的对象状态。",
+          "reason": "待测材料中多个来源包含“并处于正常的对象状态”，但doc_bfa7bbdf中表述为“并处于正常的对象状态。”缺失“窗口”一词，确保上下文不完整。故为partial。",
+          "support": "partial"
+        },
+        {
+          "id": "H051-1-E7",
+          "quote": "成功地核实出各个窗口都与基准版本保持一致",
+          "reason": "待测材料中多个文档（doc_bfa7bbdf, doc_39ff7e5c, doc_f0f54a24, doc_d56ed175）均包含此完成标准，但doc_bfa7bbdf和doc_f0f54a24中表述为“成功 地核实出各个 窗口都与基准版本保 持一致”，其余一致。存在拼写和排版差异，但实体和条件绑定正确，故complete。然而，因E5和E6为partial，整体支持度需考虑，但此要素本身完整。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E8",
+          "quote": "或符合可接受标准",
+          "reason": "待测材料中多个来源包含“或符合可接受标准”，与要素一致。但doc_bfa7bbdf和doc_f0f54a24中“或符合可接受标准”未明确是否来自同一来源，但上下文完整。故complete。",
+          "support": "complete"
+        },
+        {
+          "id": "H051-1-E9",
+          "quote": "并不是所有定制或第三方对象的特征都可访问。",
+          "reason": "待测材料中多个文档（doc_bfa7bbdf, doc_39ff7e5c, doc_f0f54a24）均包含此特殊事项，绑定正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 11801,
+      "completion_tokens": 1105,
+      "total_tokens": 12906,
+      "prompt_tokens_details": {
+        "cached_tokens": 1024
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RbEmoAKPteYLEJ0ZayjW4ERj",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 31787,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "7adfec95c6db877442cc133eccc3a6e15300f04df2d74e29cd429a03a39a4ab1"
+  }
+}

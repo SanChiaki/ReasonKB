@@ -1,0 +1,142 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答准确复述了参考回答中的可验证信息，如实指出材料局限性，且无重大错误，完整回答了问题。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "考核指标为“减少成本”，权重为 **10%**（页面 19）",
+          "reason": "待测材料明确给出指标名称“减少成本”及权重“10%”，实体、属性、数量完全一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "考核标准（必要条件）：- **平衡预算**（页面 19）",
+          "reason": "待测材料明确列出考核标准为“平衡预算”，实体正确绑定，无矛盾。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "跟踪方式：- **每月预算报告**（页面 19）",
+          "reason": "待测材料明确给出跟踪方式为“每月预算报告”，实体完全一致。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1027,
+      "completion_tokens": 260,
+      "total_tokens": 1287,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RqbGccixm726o60xxKHwX0rH",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 8077,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H044-e02",
+      "invalid_quote:H044-e03"
+    ],
+    "materialSha256": "873e4efa8ba80b2f4ef84d91f0c4a4f0bcf2e1344d9f6c9804addc4155ad8404"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "最终回答仅罗列了与参考答案一致的三个要点，但未明确说明“减少成本”的考核权重与考核指标及考核标准、跟踪方式的具体对应关系，且未指出文档中缺乏量化标准和例外信息，未完整回答问题（用户问的是考核、权重和跟踪，回答只是重复原文，未结合实际情况给出完整说明），因此不包含重大错误但回答不完整。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中的表格显示“减少成本（10％）”，可作为该要点的证据，且材料中出现了“减少成本（10％）”这一表述，因此该要素得到支持。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中“减少成本（10％）”的下方有“平衡预算”作为考核标准，但引用中只包含了“减少成本（10％）”，未直接引用“平衡预算”，因此仅部分支持该要素。",
+          "support": "partial"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料中“减少成本（10％）”对应的“如何跟踪”列明确为“每月预算报告”，因此完全支持该要素。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9940,
+      "completion_tokens": 313,
+      "total_tokens": 10253,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-Rsg1QQGZhr1RBlsqXrL1qKSq",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 32253,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "f4a613ba85d5634bedeafee5ba1cbaebda0d46f6d6e5aca405257346b8ce7c48"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "finalAnswer准确回答了问题，完整覆盖了考核指标、权重、考核标准和跟踪方式，并指出了证据不足的方面，无重大错误。",
+      "elements": [
+        {
+          "id": "H044-e01",
+          "quote": "减少成本（10％）",
+          "reason": "待测材料中“生产经理助理”表格明确列出考核指标“减少成本”及权重“10％”，实体和数量完全匹配。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e02",
+          "quote": "减少成本（10％）\n平衡预算",
+          "reason": "待测材料中“减少成本”行下明确列出考核标准为“平衡预算”，与参考答案一致。",
+          "support": "complete"
+        },
+        {
+          "id": "H044-e03",
+          "quote": "每月预算报告",
+          "reason": "待测材料中“减少成本”行下的“如何跟踪”列明确为“每月预算报告”，跟踪方式完全匹配。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9940,
+      "completion_tokens": 256,
+      "total_tokens": 10196,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RTEuD1mSYN9Xi3u6lX3mTcXs",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 13766,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:H044-e02"
+    ],
+    "materialSha256": "f4a613ba85d5634bedeafee5ba1cbaebda0d46f6d6e5aca405257346b8ce7c48"
+  }
+}

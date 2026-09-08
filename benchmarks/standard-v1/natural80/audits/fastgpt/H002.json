@@ -1,0 +1,187 @@
+{
+  "answerElements": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "待测最终回答完整回答了问题，明确指出差异在于有效客户单位和联系人数量（钻石10个，金牌5个），同时说明满意度得分等要求相同，未包含重大错误，结论正确。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "两者均要求客户满意度≥7分（或“不低于7分”）。",
+          "reason": "待测材料明确说明金牌客户满意度得分要求为不低于7分，实体、属性、数量均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "两者均要求客户满意度≥7分（或“不低于7分”）。",
+          "reason": "待测材料明确说明钻石客户满意度得分要求为不低于7分，实体、属性、数量均正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "客户满意度得分要求（完全一致）：两者均要求客户满意度≥7分（或“不低于7分”）。",
+          "reason": "待测材料直接陈述两者满意度得分要求一致且均为不低于7分，符合参考要素。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "金牌经销商：需提供不少于5个有效客户单位的客户信息（客户联系人≥5人）。",
+          "reason": "待测材料明确说明金牌需提供不少于5个有效客户单位的客户信息，实体、属性、数量正确。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "钻石经销商：需提供不少于10个有效客户单位的客户信息（客户联系人≥10人）。",
+          "reason": "待测材料明确说明钻石需提供不少于10个有效客户单位的客户信息，实体、属性、数量正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 1840,
+      "completion_tokens": 431,
+      "total_tokens": 2271,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "385f4a1eb3e44acfa3d1a054c2f4b571",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 3886,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2",
+      "invalid_quote:3",
+      "invalid_quote:4",
+      "invalid_quote:5"
+    ],
+    "materialSha256": "332a939940cb1095e533070256728c8a88b253507dc947fa2189af066f9dcd09"
+  },
+  "generationContext": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整回答了问题，明确指出差异在有效客户单位数量（钻石10个 vs 金牌5个），并正确说明满意度得分要求相同（≥7分），且无重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "金牌经销商认证门槛中客户满意度要求包括以下两项内容：1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于5个有效客户单位的客户信息（客户联系人≥5人）；2) 客户对伙伴平均满意度得分不低于7分",
+          "reason": "待测材料（附件2金牌）明确包含上述内容，关键实体（金牌、不少于5个有效客户单位、不低于7分）和条件（客户满意度考核要求）正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "钻石经销商认证门槛中客户满意度要求包括以下两项内容：1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于10个有效客户单位的客户信息（客户联系人≥10人）；2) 客户对伙伴平均满意度得分不低于7分",
+          "reason": "待测材料（附件2钻石）明确包含上述内容，关键实体（钻石、不少于10个有效客户单位、不低于7分）和条件正确绑定。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "金牌：客户对伙伴平均满意度得分不低于7分；钻石：客户对伙伴平均满意度得分不低于7分",
+          "reason": "两个附件分别明确金牌和钻石的满意度得分要求均为不低于7分，待测材料中包含两者，可直接推断相同，故完整支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "金牌经销商认证门槛中客户满意度要求包括以下两项内容：1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于5个有效客户单位的客户信息（客户联系人≥5人）",
+          "reason": "待测材料（附件2金牌）明确包含上述内容，实体（金牌经销商）、数量（不少于5个）和绑定条件（客户满意度考核要求）正确。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "钻石经销商认证门槛中客户满意度要求包括以下两项内容：1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于10个有效客户单位的客户信息（客户联系人≥10人）",
+          "reason": "待测材料（附件2钻石）明确包含上述内容，实体（钻石经销商）、数量（不少于10个）和绑定条件（客户满意度考核要求）正确。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9945,
+      "completion_tokens": 615,
+      "total_tokens": 10560,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "373b181c06264665b161cf7464b07a0f",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5543,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2",
+      "invalid_quote:3"
+    ],
+    "materialSha256": "a57a11e33be4157c5a57d31e2bb6b32d08dc4295953c23ffb8fcef1c61da9565"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": true,
+      "answerReason": "最终回答完整、准确地回答了问题，明确指出金牌和钻石在客户满意度考核中的差异在于提供有效客户信息数量（钻石10个，金牌5个），并正确说明满意度得分要求相同（均不低于7分），未发现重大错误。",
+      "elements": [
+        {
+          "id": "1",
+          "quote": "金牌经销商认证门槛中客户满意度要求包括以下两项内容： 1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于5个有效客户单位的客户信息 （客户联系人≥5人）... 2) 客户对伙伴平均满意度得分不低于7分",
+          "reason": "待测材料中附件2（金牌）明确说明金牌经销商满意度得分不低于7分。",
+          "support": "complete"
+        },
+        {
+          "id": "2",
+          "quote": "钻石经销商认证门槛中客户满意度要求包括以下两项内容： 1) 伙伴需征得客户授权，在规定时间内，向华为提供不少于10个有效客户单位的客户信息 （客户联系人≥10人）... 2) 客户对伙伴平均满意度得分不低于7分",
+          "reason": "待测材料中附件2（钻石）明确说明钻石经销商满意度得分不低于7分。",
+          "support": "complete"
+        },
+        {
+          "id": "3",
+          "quote": "金牌经销商认证门槛中客户满意度要求包括以下两项内容：...客户对伙伴平均满意度得分不低于7分。钻石经销商认证门槛中客户满意度要求包括以下两项内容：...客户对伙伴平均满意度得分不低于7分。",
+          "reason": "待测材料中金牌和钻石的评估指引均明确要求平均满意度得分不低于7分，因此相同要求得到支持。",
+          "support": "complete"
+        },
+        {
+          "id": "4",
+          "quote": "伙伴需征得客户授权，在规定时间内，向华为提供不少于5个有效客户单位的客户信息（客户联系人≥5人）",
+          "reason": "待测材料中附件2（金牌）明确写出该要求。",
+          "support": "complete"
+        },
+        {
+          "id": "5",
+          "quote": "伙伴需征得客户授权，在规定时间内，向华为提供不少于10个有效客户单位的客户信息（客户联系人≥10人）",
+          "reason": "待测材料中附件2（钻石）明确写出该要求。",
+          "support": "complete"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 9945,
+      "completion_tokens": 540,
+      "total_tokens": 10485,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "model": "DeepSeek-V4-Flash-0731-Fast",
+    "responseId": "60121578a707404fbb9b477866a73b69",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 5657,
+    "attempts": [],
+    "validationIssues": [
+      "invalid_quote:1",
+      "invalid_quote:2",
+      "invalid_quote:3"
+    ],
+    "materialSha256": "a57a11e33be4157c5a57d31e2bb6b32d08dc4295953c23ffb8fcef1c61da9565"
+  }
+}

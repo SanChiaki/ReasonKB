@@ -1,0 +1,86 @@
+{
+  "generationContext": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "未提供最终回答，无法判断其正确性。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "面向可交付成果的对项目工作的层次化分解",
+          "reason": "待测材料中《项目管理培训-项目范围管理.ppt》第31页明确指出WBS是“面向可交付成果的对项目工作的层次化分解”，但未提及“书面文件”，且材料中未出现“表明项目具体工作任务的书面文件”等完整表述。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "有机的组织和定义项目整个范围",
+          "reason": "待测材料中《项目管理培训-项目范围管理.ppt》第31页明确写出“有机的组织和定义项目整个范围”，与参考答案表述一致，但缺少“书面文件”等限定，仅支持核心内容。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "",
+          "reason": "待测材料中未找到“项目范围说明书”或“描述项目交付结果和工作范围的书面文件”的相关表述，仅《项目管理培训-项目范围管理.ppt》第30页提及“项目范围说明书”作为输入，但未描述其定义。",
+          "support": "missing"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7839,
+      "completion_tokens": 314,
+      "total_tokens": 8153,
+      "prompt_tokens_details": {
+        "cached_tokens": 512
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RsBrXcAwaBdLWg9aF2rDpWK4",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 18504,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "2f412595199de322779fd61d9308e1c41c150056230801e7d5b9c138ba1e4d4b"
+  },
+  "returnedEvidence": {
+    "value": {
+      "answerCorrect": false,
+      "answerReason": "待测材料的最终回答为空，未回答问题。",
+      "elements": [
+        {
+          "id": "H011-E1",
+          "quote": "面向可交付成果的对项目工作的 层次化分解",
+          "reason": "材料中未出现与参考陈述完全一致的定义，且未明确提及“书面文件”，但“面向可交付成果”和“层次化分解”支持了WBS以交付结果为导向分解的核心属性。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E2",
+          "quote": "有机的组 织和定义项目 整个范围",
+          "reason": "材料中“有机的组织和定义项目整个范围”支持WBS定义了整个项目的工作范围，但未明确提及“工作范围”，视为部分支持。",
+          "support": "partial"
+        },
+        {
+          "id": "H011-E3",
+          "quote": "详细项目范围说 明书的编制，对项目成功 至关重要。应该 根据项目启动过程中记 载的主要可交付成果，假设条件和制 约因素，来编制项目范围说 明书。",
+          "reason": "材料中描述了项目范围说明书的编制依据，但未提及其为“描述项目交付结果和工作范围的书面文件”这一完整定义，视为部分支持。",
+          "support": "partial"
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 7839,
+      "completion_tokens": 309,
+      "total_tokens": 8148,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      }
+    },
+    "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "responseId": "chatcmpl-RZp4zGhdi8HmXsDgbAund3vT",
+    "transport": "chat-v3-thinking-disabled",
+    "reasoningContentPresent": false,
+    "latencyMs": 11300,
+    "attempts": [],
+    "validationIssues": [],
+    "materialSha256": "2f412595199de322779fd61d9308e1c41c150056230801e7d5b9c138ba1e4d4b"
+  }
+}
